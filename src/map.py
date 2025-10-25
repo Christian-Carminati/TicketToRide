@@ -2,95 +2,139 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
+from typing import Dict, Tuple
 
-def load_graph() -> nx.MultiGraph:
-    G = nx.MultiGraph()
+
+class TicketToRideMap:
+    # Configurazione colori come costante di classe
+    COLOR_MAP = {
+        'R': 'red', 'B': 'blue', 'G': 'green', 'Y': 'yellow',
+        'O': 'orange', 'K': 'black', 'W': 'silver', 'P': 'purple',
+        'X': 'grey'
+    }
     
-    try:
+    # Configurazione curve per archi multipli
+    CURVE_RADII = [0.15, -0.15, 0.25, -0.25]
+    
+    def __init__(self) -> None:
+        """Inizializza TicketToRideMap"""
+        self.graph = nx.MultiGraph()
         
-        with open('src/map/city_locations.json', 'r') as f:
-            city_coords = json.load(f)
+    def load_graph(self, city_locations_file: str, routes_file: str) -> None:
+        """Carica città e rotte nel grafo.
+        
+        :param city_locations_file: Path del file contenente le coordinate delle città.
+        :param routes_file: Path del file contenente le rotte.
+        """
+        try:
+            # Carica coordinate città
+            with open(city_locations_file, 'r') as f:
+                city_coords = json.load(f)
             
-      
-        df_routes = pd.read_csv('src/map/routes.csv')
-    except FileNotFoundError as e:
-        raise FileNotFoundError(f"Errore: {e}. Controlla che i file 'city_locations.json' e 'routes.csv' siano caricati.")
-    
-    for city, coords in city_coords.items():
-        G.add_node(city, pos=(coords[0], coords[1]))
-    
-    # Aggiunge gli archi
-    for _, row in df_routes.iterrows():
-        # Assumiamo che il nome delle colonne siano: From, To, Distance, Color
-        G.add_edge(row['From'], row['To'], weight=row['Distance'], color=row['Color'])
-    
-    return G
-
-def draw_graph(G: nx.MultiGraph) -> None:
-    # Mappatura dei colori (usa K, O, X, ecc. come codici comuni TTR)
-    color_map = {'R': 'red', 'B': 'blue', 'G': 'green', 'Y': 'yellow',
-                 'O': 'orange', 'K': 'black', 'W': 'silver', 'P': 'purple',
-                 'X': 'grey'} 
-    
-    pos = nx.get_node_attributes(G, 'pos')
-    
-    plt.figure(figsize=(15, 10)) 
-    
-    nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=500)
-    nx.draw_networkx_labels(G, pos, font_size=9)
-
-    # Mappa dei raggi per curvare e separare gli archi multipli
-    radius_map = {0: 0.15, 1: -0.15, 2: 0.25, 3: -0.25} 
-    edge_counter = {}
-
-    for u, v, k, data in G.edges(keys=True, data=True):
-        # Normalizza l'ordine delle città per l'identificazione (per grafo non orientato)
-        edge_key = tuple(sorted((u, v)))
-        
-        if edge_key not in edge_counter:
-            edge_counter[edge_key] = 0
-        else:
-            edge_counter[edge_key] += 1
+            # Carica rotte
+            routes = pd.read_csv(routes_file)
             
-        current_index = edge_counter[edge_key]
-        rad = 0.0
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"File non trovato: {e}")
         
-        # Applica una curvatura solo se ci sono archi multipli
-        if G.number_of_edges(u, v) > 1:
-             rad = radius_map.get(current_index, 0.0)
-
-        # Prende il codice colore (prima lettera o X)
-        ttr_color_code = str(data.get('color', 'X')).upper()
-        mpl_color = color_map.get(ttr_color_code[0], 'grey')
+        # Aggiungi nodi
+        for city, coords in city_coords.items():
+            self.graph.add_node(city, pos=coords)
         
-        # Disegno dell'arco singolo
-        nx.draw_networkx_edges(
-            G, 
-            pos, 
-            edgelist=[(u, v)], # Disegna un solo arco alla volta
-            edge_color=[mpl_color],  # type: ignore
-            width=2,
-            connectionstyle=f"arc3,rad={rad}" 
-        )
-        
-        # Etichette del peso (opzionale: disegna solo per il primo segmento per evitare sovrapposizioni)
-        if current_index == 0:
-            nx.draw_networkx_edge_labels(
-                G, 
-                pos, 
-                edge_labels={ (u,v): data.get('weight', '') }, 
-                font_color='black', 
-                label_pos=0.5
+        # Aggiungi archi
+        for _, route in routes.iterrows():
+            self.graph.add_edge(
+                route['From'],
+                route['To'],
+                weight=route['Distance'],
+                color=route['Color']
             )
-
-    plt.title("Mappa di Ticket to Ride (USA) - Rappresentazione Geografica")
-    plt.axis('off')
-    plt.show()
+    
+    def get_graph(self) -> nx.MultiGraph:
+        """Restituisce il grafo della mappa.
+        
+        :return: Il grafo della mappa di Ticket to Ride.
+        :rtype: nx.MultiGraph
+        """
+        return self.graph
+    
+    def draw_graph(self, figsize: Tuple[int, int] = (15, 10)) -> None:
+        """Disegna il grafo della mappa.
+        
+        :param figsize: Dimensioni della finestra.
+        """
+        if self.graph.number_of_nodes() == 0:
+            raise ValueError("Il grafo è vuoto. Carica prima i dati con load_graph().")
+        
+        pos = nx.get_node_attributes(self.graph, 'pos')
+        plt.figure(figsize=figsize)
+        
+        # Disegna nodi
+        nx.draw_networkx_nodes(
+            self.graph, pos,
+            node_color='lightblue',
+            node_size=500,
+            edgecolors='black',
+            linewidths=1
+        )
+        nx.draw_networkx_labels(self.graph, pos, font_size=9)
+        
+        # Disegna archi
+        edge_counter: Dict[Tuple[str, str], int] = {}
+        drawn_labels = set()
+        
+        for u, v, data in self.graph.edges(data=True):
+            edge_key = tuple(sorted((u, v)))
+            current_index = edge_counter.get(edge_key, 0)
+            edge_counter[edge_key] = current_index + 1
+            
+            # Calcola curvatura per archi multipli
+            radius = 0.0
+            if self.graph.number_of_edges(u, v) > 1:
+                radius = self.CURVE_RADII[current_index] if current_index < len(self.CURVE_RADII) else 0.0
+            
+            # Ottieni colore
+            color_code = str(data.get('color', 'X')).upper()[0]
+            edge_color = self.COLOR_MAP.get(color_code, 'grey')
+            
+            # Disegna arco
+            nx.draw_networkx_edges(
+                self.graph, pos,
+                edgelist=[(u, v)],
+                edge_color=[edge_color], # type: ignore
+                width=2,
+                connectionstyle=f"arc3,rad={radius}"
+            )
+            
+            # Disegna etichetta peso solo una volta per coppia di città
+            if edge_key not in drawn_labels:
+                nx.draw_networkx_edge_labels(
+                    self.graph, pos,
+                    edge_labels={(u, v): data.get('weight', '')},
+                    font_color='black',
+                    font_size=8,
+                    label_pos=0.5
+                )
+                drawn_labels.add(edge_key)
+        
+        plt.title("Mappa di Ticket to ride (USA) - Rappresentazione Geografica")
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
 
 def main() -> None:
-    G: nx.MultiGraph = load_graph()
-    print(f"Grafo caricato con {G.number_of_nodes()} città e {G.number_of_edges()} tratte.")
-    draw_graph(G)
+    ttr_map = TicketToRideMap()
+  
+    ttr_map.load_graph("src/map/city_locations.json", "src/map/routes.csv")
+    
+    
+    print("Numero di nodi:", len(ttr_map.get_graph().nodes))
+    print("Numero di archi:", len(ttr_map.get_graph().edges))
+    print("Nodi del grafo:", list(ttr_map.get_graph().nodes))
+    print("Archi del grafo:", list(ttr_map.get_graph().edges(data=True)))
+    ttr_map.draw_graph()
+    
+
 
 if __name__ == "__main__":
     main()
