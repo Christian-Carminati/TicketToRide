@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import enum
 import random
 from typing import List, Dict, Optional, Tuple
+
+import pandas as pd
 from map import TicketToRideMap
 import networkx as nx
 
@@ -249,19 +251,31 @@ class Player:
 
 class GameState:
     def __init__(self) -> None:
-        self.face_up_cards: List[Color] = []
-        self.deck: Deck = Deck()
-        self.discard_pile: list[Color] = []
-        self.destination_ticket_deck: List[DestinationTicket] = []
+        """
+        Initialize a GameState object.
+
+        :return: None
+        :rtype: None
+        """
+        self.face_up_cards: List[Color] = []  # Face-up cards
+        self.deck: Deck = Deck()  # The deck of cards
+        self.discard_pile: List[Color] = []  # The discard pile
+        self.destination_ticket_deck: List[DestinationTicket] = []  # The deck of destination tickets
 
     def setup_deck(self) -> None:
-        self.deck = Deck.full_deck()
-        self.face_up_cards = []
+        """
+        Initialize the deck of cards and the face-up cards.
+        
+        :return: None
+        :rtype: None
+        """
+        self.deck: Deck = Deck.full_deck()
+        self.face_up_cards: List[Color] = []
         for _ in range(5):
-            card = self.deck.draw()
+            card: Optional[Color] = self.deck.draw()
             if card:
                 self.face_up_cards.append(card)
-        self._check_up_locomotives()        
+        self._check_up_locomotives()
 
     def _check_up_locomotives(self) -> None:
         """
@@ -350,6 +364,8 @@ class GameState:
                 drawn_tickets.append(ticket)
         return drawn_tickets
     
+    def return_destination_tickets(self, tickets: List[DestinationTicket]) -> None:
+        self.destination_ticket_deck.extend(tickets)
 
 class RouteManager:
     def __init__(self, graph: nx.MultiGraph) -> None:
@@ -403,22 +419,288 @@ class RouteManager:
             return filtered_routes
         return available_routes
     
-    def get_route(self, city1: str, city2: str) -> Optional[Route]:
+    def get_route(
+        self, 
+        city1: str, 
+        city2: str, 
+        color: Color
+    ) -> Optional[Route]:
         """
-        Get a route between two cities.
+        Get a route object from the route manager if it exists.
 
-        :param city1: The first city.
+        :param city1: The first city of the route.
         :type city1: str
-        :param city2: The second city.
+        :param city2: The second city of the route.
         :type city2: str
-        :return: The Route object if found, else None.
+        :param color: The color of the route.
+        :type color: Color
+        :return: The Route object if it exists, otherwise None.
         :rtype: Optional[Route]
         """
         for route in self.routes:
-            if (route.city1 == city1 and route.city2 == city2) or (route.city1 == city2 and route.city2 == city1):
-                return route
+            if ((route.city1 == city1 and route.city2 == city2) or
+                (route.city1 == city2 and route.city2 == city1)):
+                if route.color == color and route.owner is None:
+                    return route
         return None
+
+class ScoreCalculator:
+    @staticmethod
+    def calculate_final_scores(players: List[Player]) -> Dict[Color, int]:
+        """
+        Calculate the final scores for all players, including destination ticket points.
+
+        :param players: A list of Player objects.
+        :type players: List[Player]
+        :return: A dictionary mapping player colors to their final scores.
+        :rtype: Dict[Color, int]
+        """
+        final_scores: Dict[Color, int] = {}
+        for player in players:
+            total_score: int = player.score
+            for ticket in player.destination_tickets:
+                if ticket.is_completed(player.routes):
+                    total_score += ticket.points
+                else:
+                    total_score -= ticket.points
+            final_scores[player.color] = total_score
+        return final_scores
+    
+    @staticmethod
+    def longest_route_bonus(players: List[Player]) -> Color | None:
+        """
+        Determine the player with the longest continuous route and award them a bonus.
+
+        :param players: A list of Player objects.
+        :type players: List[Player]
+        :return: The Color of the player with the longest route.
+        :rtype: Color
+        """
+        longest_length: int = 0
+        longest_player: Optional[Color] = None
+        
+        for player in players:
+            graph = nx.Graph()
+            for route in player.routes:
+                graph.add_edge(route.city1, route.city2, weight=route.length)
+            
+            for component in nx.connected_components(graph):
+                subgraph = graph.subgraph(component)
+                length = sum(data['weight'] for u, v, data in subgraph.edges(data=True))
+                if length > longest_length:
+                    longest_length = length
+                    longest_player = player.color
+                    
+        return longest_player
+
+
+class Game:
+    def __init__(self, number_of_players: int, graph: nx.MultiGraph) -> None:
+        self.number_of_players: int = number_of_players
+        
+        if number_of_players < 2 or number_of_players > 5:
+            raise ValueError("Number of players must be between 2 and 5.")
+        
+        self.graph: nx.MultiGraph = graph
+        self.players: List[Player] = []
+        self.route_manager: RouteManager = RouteManager(graph)
+        self.game_state: GameState = GameState()
+        self.current_player_index: int = 0
+        self.is_final_round: bool = False
+        self.is_game_over: bool = False
+        
+        players_colors: List[Color] = [Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.BLACK]
+        
+        for i in range(number_of_players):
+            player: Player = Player(players_colors[i])
+            self.players.append(player)
+        
+    def _generate_destination_tickets(self, path: str) -> List[DestinationTicket]:
+        df = pd.read_csv(path)
+        tickets: List[DestinationTicket] = []
+        for _, row in df.iterrows():
+            ticket = DestinationTicket(
+                city1=row['city1'],
+                city2=row['city2'],
+                points=row['points']
+            )
+            tickets.append(ticket)
+        return tickets
+    
+    def setup(self):
+        self.game_state.setup_deck()
+
+        for player in self.players:
+            for _ in range(4):
+                card: Optional[Color] = self.game_state.draw_deck_card()
+                if card:
+                    player.hand.add_card(card)     
+        
+        self.game_state.setup_destination_tickets(self._generate_destination_tickets("src/map/tickets.csv"))
+        
+        for player in self.players:
+            tickets: List[DestinationTicket] = self.game_state.draw_destination_tickets(3)
+            player.destination_tickets.extend(tickets)
+            
+    def current_player(self) -> Player:
+        return self.players[self.current_player_index]
+    
+    def next_turn(self) -> None:
+        if self.is_game_over:
+            return
+        
+        self.current_player_index = (self.current_player_index + 1) % self.number_of_players
+        
+        if self.is_final_round and self.current_player_index == 0:
+            self.is_game_over = True
+
+    def draw_card_action(self, face_up_card_index: Optional[int]) -> bool:
+        player = self.current_player()
+        cards_drawn: int = 0
+
+        for _ in range(2):
+            if face_up_card_index is not None and face_up_card_index >= 0:
+                card = self.game_state.draw_face_up_card(face_up_card_index)
+                if card == Color.JOLLY and cards_drawn == 0:
+                    cards_drawn = 2
+                face_up_card_index = None  # Reset to draw from deck next
+            else:
+                card = self.game_state.draw_deck_card()
+            
+            if card:
+                player.hand.add_card(card)
+                cards_drawn += 1
+            
+            if cards_drawn >= 2:
+                break
+        
+        self.next_turn()
+        return True
+    
+    def claim_route_action(self, city1: str, city2: str, 
+                          color: Color, color_to_use: Color) -> bool:
+        player = self.current_player()
+        route = self.route_manager.get_route(city1, city2, color)
+        
+        if not route:
+            return False
+        
+        if player.claim_route(route, color_to_use):
+            if player.trains_left <= 2 and not self.final_round:
+                self.final_round = True
+            self.next_turn()
+            return True
+        
+        return False
+    
+    def draw_destination_ticket_action(self, keep_tickets: List[int]) -> bool:
+        player = self.current_player()
+        drawn = self.game_state.draw_destination_tickets(3)
+        
+        if len(keep_tickets) < 1:
+            return False
+        
+        kept = [drawn[i] for i in keep_tickets if i < len(drawn)]
+        returned = [drawn[i] for i in range(len(drawn)) if i not in keep_tickets]
+        
+        player.destination_tickets.extend(kept)
+        self.game_state.return_destination_tickets(returned)
+        
+        self.next_turn()
+        return True
+    
+    def calculate_winner(self) -> Tuple[Player, Dict[Color, int]]:
+        final_scores: Dict[Color, int] = {}
+        player: Color | None = None
+        
+        
+        final_scores = ScoreCalculator.calculate_final_scores(self.players)
+        player = ScoreCalculator.longest_route_bonus(self.players)
+
+        if player:
+            final_scores[player] += 10
+
+        winner = max(self.players, key=lambda p: final_scores[p.color])
+        return winner, final_scores
+
+def main() -> None:
+    from map import TicketToRideMap
+    
+    ttr_map = TicketToRideMap()
+    ttr_map.load_graph("src/map/city_locations.json", "src/map/routes.csv")
+    graph = ttr_map.get_graph()
+    
+    game = Game(number_of_players=3, graph=graph)
+    game.setup()
+    
+    print("=== TICKET TO RIDE - SIMULAZIONE ===\n")
+    
+    turn_count = 0
+    max_turns = 50
+    
+    while not game.is_game_over and turn_count < max_turns:
+        player = game.current_player()
+        print(f"Turno {turn_count + 1} - Giocatore ({player.color.value})")
+        print(f"  Carte in mano: {sum(player.hand.cards.values())}")
+        print(f"  Vagoni rimasti: {player.trains_left}")
+        print(f"  Punteggio attuale: {player.score}")
+        
+        action_choice = random.choice([0, 1, 2])
+        
+        if action_choice == 0:
+            draw_choice = random.choice([None, 0, 1, 2, 3, 4])
+            game.draw_card_action(face_up_card_index=draw_choice)
+            print("  Azione: Pesca carte")
+        
+        elif action_choice == 1:
+            available_routes = game.route_manager.get_available_routes(game.number_of_players)
+
+            claimable = []
+            for route in available_routes:
+                if route.color == Color.GREY:
+                    for color in [Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW]:
+                        if player.hand.can_claim_route(route, color):
+                            claimable.append((route, color))
+                            break
+                else:
+                    if player.hand.can_claim_route(route, route.color):
+                        claimable.append((route, route.color))
+            
+            if claimable:
+                route, color_to_use = random.choice(claimable)
+                success = game.claim_route_action(route.city1, route.city2, route.color, color_to_use)
+                if success:
+                    print(f"  Azione: Reclama rotta {route.city1}-{route.city2} (lunghezza {route.length})")
+                else:
+                    game.draw_card_action(None)
+                    print("  Azione: Pesca carte (fallback)")
+            else:
+                game.draw_card_action(None)
+                print("  Azione: Pesca carte (nessuna rotta disponibile)")
+        
+        else:
+            game.draw_destination_ticket_action([0])
+            print("  Azione: Pesca biglietti destinazione")
+        
+        print()
+        turn_count += 1
+    
+    print("\n=== FINE PARTITA ===\n")
+    
+    winner, final_scores = game.calculate_winner()
+    
+    for player in game.players:
+        print(f"Giocatore ({player.color.value}):")
+        print(f"  Punteggio finale: {final_scores[player.color]}")
+        print(f"  Rotte reclamate: {len(player.routes)}")
+        print(f"  Biglietti destinazione: {len(player.destination_tickets)}")
+        print(f"  Percorso più lungo: {ScoreCalculator.longest_route_bonus([player]) == player.color}")
+        print()
+    
+    print(f"VINCITORE: Giocatore ({winner.color.value})")
+    print(f"Punteggio: {final_scores[winner.color]}")
 
 
 if __name__ == "__main__":
-    pass
+    main()
+    
