@@ -1,8 +1,15 @@
-import networkx as nx
-import matplotlib.pyplot as plt
-import pandas as pd
+"""Map loading and visualization utilities for Ticket to Ride."""
+from __future__ import annotations
+
 import json
+from pathlib import Path
 from typing import Dict, Tuple
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import pandas as pd
+
+from core.graph import load_ticket_to_ride_graph
 
 
 class TicketToRideMap:
@@ -20,35 +27,17 @@ class TicketToRideMap:
         """Inizializza TicketToRideMap"""
         self.graph = nx.MultiGraph()
         
-    def load_graph(self, city_locations_file: str, routes_file: str) -> None:
-        """Carica città e rotte nel grafo.
-        
-        :param city_locations_file: Path del file contenente le coordinate delle città.
-        :param routes_file: Path del file contenente le rotte.
+    def load_graph(self, city_locations_file: str | Path, routes_file: str | Path) -> None:
         """
-        try:
-            # Carica coordinate città
-            with open(city_locations_file, 'r') as f:
-                city_coords = json.load(f)
-            
-            # Carica rotte
-            routes = pd.read_csv(routes_file)
-            
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"File non trovato: {e}")
+        Carica città e rotte nel grafo.
         
-        # Aggiungi nodi
-        for city, coords in city_coords.items():
-            self.graph.add_node(city, pos=coords)
+        Utilizza la funzione condivisa da core.graph per evitare duplicazione di codice.
         
-        # Aggiungi archi
-        for _, route in routes.iterrows():
-            self.graph.add_edge(
-                route['From'],
-                route['To'],
-                weight=route['Distance'],
-                color=route['Color']
-            )
+        Args:
+            city_locations_file: Path del file contenente le coordinate delle città (JSON)
+            routes_file: Path del file contenente le rotte (CSV)
+        """
+        self.graph = load_ticket_to_ride_graph(city_locations_file, routes_file)
     
     def get_graph(self) -> nx.MultiGraph:
         """Restituisce il grafo della mappa.

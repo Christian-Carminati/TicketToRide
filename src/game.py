@@ -1,11 +1,15 @@
-from dataclasses import dataclass
+"""Game state and logic for Ticket to Ride."""
+from __future__ import annotations
+
 import enum
 import random
-from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
-import pandas as pd
-from map import TicketToRideMap
 import networkx as nx
+import pandas as pd
+
+from map import TicketToRideMap
 
 class Color(enum.Enum):
     RED = 'red'
@@ -178,23 +182,17 @@ class Hand:
     def can_claim_route(self, route: Route, color_to_use: Color) -> bool:
         """
         Check if the player can claim the given route with their current hand.
+        
+        Delegates to Route.can_claim to avoid code duplication.
 
-        :param route: A Route object representing the route to claim.
-        :type route: Route
-        :param color_to_use: The color of cards to use to claim the route.
-        :type color_to_use: Color
-        :return: Whether the player can claim the route.
-        :rtype: bool
+        Args:
+            route: A Route object representing the route to claim
+            color_to_use: The color of cards to use to claim the route
+            
+        Returns:
+            Whether the player can claim the route
         """
-        if route.owner is not None:
-            return False
-        
-        if route.color == Color.GREY:
-            total = self.cards.get(color_to_use, 0) + self.cards.get(Color.JOLLY, 0)
-            return total >= route.length
-        
-        total = self.cards.get(route.color, 0) + self.cards.get(Color.JOLLY, 0)
-        return total >= route.length
+        return route.can_claim(self.cards, color_to_use)
         
 class Player:
     def __init__(self, color: Color) -> None:
