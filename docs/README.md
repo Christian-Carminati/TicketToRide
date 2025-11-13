@@ -19,6 +19,12 @@ Welcome to the Ticket to Ride AI Toolkit documentation. This project provides a 
 
 - **[RL Environments](RL_ENVIRONMENTS.md)** - Gymnasium and PettingZoo environment documentation
 - **[Training Guide](RL_TRAINING.md)** - Guide for training RL agents with Stable Baselines3 and RLlib
+- **[RL Cards Analysis](RL_CARDS_ANALYSIS.md)** - Analysis of card mechanics in RL training
+- **[Full Game RL Environment](RL_FULL_GAME.md)** - Complete RL environment with card mechanics ✅ NEW
+
+### Visualization
+
+- **[Visualization Guide](VISUALIZATION.md)** - How to visualize games between agents
 
 ## Quick Start
 

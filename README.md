@@ -1,114 +1,110 @@
 # Ticket to Ride AI Toolkit
 
-Toolkit per studiare e automatizzare partite a Ticket to Ride (mappa USA) con
-solver classici e agenti di Reinforcement Learning.
+Comprehensive toolkit to simulate Ticket to Ride (USA map), experiment with classical solvers, and train reinforcement learning agents that can plan routes, manage cards, and compete against scripted opponents.
 
-## Contenuti principali
-
-- **Simulazione del gioco**: modellazione del tabellone, delle carte e delle
-  regole base in `src/game.py` e `src/map/`.
-- **Solver tradizionali**: implementazioni greedy, local search, simulated
-  annealing, tabu e algoritmi genetici in `src/best_solution/`.
-- **Solver ottimo**: branch & bound con pruning per soluzioni esatte.
-- **Modulo RL** (`src/rl/`):
-  - Funzioni di scoring condivise (`scoring.py`).
-  - Ambienti Gymnasium (single-agent) e PettingZoo (self-play) (`envs.py`).
-  - Politiche avversarie scriptate (`opponents.py`).
-  - Script di training per Stable Baselines3 (`train_sb3.py`).
-  - Script di training self-play con RLlib (`train_rllib.py`).
-
-## Requisiti e installazione
-
-1. Creare un ambiente virtuale (opzionale ma consigliato):
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # su Windows: .venv\Scripts\activate
-   pip install --upgrade pip
-   ```
-
-2. Installare le dipendenze principali:
-
-   ```bash
-   pip install networkx pandas matplotlib gymnasium pettingzoo \
-     stable-baselines3[extra] ray[rllib] tensorboard
-   ```
-
-   > Se preferisci un file dei requisiti, crea `requirements.txt` con i pacchetti
-   > sopra e usa `pip install -r requirements.txt`.
-
-## Dataset della mappa
-
-Nella cartella `src/map/` trovi:
-
-- `city_locations.json`: coordinate approssimate delle città sulla mappa USA.
-- `routes.csv`: rotte disponibili (città, colore, lunghezza).
-- `tickets.csv`: biglietti destinazione e punteggi.
-- `USA_map.jpg`: immagine di riferimento.
-
-La classe `TicketToRideMap` in `src/map.py` carica questi file in un
-`networkx.MultiGraph` pronto per gli algoritmi.
-
-## Solver classici
-
-Per eseguire uno dei solver euristici:
+## Quick Start
 
 ```bash
-python -m best_solution.main --solver greedy
-python -m best_solution.main --solver tabu
-python -m best_solution.main --solver simulated_annealing
+git clone https://github.com/<your-account>/TicketToRide.git
+cd TicketToRide
+python -m venv venv && source venv/bin/activate
+pip install --upgrade pip
+# (optional) pip install -r requirements.txt
 ```
 
-Il modulo stampa punteggio, rotte selezionate e statistiche di calcolo.
-
-## Training con Stable Baselines3
-
-Lo script `rl/train_sb3.py` addestra un agente contro un avversario scriptato
-utilizzando PPO (default) o DQN.
+### Recommended Dependencies (Linux/macOS)
 
 ```bash
-python -m rl.train_sb3 \
+pip install networkx pandas numpy gymnasium pettingzoo supersuit \
+  stable-baselines3[extra] tensorboard ray[rllib] matplotlib
+```
+
+> Tip: run `PYTHONPATH=src` from the project root when launching scripts, or work directly inside the `src/` directory.
+
+## Main Features
+
+- **Full game simulation** (`src/game.py`, `src/map/`): official rules, card management, tickets, and scoring.
+- **Classical solvers** (`src/best_solution/`): heuristics, tabu search, simulated annealing, genetic algorithms, and branch & bound.
+- **Reinforcement learning module** (`src/rl/`):
+  - Gymnasium and PettingZoo environments with consistent action masking.
+  - Scripted opponents (`opponents.py`) to benchmark agents.
+  - Training scripts for Stable-Baselines3 (`train_full_game.py`, `train_sb3.py`) and RLlib (`train_rllib.py`).
+  - Evaluation tools (`eval_full_game.py`) and shared scoring utilities (`scoring.py`).
+- **Technical documentation** (`docs/`): diagrams, architecture notes, and tuning guides.
+
+## Tools Used
+
+- Python 3.10+
+- Gymnasium & PettingZoo for environment interfaces
+- Stable-Baselines3 and RLlib for RL algorithms
+- NetworkX, NumPy, and pandas for graph operations and data handling
+- TensorBoard and Matplotlib for logging and visualization
+
+## Training an RL Agent (PPO by default)
+
+```bash
+cd src
+PYTHONPATH=. python -m rl.train_full_game \
   --algorithm ppo \
   --timesteps 200000 \
   --opponent greedy \
-  --log-dir runs/sb3
+  --log-dir runs/full_game
 ```
 
-Parametri utili:
+Key details:
 
-- `--opponent`: politica avversaria (`random`, `greedy`, `heuristic`, `tabu`, `genetic`).
-- `--reward-*`: pesi per efficienza, biglietti, bonus connettività e punteggio finale.
-- `--checkpoint-freq`: frequenza (in step) per salvataggio modelli.
+- `FullGameSingleAgentEnv` handles draws correctly (one call equals one turn) and discourages random card collection that does not unlock new routes.
+- Reward shaping rewards efficient routes, long connections, completed tickets, and the final score differential.
+- Checkpoints are saved in `runs/full_game/checkpoints/`, with the best model stored in `runs/full_game/best_model/`.
 
-TensorBoard può essere lanciato su `runs/sb3` per monitorare reward e metrica di
-valutazione.
-
-## Self-play con RLlib
-
-Per il training multi-agente su PettingZoo:
+To monitor training progress:
 
 ```bash
-python -m rl.train_rllib \
-  --iterations 300 \
-  --num-workers 4 \
-  --log-dir runs/rllib
+tensorboard --logdir runs/full_game/tensorboard
 ```
 
-Lo script imposta PPO con una singola policy condivisa dai due giocatori.
-Checkpoint ed evaluation vengono salvati in `runs/rllib/`.
+## Evaluating a Trained Model
 
-## Struttura del progetto
+```bash
+cd src
+PYTHONPATH=. python -m rl.eval_full_game \
+  --model-path runs/full_game/final_model.zip \
+  --episodes 20 \
+  --render 0
+```
+
+The report summarizes average rewards, player vs. opponent scores, and win rate.
+
+## Playing with Classical Solvers
+
+```bash
+cd src
+PYTHONPATH=. python -m best_solution.main --solver greedy
+PYTHONPATH=. python -m best_solution.main --solver tabu
+```
+
+Each solver prints the chosen routes, final score, and computation statistics.
+
+## Project Structure
 
 ```text
 src/
-  best_solution/    # Solver euristici e ottimo
-  map/              # Dataset e utilities legate alla mappa
-  rl/               # Ambienti, avversari e script di training RL
-  game.py           # Modello generale del gioco Ticket to Ride
+  best_solution/    # Classical and optimal solvers
+  core/             # Shared constants and utilities
+  map/              # USA map dataset + loader
+  rl/               # Environments, scoring, RL training scripts
+  runs/             # Example checkpoints and logs
+docs/
+  ARCHITECTURE.md   # High-level architecture
+  RL_FULL_GAME.md   # Full-game RL environment notes
+  RL_FINE_TUNING.md # Hyperparameter and reward tuning tips
 ```
 
-## Prossimi passi suggeriti
+## Helpful Resources
 
-- Ampliare il modello del gioco con carte vagone e pesca biglietti dettagliata.
-- Aggiungere test automatici per ambiente e avversari.
-- Esplorare policy distillation o population-based training per agenti RL.
+- `docs/RL_FULL_GAME.md`: environment observations, actions, and flow.
+- `docs/RL_FINE_TUNING.md`: practical advice for tuning rewards and hyperparameters.
+- `docs/VISUALIZATION.md`: tools to visualize simulated games.
+
+Questions, ideas, or contributions? Open an issue or reach out—new strategies are always welcome!
+

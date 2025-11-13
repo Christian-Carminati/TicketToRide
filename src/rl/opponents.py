@@ -54,11 +54,18 @@ class GreedyRouteOpponentPolicy(OpponentPolicy):
     ) -> Optional[int]:
         if not valid_actions:
             return None
-        best_action = max(
-            valid_actions,
-            key=lambda idx: env.routes[idx][2],
-        )
-        return best_action
+        num_routes = getattr(env, "num_routes", len(getattr(env, "routes", [])))
+        routes = getattr(env, "routes", [])
+        # Consider only route-claim actions for greedy choice
+        route_actions = [a for a in valid_actions if isinstance(a, int) and 0 <= a < num_routes]
+        if route_actions:
+            return max(route_actions, key=lambda idx: getattr(routes[idx], "length", 0))
+        # Fallback: prefer drawing 2 from deck if encoded as first card action
+        draw_two_from_deck = num_routes  # by spec in FullGameSingleAgentEnv
+        if draw_two_from_deck in valid_actions:
+            return draw_two_from_deck
+        # Otherwise pick any valid action
+        return random.choice(list(valid_actions))
 
 
 class HeuristicOpponentPolicy(OpponentPolicy):
@@ -91,12 +98,24 @@ class HeuristicOpponentPolicy(OpponentPolicy):
             return None
 
         # Try to follow the pre-computed plan first.
-        for pair in self._target_route_pairs:
-            idx = env.pair_to_idx.get(pair)
-            if idx in valid_actions:
-                return idx
+        num_routes = getattr(env, "num_routes", len(getattr(env, "routes", [])))
+        routes = getattr(env, "routes", [])
+        route_actions = [a for a in valid_actions if isinstance(a, int) and 0 <= a < num_routes]
+        if route_actions:
+            for pair in self._target_route_pairs:
+                for idx in route_actions:
+                    route = routes[idx]
+                    cities = tuple(sorted((route.city1, route.city2)))
+                    if cities == pair:
+                        return idx
         # Fallback to greedy selection by length.
-        return max(valid_actions, key=lambda idx: env.routes[idx][2])
+        if route_actions:
+            return max(route_actions, key=lambda idx: getattr(routes[idx], "length", 0))
+        # Prefer drawing 2 from deck if available
+        draw_two_from_deck = num_routes
+        if draw_two_from_deck in valid_actions:
+            return draw_two_from_deck
+        return random.choice(list(valid_actions))
 
 
 def build_opponent(name: str, *, graph, tickets_file: str) -> OpponentPolicy:

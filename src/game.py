@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import enum
 import random
+from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -84,8 +85,8 @@ class DestinationTicket:
 
 
 class Deck:
-    def __init__(self, cards: Dict[Color, int] = {}) -> None:
-        self.cards: Dict[Color, int] = cards
+    def __init__(self, cards: Optional[Dict[Color, int]] = None) -> None:
+        self.cards: Dict[Color, int] = dict(cards) if cards else {}
 
     @staticmethod
     def full_deck() -> 'Deck':
@@ -130,6 +131,8 @@ class Deck:
                 colors.append(color)
                 weights.append(count)
                 
+        if not colors:  # Double check
+            return None
         drawn_card: Color = random.choices(colors, weights=weights, k=1)[0]
         
         self.cards[drawn_card] -= 1
@@ -162,7 +165,7 @@ class Hand:
         else:
             self.cards[card] = 1      
             
-    def remove_card(self, card: Color, count: int = 1) -> None:
+    def remove_card(self, card: Color, count: int = 1) -> bool:
         """
         Remove a card from the player's hand.
 
@@ -170,14 +173,15 @@ class Hand:
         :type card: Color
         :param count: The number of cards to remove.
         :type count: int
-        :return: None
+        :return: True if cards were removed, False if not enough cards
+        :rtype: bool
         """
         if card in self.cards and self.cards[card] >= count:
             self.cards[card] -= count
             if self.cards[card] == 0:
                 del self.cards[card]
-        else:
-            raise ValueError(f"Not enough {card} cards to remove.") 
+            return True
+        return False
         
     def can_claim_route(self, route: Route, color_to_use: Color) -> bool:
         """
@@ -211,42 +215,50 @@ class Player:
         :type route: Route
         :param color_to_use: The color of cards to use to claim the route.
         :type color_to_use: Color
-        :return: Whether the player can claim the route.
+        :return: Whether the player successfully claimed the route.
         :rtype: bool
         """
+        # Check if player can claim the route
         if not self.hand.can_claim_route(route, color_to_use):
             return False
         
+        # Determine which color to use
         if route.color == Color.GREY:
             needed_color: Color = color_to_use
         else:
             needed_color: Color = route.color
         
-        cards_to_remove: List[Color] = []
+        # Calculate how many cards of each type to remove
         available: int = self.hand.cards.get(needed_color, 0)
         jolly_needed: int = max(0, route.length - available)
         color_needed: int = route.length - jolly_needed
         
+        # Remove the color cards
         if color_needed > 0:
-            cards_to_remove.extend([needed_color] * color_needed)
-        if jolly_needed > 0:
-            cards_to_remove.extend([Color.JOLLY] * jolly_needed)
-        
-        for card in cards_to_remove:
-            count: int = cards_to_remove.count(card)
-            if not self.hand.remove_card(card, count):
+            if not self.hand.remove_card(needed_color, color_needed):
                 return False
-            cards_to_remove = [c for c in cards_to_remove if c != card]
         
+        # Remove the jolly cards
+        if jolly_needed > 0:
+            if not self.hand.remove_card(Color.JOLLY, jolly_needed):
+                # Rollback if we can't remove jolly cards
+                if color_needed > 0:
+                    # Add back the color cards we removed
+                    for _ in range(color_needed):
+                        self.hand.add_card(needed_color)
+                return False
+        
+        # Successfully removed cards, now claim the route
         route.owner = self.color
         self.routes.append(route)
         self.trains_left -= route.length
         
+        # Add points for the route
         points_table: Dict[int, int] = {1: 1, 2: 2, 3: 4, 4: 7, 5: 10, 6: 15}
         self.score += points_table.get(route.length, 0)
         
         return True
-
+    
 class GameState:
     def __init__(self) -> None:
         """
@@ -323,17 +335,21 @@ class GameState:
         :return: The drawn Color card, or None if the deck is empty.
         :rtype: Optional[Color]
         """
+        """Draw a card from the deck."""
+        if self.deck.is_empty():
+            # Rimescola le carte scartate nel mazzo
+            if len(self.discard_pile) == 0:
+                return None
+            
+            # Sposta le carte scartate nel mazzo
+            discard_counts = Counter(self.discard_pile)
+            for color, count in discard_counts.items():
+                self.deck.cards[color] = self.deck.cards.get(color, 0) + count
+            self.discard_pile.clear()
+            
+        
         return self.deck.draw()
     
-    def reshuffle_discard_into_deck(self) -> None:
-        """
-        Reshuffle the discard pile back into the deck.
-        
-        :return: None
-        """
-        random.shuffle(self.discard_pile)
-        self.deck.add_card(self.discard_pile)
-        self.discard_pile = []
         
     def setup_destination_tickets(self, tickets: List[DestinationTicket]) -> None:
         """
@@ -518,9 +534,9 @@ class Game:
         tickets: List[DestinationTicket] = []
         for _, row in df.iterrows():
             ticket = DestinationTicket(
-                city1=row['city1'],
-                city2=row['city2'],
-                points=row['points']
+                city1=row['From'],
+                city2=row['To'],
+                points=row['Points']
             )
             tickets.append(ticket)
         return tickets
@@ -534,7 +550,7 @@ class Game:
                 if card:
                     player.hand.add_card(card)     
         
-        self.game_state.setup_destination_tickets(self._generate_destination_tickets("src/map/tickets.csv"))
+        self.game_state.setup_destination_tickets(self._generate_destination_tickets("map/tickets.csv"))
         
         for player in self.players:
             tickets: List[DestinationTicket] = self.game_state.draw_destination_tickets(3)
@@ -584,8 +600,8 @@ class Game:
             return False
         
         if player.claim_route(route, color_to_use):
-            if player.trains_left <= 2 and not self.final_round:
-                self.final_round = True
+            if player.trains_left <= 2 and not self.is_final_round:
+                self.is_final_round = True
             self.next_turn()
             return True
         
@@ -625,7 +641,7 @@ def main() -> None:
     from map import TicketToRideMap
     
     ttr_map = TicketToRideMap()
-    ttr_map.load_graph("src/map/city_locations.json", "src/map/routes.csv")
+    ttr_map.load_graph("map/city_locations.json", "map/routes.csv")
     graph = ttr_map.get_graph()
     
     game = Game(number_of_players=3, graph=graph)
