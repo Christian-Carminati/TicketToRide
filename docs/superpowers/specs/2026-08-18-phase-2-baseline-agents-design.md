@@ -122,6 +122,90 @@ class BaseAgent(ABC):
        - If all tickets are completed and trains remain $> 10$, draws additional destination tickets.
        - If trains $\le 10$, claims the highest-scoring available route on the board to exhaust trains and maximize route points.
 
+### 3.4 Mathematical Walkthrough & Concrete Numerical Examples for `StrategicHeuristicAgent`
+
+To understand how the mathematical formulas govern agent behavior during a match, consider the following three concrete examples:
+
+#### Example 1: Dynamic Graph Weighting & Dijkstra Routing
+Let the board graph have vertices as cities and edges as routes. The weight function $W(r)$ assigned to route $r$ is:
+$$W(r) = \begin{cases} 
+0 & \text{if } r \text{ is claimed by the agent (free to traverse)} \\
+\text{length}(r) & \text{if } r \text{ is unclaimed (costs train cars)} \\
+\infty & \text{if } r \text{ is claimed by an opponent (blocked)}
+\end{cases}$$
+
+**Scenario:** The agent holds a Destination Ticket for $(\text{Seattle}, \text{Salt Lake City})$.
+- Route A: $\text{Seattle} \to \text{Portland}$ (Length 1, Free) $\to W = 1$
+- Route B: $\text{Portland} \to \text{Salt Lake City}$ (Length 6, Free) $\to W = 6$
+- Route C: $\text{Seattle} \to \text{Helena}$ (Length 6, Claimed by Opponent) $\to W = \infty$
+- Route D: $\text{Seattle} \to \text{Vancouver}$ (Length 1, Already claimed by Agent) $\to W = 0$
+
+**Dijkstra Execution:**
+- Path 1 (via Portland): $\text{Cost} = W(\text{Seattle-Portland}) + W(\text{Portland-Salt Lake}) = 1 + 6 = 7 \text{ trains}$.
+- Path 2 (via Helena): $\text{Cost} = W(\text{Seattle-Helena}) + W(\text{Helena-Salt Lake}) = \infty + 3 = \infty$ (Pruned).
+- Shortest Path chosen: $[\text{Seattle-Portland}, \text{Portland-Salt Lake}]$.
+
+---
+
+#### Example 2: Initial Ticket Selection & Synergy Ratio
+At the start of the game, the agent is dealt 3 tickets and must choose a subset $S$ of at least 2 tickets.
+$$\text{Efficiency}(S) = \frac{\sum_{T \in S} \text{Points}(T)}{\text{UnionTrainCost}(S)} = \frac{\sum_{T \in S} \text{Points}(T)}{\sum_{r \in \bigcup_{T \in S} \text{Path}(T)} \text{length}(r)}$$
+
+**Dealt Tickets:**
+- $T_1$: $\text{Denver} \to \text{Chicago}$ (Points: 10). Path: $\text{Denver-Omaha (4)} + \text{Omaha-Chicago (4)} \to 8 \text{ trains}$.
+- $T_2$: $\text{Denver} \to \text{Boston}$ (Points: 14). Path: $\text{Denver-Omaha (4)} + \text{Omaha-Chicago (4)} + \text{Chicago-Boston (7)} \to 15 \text{ trains}$.
+- $T_3$: $\text{Los Angeles} \to \text{Miami}$ (Points: 20). Path: $\text{LA-Phoenix-El Paso-Houston-New Orleans-Miami} \to 21 \text{ trains}$ (0 overlap with $T_1, T_2$).
+
+**Subset Evaluation:**
+1. **Subset $S_A = \{T_1, T_2\}$:**
+   - Routes needed: $\{\text{Denver-Omaha (4)}, \text{Omaha-Chicago (4)}, \text{Chicago-Boston (7)}\}$ (shared overlap!).
+   - $\text{UnionTrainCost}(S_A) = 4 + 4 + 7 = 15 \text{ trains}$.
+   - $\sum \text{Points} = 10 + 14 = 24 \text{ pts}$.
+   - $$\text{Efficiency}(S_A) = \frac{24}{15} = \mathbf{1.60} \text{ pts/wagon}$$
+
+2. **Subset $S_B = \{T_1, T_3\}$:**
+   - Routes needed: No overlap $\to 8 + 21 = 29 \text{ trains}$.
+   - $\sum \text{Points} = 10 + 20 = 30 \text{ pts}$.
+   - $$\text{Efficiency}(S_B) = \frac{30}{29} = \mathbf{1.03} \text{ pts/wagon}$$
+
+3. **Subset $S_C = \{T_1, T_2, T_3\}$:**
+   - $\text{UnionTrainCost}(S_C) = 15 + 21 = 36 \text{ trains}$.
+   - $\sum \text{Points} = 10 + 14 + 20 = 44 \text{ pts}$.
+   - $$\text{Efficiency}(S_C) = \frac{44}{36} = \mathbf{1.22} \text{ pts/wagon}$$
+
+**Decision:** The agent keeps $S_A = \{T_1, T_2\}$ because of maximal route synergy and highest points-per-train return.
+
+---
+
+#### Example 3: Card Deficiency Vector & Targeted Card Draw
+Let the agent's target routes to complete its active tickets be:
+- $r_1$: $\text{Omaha} \to \text{Chicago}$ (Length 4, Color: **BLUE**)
+- $r_2$: $\text{Denver} \to \text{Omaha}$ (Length 4, Color: **PURPLE**)
+- $r_3$: $\text{Seattle} \to \text{Portland}$ (Length 1, Color: **GRAY / ANY**)
+
+**1. Required Cards ($\text{Needed}(c)$):**
+- $\text{Needed}(\text{BLUE}) = 4$
+- $\text{Needed}(\text{PURPLE}) = 4$
+- $\text{Needed}(\text{LOCOMOTIVE / WILD}) = 1$
+- $\text{Needed}(\text{All Other Colors}) = 0$
+
+**2. Current Player Hand ($\text{Hand}(c)$):**
+- Hand: $\{ \text{BLUE}: 2, \text{PURPLE}: 5, \text{RED}: 3, \text{LOCOMOTIVE}: 0 \}$
+
+**3. Deficiency Calculation ($\Delta C(c) = \max(0, \text{Needed}(c) - \text{Hand}(c))$):**
+- $\Delta C(\text{BLUE}) = \max(0, 4 - 2) = \mathbf{2}$ (Deficit: needs 2 more Blue cards)
+- $\Delta C(\text{PURPLE}) = \max(0, 4 - 5) = \mathbf{0}$ (Surplus: 1 extra Purple card, no deficit)
+- $\Delta C(\text{RED}) = \max(0, 0 - 3) = \mathbf{0}$ (No active routes need Red)
+- $\Delta C(\text{LOCOMOTIVE}) = \mathbf{1}$ (Needs 1 wild/locomotive for gray route)
+- Total Deficiency: $\sum \Delta C(c) = 2 + 0 + 0 + 1 = 3 > 0$.
+
+**4. Action Execution:**
+- The 5 face-up cards are: `[RED, BLUE, GREEN, BLACK, YELLOW]`.
+- The agent tests each visible card against $\Delta C$:
+  - `RED`: $\Delta C(\text{RED}) = 0$ (Skip)
+  - `BLUE`: $\Delta C(\text{BLUE}) = 2 > 0$ $\to$ **MATCH!**
+- The agent immediately issues `DRAW_VISIBLE_CARD(index=1)` (the Blue card), deterministically reducing its deficit from 3 to 2, rather than drawing blindly from the hidden deck.
+
 ---
 
 ## 4. Evaluation & Tournament Engine (`src/evaluation/`)
