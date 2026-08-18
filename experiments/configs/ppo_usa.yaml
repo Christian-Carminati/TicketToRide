@@ -1,0 +1,32 @@
+name: ppo_usa_baseline
+seed: 42
+
+environment:
+  board: usa
+  players: 2
+  observation_version: 1
+  reward_version: 1
+
+algorithm:
+  name: ppo
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+
+training:
+  total_timesteps: 100000
+  rollout_steps: 512
+  num_epochs: 4
+  batch_size: 64
+  eval_freq: 10000
+  eval_episodes_per_opponent: 20
+  checkpoint_dir: experiments/checkpoints
+
+evaluation:
+  opponents:
+    - random
+    - greedy
+    - strategic

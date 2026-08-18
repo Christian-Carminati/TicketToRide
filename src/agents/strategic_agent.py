@@ -278,3 +278,6 @@ class StrategicHeuristicAgent(BaseAgent):
             return hidden[0]
 
         return visible_draws[0]
+
+
+StrategicAgent = StrategicHeuristicAgent

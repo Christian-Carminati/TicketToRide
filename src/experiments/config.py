@@ -1,16 +1,23 @@
 """Experiment Configuration schemas using Pydantic."""
 
+from typing import Any
+
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EnvironmentConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    board: str = "mini"
     players: int = 2
     observation_version: int = 1
     reward_version: int = 1
 
 
 class AlgorithmConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str = "ppo"
     recurrent: bool = False
     learning_rate: float = 3e-4
@@ -19,28 +26,47 @@ class AlgorithmConfig(BaseModel):
     clip_range: float = 0.2
     entropy_coef: float = 0.01
     value_coef: float = 0.5
+    buffer_size: int = 50000
+    batch_size: int = 64
+    target_update_freq: int = 500
+    epsilon_start: float = 1.0
+    epsilon_end: float = 0.05
+    epsilon_decay_steps: int = 20000
+    learning_starts: int = 500
+    max_grad_norm: float = 0.5
 
 
 class NetworkConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     hidden_dim: int = 128
     num_layers: int = 2
     lstm_hidden_dim: int | None = None
 
 
 class TrainingConfig(BaseModel):
-    total_timesteps: int = 100_000
+    model_config = ConfigDict(extra="ignore")
+
+    total_timesteps: int = 50000
     batch_size: int = 64
-    rollout_steps: int = 2048
-    eval_freq: int = 10_000
-    checkpoint_freq: int = 25_000
+    rollout_steps: int = 512
+    num_epochs: int = 4
+    eval_freq: int = 5000
+    eval_episodes_per_opponent: int = 20
+    checkpoint_freq: int = 25000
+    checkpoint_dir: str = "experiments/checkpoints"
 
 
 class EvaluationConfig(BaseModel):
-    opponents: list[str] = Field(default_factory=lambda: ["random", "greedy"])
-    num_episodes: int = 100
+    model_config = ConfigDict(extra="ignore")
+
+    opponents: list[str] = Field(default_factory=lambda: ["random", "greedy", "strategic"])
+    num_episodes: int = 20
 
 
 class ExperimentConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
     seed: int = 42
     environment: EnvironmentConfig = Field(default_factory=EnvironmentConfig)
@@ -52,7 +78,7 @@ class ExperimentConfig(BaseModel):
     @classmethod
     def from_yaml(cls, path: str) -> "ExperimentConfig":
         with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+            data = yaml.safe_load(f) or {}
         return cls(**data)
 
     def to_yaml(self, path: str) -> None:

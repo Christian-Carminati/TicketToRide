@@ -2,24 +2,36 @@
 
 from src.agents.base_agent import BaseAgent
 from src.evaluation.metrics import EvaluationMetrics
+from src.game.board import Board
 from src.game.game import Game
 from src.game.graph import check_ticket_completed
+from src.game.ticket import DestinationTicket
 
 
 class Evaluator:
     """Evaluates two agents in head-to-head matches with alternating player positions."""
 
-    def __init__(self, max_turns: int = 400) -> None:
+    def __init__(
+        self,
+        board: Board | None = None,
+        tickets_deck: list[DestinationTicket] | None = None,
+        max_turns: int = 400,
+        seed: int = 42,
+    ) -> None:
+        self.board = board
+        self.tickets_deck = tickets_deck
         self.max_turns = max_turns
+        self.seed = seed
 
     def evaluate(
         self,
         agent_a: BaseAgent,
         agent_b: BaseAgent,
         num_games: int = 100,
-        seed: int = 42,
+        seed: int | None = None,
     ) -> dict[str, EvaluationMetrics]:
         """Run N deterministic head-to-head games between agent_a and agent_b."""
+        run_seed = self.seed if seed is None else seed
         metrics_a = EvaluationMetrics(total_games=num_games)
         metrics_b = EvaluationMetrics(total_games=num_games)
 
@@ -32,7 +44,7 @@ class Evaluator:
         tickets_completed_b = 0
 
         for game_idx in range(num_games):
-            game_seed = seed + game_idx
+            game_seed = run_seed + game_idx
             # Alternate player seats: even games -> (A is player 0, B is player 1)
             #                       odd games -> (B is player 0, A is player 1)
             is_a_first = (game_idx % 2 == 0)
@@ -42,7 +54,12 @@ class Evaluator:
             agent_a.reset(seed=game_seed)
             agent_b.reset(seed=game_seed + 100000)
 
-            game = Game(num_players=2, seed=game_seed)
+            game = Game(
+                board=self.board,
+                tickets_deck=self.tickets_deck,
+                num_players=2,
+                seed=game_seed,
+            )
             game.reset(seed=game_seed)
 
             # Play until game over or max turns safety bound
@@ -120,3 +137,23 @@ class Evaluator:
             )
 
         return {agent_a.name: metrics_a, agent_b.name: metrics_b}
+
+    def evaluate_head_to_head(
+        self,
+        agent_a: BaseAgent,
+        agent_b: BaseAgent,
+        num_games: int = 100,
+        seed: int | None = None,
+    ) -> dict[str, float]:
+        """Convenience method returning summary win rate and score dictionary."""
+        results = self.evaluate(agent_a, agent_b, num_games=num_games, seed=seed)
+        metrics_a = results[agent_a.name]
+        metrics_b = results[agent_b.name]
+
+        return {
+            "agent_a_win_rate": float(metrics_a.win_rate),
+            "agent_b_win_rate": float(metrics_b.win_rate),
+            "agent_a_mean_score": float(metrics_a.avg_score),
+            "agent_b_mean_score": float(metrics_b.avg_score),
+            "draw_rate": float(metrics_a.draws / max(1, num_games)),
+        }

@@ -108,6 +108,10 @@ class DiscreteActionSpace:
     def n(self) -> int:
         return len(self._id_to_action)
 
+    @property
+    def size(self) -> int:
+        return self.n
+
     def to_action(self, action_id: int) -> Action:
         return self._id_to_action[action_id]
 
@@ -116,3 +120,7 @@ class DiscreteActionSpace:
         if key in self._key_to_id:
             return self._key_to_id[key]
         return self._action_to_id.get(action)
+
+    def encode_action(self, action: Action) -> int:
+        act_id = self.to_id(action)
+        return 0 if act_id is None else act_id

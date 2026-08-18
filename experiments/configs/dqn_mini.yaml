@@ -1,0 +1,32 @@
+name: dqn_mini_baseline
+seed: 42
+
+environment:
+  board: mini
+  players: 2
+  observation_version: 1
+  reward_version: 1
+
+algorithm:
+  name: dqn
+  learning_rate: 0.001
+  gamma: 0.99
+  buffer_size: 20000
+  batch_size: 32
+  target_update_freq: 200
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_steps: 5000
+  learning_starts: 200
+
+training:
+  total_timesteps: 15000
+  eval_freq: 2500
+  eval_episodes_per_opponent: 20
+  checkpoint_dir: experiments/checkpoints
+
+evaluation:
+  opponents:
+    - random
+    - greedy
+    - strategic
