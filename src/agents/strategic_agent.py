@@ -57,7 +57,6 @@ class StrategicHeuristicAgent(BaseAgent):
             return self._handle_second_card_draw(state, player, valid_actions, board)
 
         # 3. Main Turn Decision: Route Claims vs Card Draws
-        # Compute shortest paths for active incomplete tickets
         player_routes = [
             board.get_route(rid)
             for rid in player.claimed_route_ids
@@ -126,6 +125,11 @@ class StrategicHeuristicAgent(BaseAgent):
             return valid_actions[0]
 
         pending_by_id = {t.id: t for t in player.pending_tickets}
+        # Precompute path per pending ticket once
+        ticket_paths = {
+            t.id: self._compute_shortest_path_routes(player, t, board)
+            for t in player.pending_tickets
+        }
 
         def subset_efficiency(action: Action) -> float:
             ticket_ids = action.ticket_ids or ()
@@ -134,11 +138,9 @@ class StrategicHeuristicAgent(BaseAgent):
             tickets = [pending_by_id[tid] for tid in ticket_ids if tid in pending_by_id]
             total_points = sum(t.points for t in tickets)
 
-            # Compute union route cost using Dijkstra
             needed_routes: set[str] = set()
-            for t in tickets:
-                path = self._compute_shortest_path_routes(player, t, board)
-                for r in path:
+            for tid in ticket_ids:
+                for r in ticket_paths.get(tid, ()):
                     needed_routes.add(r.id)
 
             total_train_cost = sum(
@@ -154,7 +156,7 @@ class StrategicHeuristicAgent(BaseAgent):
     def _compute_shortest_path_routes(
         self, player: Player, ticket: DestinationTicket, board: Board
     ) -> list[Route]:
-        """Dijkstra shortest path algorithm on the board network."""
+        """Dijkstra shortest path algorithm on the board network using O(1) adjacency lookup."""
         city_start = ticket.city_a
         city_target = ticket.city_b
 
@@ -171,11 +173,7 @@ class StrategicHeuristicAgent(BaseAgent):
             if u == city_target:
                 break
 
-            for r in board.routes:
-                if r.city_a != u and r.city_b != u:
-                    continue
-
-                # If claimed by opponent, impassable
+            for r in board.get_adjacent_routes(u):
                 if r.claimed_by is not None and r.claimed_by != player.id:
                     continue
 
@@ -191,7 +189,6 @@ class StrategicHeuristicAgent(BaseAgent):
         if city_target not in dist or dist[city_target] == float("inf"):
             return []
 
-        # Reconstruct path
         path_routes: list[Route] = []
         curr = city_target
         while curr != city_start:
@@ -231,7 +228,6 @@ class StrategicHeuristicAgent(BaseAgent):
     def _pick_targeted_visible_card(
         self, state: GameState, visible_actions: list[Action], deficit: dict[CardColor, int]
     ) -> Action | None:
-        # Check visible locomotives
         for a in visible_actions:
             idx = a.card_index or 0
             if 0 <= idx < len(state.visible_cards):
@@ -239,7 +235,6 @@ class StrategicHeuristicAgent(BaseAgent):
                 if card.color == CardColor.LOCOMOTIVE:
                     return a
 
-        # Check visible cards matching deficit colors
         for a in visible_actions:
             idx = a.card_index or 0
             if 0 <= idx < len(state.visible_cards):
@@ -252,6 +247,11 @@ class StrategicHeuristicAgent(BaseAgent):
     def _handle_second_card_draw(
         self, state: GameState, player: Player, valid_actions: list[Action], board: Board
     ) -> Action:
+        visible_draws = [a for a in valid_actions if a.action_type == ActionType.DRAW_VISIBLE_CARD]
+        if not visible_draws:
+            hidden = [a for a in valid_actions if a.action_type == ActionType.DRAW_HIDDEN_CARD]
+            return hidden[0] if hidden else valid_actions[0]
+
         player_routes = [
             board.get_route(rid)
             for rid in player.claimed_route_ids
@@ -269,14 +269,12 @@ class StrategicHeuristicAgent(BaseAgent):
                     target_routes.append(r)
 
         deficit = self._calculate_card_deficit(player, target_routes)
-        visible_draws = [a for a in valid_actions if a.action_type == ActionType.DRAW_VISIBLE_CARD]
-        if visible_draws:
-            best = self._pick_targeted_visible_card(state, visible_draws, deficit)
-            if best:
-                return best
+        best = self._pick_targeted_visible_card(state, visible_draws, deficit)
+        if best:
+            return best
 
         hidden = [a for a in valid_actions if a.action_type == ActionType.DRAW_HIDDEN_CARD]
         if hidden:
             return hidden[0]
 
-        return valid_actions[0]
+        return visible_draws[0]

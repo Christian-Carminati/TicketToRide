@@ -34,9 +34,9 @@ The goal of the project is not simply "a board game with an AI bot", but a compl
 ### Key Modules:
 - `src/game/`: Pure deterministic game engine (Board, Route, Card, Ticket, Player, GameState, Rules). Zero ML/web dependencies.
 - `src/environment/`: Gymnasium wrapper, observation encoders (V1, V2, ...), action masking, reward calculators.
-- `src/agents/`: Agent implementations (Random, Heuristic, DQN, PPO, MCTS).
+- `src/agents/`: Agent implementations (`RandomAgent`, `GreedyAgent`, `StrategicHeuristicAgent`, `DQNAgent`, `PPOAgent`, `MCTSAgent`).
 - `src/rl/`: Neural networks, replay buffers, rollouts, advantage estimation (GAE), PPO/DQN algorithms, self-play pool.
-- `src/evaluation/`: Tournaments, Elo rating system, generalization metrics.
+- `src/evaluation/`: Tournaments, Elo rating system, head-to-head Evaluator, generalization metrics.
 - `src/experiments/`: Config validation, experiment runner, reproducibility tracking.
 - `src/api/`: FastAPI + WebSockets for real-time telemetry and control.
 - `frontend/`: React + TypeScript + Canvas/SVG web lab for live inspection.
@@ -54,6 +54,16 @@ source venv_py312/bin/activate
 
 # Install dependencies in editable mode
 pip install -e ".[dev]"
+```
+
+### Running Head-to-Head Evaluations & Tournaments
+
+```bash
+# Evaluate Strategic vs Greedy head-to-head across 100 games
+python scripts/evaluate.py --agent1 strategic --agent2 greedy --games 100 --seed 42
+
+# Run a round-robin tournament among all baseline agents
+python scripts/tournament.py --agents random,greedy,strategic --games-per-pair 50 --seed 42
 ```
 
 ### Running Tests
@@ -75,8 +85,8 @@ npm run dev
 ## 🗺 Development Roadmap
 
 - [x] **Phase 0 — Project Skeleton & Foundations**
-- [ ] **Phase 1 — Game Core**
-- [ ] **Phase 2 — Baseline Agents**
+- [x] **Phase 1 — Game Core** (Deterministic engine, rules, tickets, 100% test invariants)
+- [x] **Phase 2 — Baseline Agents & Tournament System** (`RandomAgent`, `GreedyAgent`, `StrategicHeuristicAgent`, `Evaluator`, `Tournament`, `EloSystem`)
 - [ ] **Phase 3 — Gymnasium Environment & Action Masking**
 - [ ] **Phase 4 — First RL (DQN & PPO baseline)**
 - [ ] **Phase 5 — Web Lab (Interactive Viewer & Brain Introspection)**
@@ -93,4 +103,6 @@ npm run dev
 ## 📖 Documentation
 
 - [Design & Specification](DESIGN.md)
+- [Phase 2 Baseline Agents Design](docs/superpowers/specs/2026-08-18-phase-2-baseline-agents-design.md)
+- [Phase 2 Implementation Plan](docs/superpowers/plans/2026-08-18-phase-2-baseline-agents.md)
 - [Agent & Contributor Rules](CLAUDE.md)

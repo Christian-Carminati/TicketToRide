@@ -1,6 +1,6 @@
 """Unit tests for Evaluation, Tournaments, and Elo system."""
 
-from src.agents.heuristic_agent import HeuristicAgent
+from src.agents.greedy_agent import GreedyAgent
 from src.agents.random_agent import RandomAgent
 from src.evaluation.elo import EloSystem
 from src.evaluation.evaluator import Evaluator
@@ -17,17 +17,19 @@ def test_elo_update():
     assert elo.get_rating("player2") < 1200.0
 
 
-def test_evaluator_skeleton():
+def test_evaluator_basic():
     evaluator = Evaluator()
-    agent = HeuristicAgent()
-    opponent = RandomAgent()
-    metrics = evaluator.evaluate(agent, opponent, num_episodes=5)
-    assert metrics.total_games == 5
+    agent = GreedyAgent(name="Greedy")
+    opponent = RandomAgent(name="Random")
+    results = evaluator.evaluate(agent, opponent, num_games=6, seed=42)
+    assert results["Greedy"].total_games == 6
+    assert results["Random"].total_games == 6
 
 
-def test_tournament_skeleton():
+def test_tournament_basic():
     agents = [RandomAgent(name="A1"), RandomAgent(name="A2")]
     tournament = Tournament(agents=agents, games_per_pair=2)
     results = tournament.run(seed=42)
-    assert "A1" in results
-    assert "A2" in results
+    assert "A1" in results["ratings"]
+    assert "A2" in results["ratings"]
+    assert len(results["leaderboard"]) == 2

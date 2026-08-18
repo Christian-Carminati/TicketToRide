@@ -141,29 +141,38 @@ class GameRules:
                     )
                 )
 
-            # Option 3: Claim route
+            # Option 3: Claim route (single-pass check)
             for route in board.routes:
-                if cls.can_claim_route(route, player, state, board, num_players):
-                    options = player.can_afford_route(route)
-                    for option in options:
-                        # Identify dominant color chosen (or locomotive if all locos)
-                        locos = option.get(CardColor.LOCOMOTIVE, 0)
-                        color_chosen = None
-                        for c in option:
-                            if c != CardColor.LOCOMOTIVE:
-                                color_chosen = c
-                                break
-                        if color_chosen is None and locos > 0:
-                            color_chosen = CardColor.LOCOMOTIVE
+                if route.is_claimed or not player.has_trains_for_route(route):
+                    continue
 
-                        actions.append(
-                            Action(
-                                action_type=ActionType.CLAIM_ROUTE,
-                                route_id=route.id,
-                                color_chosen=color_chosen,
-                                locomotives_count=locos,
-                            )
+                if route.is_double_route and route.double_route_pair_id:
+                    pair = board.get_route(route.double_route_pair_id)
+                    if pair and pair.is_claimed:
+                        if num_players <= 3:
+                            continue
+                        if pair.claimed_by == player.id:
+                            continue
+
+                options = player.can_afford_route(route)
+                for option in options:
+                    locos = option.get(CardColor.LOCOMOTIVE, 0)
+                    color_chosen = None
+                    for c in option:
+                        if c != CardColor.LOCOMOTIVE:
+                            color_chosen = c
+                            break
+                    if color_chosen is None and locos > 0:
+                        color_chosen = CardColor.LOCOMOTIVE
+
+                    actions.append(
+                        Action(
+                            action_type=ActionType.CLAIM_ROUTE,
+                            route_id=route.id,
+                            color_chosen=color_chosen,
+                            locomotives_count=locos,
                         )
+                    )
 
             # Option 4: Draw destination tickets
             if state.ticket_deck:
