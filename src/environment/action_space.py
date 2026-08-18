@@ -1,21 +1,102 @@
-"""Action space mapping between discrete integer actions and explicit game Actions."""
-
+"""Bi-directional mapping between discrete integer action IDs and domain Actions."""
 
 from src.game.action import Action, ActionType
+from src.game.board import Board
+from src.game.card import CardColor
+from src.game.maps import load_usa_board
+
+STANDARD_CLAIM_COLORS = [
+    CardColor.PURPLE,
+    CardColor.WHITE,
+    CardColor.BLUE,
+    CardColor.YELLOW,
+    CardColor.ORANGE,
+    CardColor.BLACK,
+    CardColor.RED,
+    CardColor.GREEN,
+]
+
+# 7 non-empty subsets of 3 indices {0, 1, 2}
+TICKET_SUBSET_INDICES: list[tuple[int, ...]] = [
+    (0,),
+    (1,),
+    (2,),
+    (0, 1),
+    (0, 2),
+    (1, 2),
+    (0, 1, 2),
+]
 
 
 class DiscreteActionSpace:
-    """Bi-directional mapping between integer action IDs and domain Actions."""
+    """Bi-directional deterministic mapping between integer action IDs and domain Actions."""
 
-    def __init__(self) -> None:
+    def __init__(self, board: Board | None = None) -> None:
+        if board is None:
+            self.board, _ = load_usa_board()
+        else:
+            self.board = board
+
         self._action_to_id: dict[Action, int] = {}
         self._id_to_action: dict[int, Action] = {}
-        self._build_default_space()
+        self._build_action_space()
 
-    def _build_default_space(self) -> None:
-        # Skeleton default action mappings
-        self._id_to_action[0] = Action(action_type=ActionType.DRAW_HIDDEN_CARD)
-        self._action_to_id[self._id_to_action[0]] = 0
+    def _build_action_space(self) -> None:
+        current_id = 0
+
+        # 0: DRAW_HIDDEN_CARD
+        act = Action(action_type=ActionType.DRAW_HIDDEN_CARD)
+        self._id_to_action[current_id] = act
+        self._action_to_id[act] = current_id
+        current_id += 1
+
+        # 1..5: DRAW_VISIBLE_CARD (slots 0..4)
+        for slot in range(5):
+            act = Action(action_type=ActionType.DRAW_VISIBLE_CARD, card_index=slot)
+            self._id_to_action[current_id] = act
+            self._action_to_id[act] = current_id
+            current_id += 1
+
+        # 6: DRAW_TICKETS
+        act = Action(action_type=ActionType.DRAW_TICKETS)
+        self._id_to_action[current_id] = act
+        self._action_to_id[act] = current_id
+        current_id += 1
+
+        # 7..13: KEEP_TICKETS (subsets of {0, 1, 2} represented by string tuple index markers)
+        for subset in TICKET_SUBSET_INDICES:
+            act = Action(
+                action_type=ActionType.KEEP_TICKETS,
+                ticket_ids=tuple(str(idx) for idx in subset),
+            )
+            self._id_to_action[current_id] = act
+            self._action_to_id[act] = current_id
+            current_id += 1
+
+        # 14+: CLAIM_ROUTE for each route in board
+        sorted_routes = sorted(self.board.routes, key=lambda r: r.id)
+        for r in sorted_routes:
+            if r.color == CardColor.LOCOMOTIVE or r.color is None:
+                # Gray route: 8 standard colors
+                for color in STANDARD_CLAIM_COLORS:
+                    act = Action(
+                        action_type=ActionType.CLAIM_ROUTE,
+                        route_id=r.id,
+                        color_chosen=color,
+                    )
+                    self._id_to_action[current_id] = act
+                    self._action_to_id[act] = current_id
+                    current_id += 1
+            else:
+                # Specific colored route
+                act = Action(
+                    action_type=ActionType.CLAIM_ROUTE,
+                    route_id=r.id,
+                    color_chosen=r.color,
+                )
+                self._id_to_action[current_id] = act
+                self._action_to_id[act] = current_id
+                current_id += 1
 
     @property
     def n(self) -> int:
@@ -25,4 +106,17 @@ class DiscreteActionSpace:
         return self._id_to_action[action_id]
 
     def to_id(self, action: Action) -> int | None:
-        return self._action_to_id.get(action)
+        # Check direct match
+        if action in self._action_to_id:
+            return self._action_to_id[action]
+
+        # Handle canonical matching for route claim if locomotives_count is specified
+        if action.action_type == ActionType.CLAIM_ROUTE:
+            canonical = Action(
+                action_type=ActionType.CLAIM_ROUTE,
+                route_id=action.route_id,
+                color_chosen=action.color_chosen,
+            )
+            return self._action_to_id.get(canonical)
+
+        return None
