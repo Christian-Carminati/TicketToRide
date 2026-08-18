@@ -23,3 +23,6 @@ class SeededRNG:
 
     def randint(self, a: int, b: int) -> int:
         return self.rng.randint(a, b)
+
+    def sample(self, items: list[T], k: int) -> list[T]:
+        return self.rng.sample(items, k)
