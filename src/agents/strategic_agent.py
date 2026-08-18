@@ -212,7 +212,7 @@ class StrategicHeuristicAgent(BaseAgent):
         for r in routes:
             if r.claimed_by == player.id:
                 continue
-            if r.color is None or r.color == CardColor.GRAY:
+            if r.color is None:
                 wild_needed += r.length
             else:
                 needed[r.color] += r.length
