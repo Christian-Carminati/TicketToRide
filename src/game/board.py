@@ -53,4 +53,4 @@ class Board:
                 adj.add(r.city_b)
             elif r.city_b == name:
                 adj.add(r.city_a)
-        return sorted(list(adj))
+        return sorted(adj)

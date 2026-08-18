@@ -5,7 +5,6 @@ from src.game.card import CardColor, TrainCard
 from src.game.game import Game
 from src.game.graph import check_ticket_completed, compute_longest_continuous_path
 from src.game.maps import create_synthetic_mini_board
-from src.game.player import Player
 from src.game.route import Route
 from src.game.ticket import DestinationTicket
 

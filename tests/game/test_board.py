@@ -1,9 +1,6 @@
 """Unit tests for Board, Routes, and Map loaders."""
 
-from src.game.board import Board, City
-from src.game.card import CardColor
 from src.game.maps import create_synthetic_mini_board, load_usa_board
-from src.game.route import Route
 
 
 def test_synthetic_mini_board():

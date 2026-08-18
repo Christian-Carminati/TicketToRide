@@ -1,6 +1,6 @@
 """Unit tests for Train Cards, Decks, and Seeded RNG."""
 
-from src.game.card import CardColor, TrainCard, create_standard_train_deck
+from src.game.card import CardColor, create_standard_train_deck
 from src.game.random import SeededRNG
 from src.game.ticket import DestinationTicket
 

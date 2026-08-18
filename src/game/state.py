@@ -1,7 +1,7 @@
 """Explicit, serializable Game State representation."""
 
-from enum import Enum
 import json
+from enum import Enum
 from typing import Any
 
 from src.game.card import CardColor, TrainCard
