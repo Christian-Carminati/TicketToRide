@@ -87,7 +87,7 @@ npm run dev
 - [x] **Phase 0 — Project Skeleton & Foundations**
 - [x] **Phase 1 — Game Core** (Deterministic engine, rules, tickets, 100% test invariants)
 - [x] **Phase 2 — Baseline Agents & Tournament System** (`RandomAgent`, `GreedyAgent`, `StrategicHeuristicAgent`, `Evaluator`, `Tournament`, `EloSystem`)
-- [ ] **Phase 3 — Gymnasium Environment & Action Masking**
+- [x] **Phase 3 — Gymnasium Environment & Action Masking** (`TicketToRideEnv`, `ObservationV1`, `ActionMasker`, `RewardV1`)
 - [ ] **Phase 4 — First RL (DQN & PPO baseline)**
 - [ ] **Phase 5 — Web Lab (Interactive Viewer & Brain Introspection)**
 - [ ] **Phase 6 — Custom PPO From Scratch**
