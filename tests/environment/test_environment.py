@@ -9,8 +9,8 @@ from src.game.action import ActionType
 
 
 def test_observation_encoder():
-    encoder = ObservationV1(feature_dim=64)
-    assert encoder.observation_shape == (64,)
+    encoder = ObservationV1()
+    assert encoder.observation_shape == (464,)
 
 
 def test_action_space_mapping():
@@ -30,13 +30,17 @@ def test_action_masker():
 
 
 def test_environment_lifecycle(sample_game):
-    env = TicketToRideEnv(game=sample_game)
+    env = TicketToRideEnv(board=sample_game.board, tickets_deck=sample_game.initial_tickets)
     obs, info = env.reset(seed=42)
     assert isinstance(obs, np.ndarray)
     assert "action_mask" in info
     assert len(info["action_mask"]) == env.action_space.n
 
-    next_obs, reward, terminated, _truncated, _next_info = env.step(0)
+    # Sample valid action from mask
+    valid_indices = np.where(info["action_mask"])[0]
+    action = int(valid_indices[0])
+
+    next_obs, reward, terminated, _truncated, _next_info = env.step(action)
     assert isinstance(next_obs, np.ndarray)
     assert isinstance(reward, (int, float))
     assert isinstance(terminated, bool)

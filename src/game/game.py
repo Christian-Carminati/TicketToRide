@@ -324,7 +324,14 @@ class Game:
         discard_pile: list[TrainCard],
     ) -> tuple[list[TrainCard], list[TrainCard], list[TrainCard]]:
         """Flush visible cards if 3 or more locomotives are face up."""
-        while self.rules.should_flush_visible_cards(visible_cards):
+        flush_count = 0
+        max_flushes = 10
+        while self.rules.should_flush_visible_cards(visible_cards) and flush_count < max_flushes:
+            flush_count += 1
+            non_locos = sum(1 for c in visible_cards + train_deck + discard_pile if not c.is_locomotive())
+            if non_locos < 3:
+                break
+
             discard_pile.extend(visible_cards)
             visible_cards.clear()
 
