@@ -1,0 +1,35 @@
+name: ppo_baseline_v1
+seed: 42
+
+environment:
+  players: 2
+  observation_version: 1
+  reward_version: 1
+
+algorithm:
+  name: ppo
+  recurrent: false
+  learning_rate: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+
+network:
+  hidden_dim: 128
+  num_layers: 2
+  lstm_hidden_dim: null
+
+training:
+  total_timesteps: 100000
+  batch_size: 64
+  rollout_steps: 2048
+  eval_freq: 10000
+  checkpoint_freq: 25000
+
+evaluation:
+  opponents:
+    - random
+    - greedy
+  num_episodes: 50

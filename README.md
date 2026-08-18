@@ -1,110 +1,96 @@
-# Ticket to Ride AI Toolkit
+# 🎫 TicketToRide RL Lab
 
-Comprehensive toolkit to simulate Ticket to Ride (USA map), experiment with classical solvers, and train reinforcement learning agents that can plan routes, manage cards, and compete against scripted opponents.
+**TicketToRide RL Lab** is an experimental reinforcement learning laboratory and game engine built from scratch in Python and TypeScript.
 
-## Quick Start
+The goal of the project is not simply "a board game with an AI bot", but a complete **research and experimentation environment** to build, train, inspect, benchmark, and evaluate Reinforcement Learning agents across diverse paradigms:
 
-```bash
-git clone https://github.com/<your-account>/TicketToRide.git
-cd TicketToRide
-python -m venv venv && source venv/bin/activate
-pip install --upgrade pip
-# (optional) pip install -r requirements.txt
-```
+* **Algorithms**: DQN, PPO, Recurrent PPO (LSTM), Self-Play, MCTS, Neural MCTS (AlphaZero-style)
+* **Mechanisms**: Action Masking, Reward Shaping, Partial Observability (POMDP), Opponent Modeling, Curriculum Learning, Procedural Map Generalization
+* **Introspection & Web Lab**: Live training streaming, neural policy visualization, interactive game replay, and tournament benchmarking
 
-### Recommended Dependencies (Linux/macOS)
+---
 
-```bash
-pip install networkx pandas numpy gymnasium pettingzoo supersuit \
-  stable-baselines3[extra] tensorboard ray[rllib] matplotlib
-```
-
-> Tip: run `PYTHONPATH=src` from the project root when launching scripts, or work directly inside the `src/` directory.
-
-## Main Features
-
-- **Full game simulation** (`src/game.py`, `src/map/`): official rules, card management, tickets, and scoring.
-- **Classical solvers** (`src/best_solution/`): heuristics, tabu search, simulated annealing, genetic algorithms, and branch & bound.
-- **Reinforcement learning module** (`src/rl/`):
-  - Gymnasium and PettingZoo environments with consistent action masking.
-  - Scripted opponents (`opponents.py`) to benchmark agents.
-  - Training scripts for Stable-Baselines3 (`train_full_game.py`, `train_sb3.py`) and RLlib (`train_rllib.py`).
-  - Evaluation tools (`eval_full_game.py`) and shared scoring utilities (`scoring.py`).
-- **Technical documentation** (`docs/`): diagrams, architecture notes, and tuning guides.
-
-## Tools Used
-
-- Python 3.10+
-- Gymnasium & PettingZoo for environment interfaces
-- Stable-Baselines3 and RLlib for RL algorithms
-- NetworkX, NumPy, and pandas for graph operations and data handling
-- TensorBoard and Matplotlib for logging and visualization
-
-## Training an RL Agent (PPO by default)
-
-```bash
-cd src
-PYTHONPATH=. python -m rl.train_full_game \
-  --algorithm ppo \
-  --timesteps 200000 \
-  --opponent greedy \
-  --log-dir runs/full_game
-```
-
-Key details:
-
-- `FullGameSingleAgentEnv` handles draws correctly (one call equals one turn) and discourages random card collection that does not unlock new routes.
-- Reward shaping rewards efficient routes, long connections, completed tickets, and the final score differential.
-- Checkpoints are saved in `runs/full_game/checkpoints/`, with the best model stored in `runs/full_game/best_model/`.
-
-To monitor training progress:
-
-```bash
-tensorboard --logdir runs/full_game/tensorboard
-```
-
-## Evaluating a Trained Model
-
-```bash
-cd src
-PYTHONPATH=. python -m rl.eval_full_game \
-  --model-path runs/full_game/final_model.zip \
-  --episodes 20 \
-  --render 0
-```
-
-The report summarizes average rewards, player vs. opponent scores, and win rate.
-
-## Playing with Classical Solvers
-
-```bash
-cd src
-PYTHONPATH=. python -m best_solution.main --solver greedy
-PYTHONPATH=. python -m best_solution.main --solver tabu
-```
-
-Each solver prints the chosen routes, final score, and computation statistics.
-
-## Project Structure
+## 🏛 Architecture
 
 ```text
-src/
-  best_solution/    # Classical and optimal solvers
-  core/             # Shared constants and utilities
-  map/              # USA map dataset + loader
-  rl/               # Environments, scoring, RL training scripts
-  runs/             # Example checkpoints and logs
-docs/
-  ARCHITECTURE.md   # High-level architecture
-  RL_FULL_GAME.md   # Full-game RL environment notes
-  RL_FINE_TUNING.md # Hyperparameter and reward tuning tips
+                           ┌───────────────────────┐
+                           │       WEB LAB         │
+                           │  Board / Brain / Replay│
+                           └───────────┬───────────┘
+                                       │ WebSocket / REST API
+                           ┌───────────▼───────────┐
+                           │       API LAYER       │
+                           └───────────┬───────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+              ▼                        ▼                        ▼
+       ┌────────────┐           ┌─────────────┐          ┌────────────┐
+       │ GAME CORE  │           │  RL ENGINE  │          │ EVALUATION │
+       │ Pure Rules │           │ PPO/DQN/MCTS│          │ Tournament │
+       └────────────┘           └─────────────┘          └────────────┘
 ```
 
-## Helpful Resources
+### Key Modules:
+- `src/game/`: Pure deterministic game engine (Board, Route, Card, Ticket, Player, GameState, Rules). Zero ML/web dependencies.
+- `src/environment/`: Gymnasium wrapper, observation encoders (V1, V2, ...), action masking, reward calculators.
+- `src/agents/`: Agent implementations (Random, Heuristic, DQN, PPO, MCTS).
+- `src/rl/`: Neural networks, replay buffers, rollouts, advantage estimation (GAE), PPO/DQN algorithms, self-play pool.
+- `src/evaluation/`: Tournaments, Elo rating system, generalization metrics.
+- `src/experiments/`: Config validation, experiment runner, reproducibility tracking.
+- `src/api/`: FastAPI + WebSockets for real-time telemetry and control.
+- `frontend/`: React + TypeScript + Canvas/SVG web lab for live inspection.
 
-- `docs/RL_FULL_GAME.md`: environment observations, actions, and flow.
-- `docs/RL_FINE_TUNING.md`: practical advice for tuning rewards and hyperparameters.
-- `docs/VISUALIZATION.md`: tools to visualize simulated games.
+---
 
-Questions, ideas, or contributions? Open an issue or reach out—new strategies are always welcome!
+## 🚀 Quick Start
 
+### Python Environment (Python 3.12+)
+
+```bash
+# Set up virtual environment
+python3 -m venv venv_py312
+source venv_py312/bin/activate
+
+# Install dependencies in editable mode
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Frontend Web Lab
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 🗺 Development Roadmap
+
+- [x] **Phase 0 — Project Skeleton & Foundations**
+- [ ] **Phase 1 — Game Core**
+- [ ] **Phase 2 — Baseline Agents**
+- [ ] **Phase 3 — Gymnasium Environment & Action Masking**
+- [ ] **Phase 4 — First RL (DQN & PPO baseline)**
+- [ ] **Phase 5 — Web Lab (Interactive Viewer & Brain Introspection)**
+- [ ] **Phase 6 — Custom PPO From Scratch**
+- [ ] **Phase 7 — Reward Engineering Experiments**
+- [ ] **Phase 8 — Partial Observability & Recurrent PPO (LSTM)**
+- [ ] **Phase 9 — Self-Play & Historical Policy Pool**
+- [ ] **Phase 10 — Generalization & Procedural Maps**
+- [ ] **Phase 11 — Monte Carlo Tree Search (MCTS)**
+- [ ] **Phase 12 — Neural MCTS & Advanced Research**
+
+---
+
+## 📖 Documentation
+
+- [Design & Specification](DESIGN.md)
+- [Agent & Contributor Rules](CLAUDE.md)
