@@ -265,6 +265,10 @@ def create_synthetic_mini_board() -> tuple[Board, list[DestinationTicket]]:
         DestinationTicket(id="t_ac", city_a="City_A", city_b="City_C", points=5),
         DestinationTicket(id="t_ae", city_a="City_A", city_b="City_E", points=4),
         DestinationTicket(id="t_bd", city_a="City_B", city_b="City_D", points=5),
+        DestinationTicket(id="t_ce", city_a="City_C", city_b="City_E", points=6),
+        DestinationTicket(id="t_ad", city_a="City_A", city_b="City_D", points=7),
+        DestinationTicket(id="t_be", city_a="City_B", city_b="City_E", points=6),
+        DestinationTicket(id="t_ab", city_a="City_A", city_b="City_B", points=2),
     ]
 
     return board, tickets
