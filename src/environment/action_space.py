@@ -39,6 +39,7 @@ class DiscreteActionSpace:
 
         self._action_to_id: dict[Action, int] = {}
         self._id_to_action: dict[int, Action] = {}
+        self._key_to_id: dict[tuple, int] = {}
         self._build_action_space()
 
     def _build_action_space(self) -> None:
@@ -48,6 +49,7 @@ class DiscreteActionSpace:
         act = Action(action_type=ActionType.DRAW_HIDDEN_CARD)
         self._id_to_action[current_id] = act
         self._action_to_id[act] = current_id
+        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = current_id
         current_id += 1
 
         # 1..5: DRAW_VISIBLE_CARD (slots 0..4)
@@ -55,12 +57,14 @@ class DiscreteActionSpace:
             act = Action(action_type=ActionType.DRAW_VISIBLE_CARD, card_index=slot)
             self._id_to_action[current_id] = act
             self._action_to_id[act] = current_id
+            self._key_to_id[(act.action_type, slot, act.route_id, act.color_chosen)] = current_id
             current_id += 1
 
         # 6: DRAW_TICKETS
         act = Action(action_type=ActionType.DRAW_TICKETS)
         self._id_to_action[current_id] = act
         self._action_to_id[act] = current_id
+        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = current_id
         current_id += 1
 
         # 7..13: KEEP_TICKETS (subsets of {0, 1, 2} represented by string tuple index markers)
@@ -86,6 +90,7 @@ class DiscreteActionSpace:
                     )
                     self._id_to_action[current_id] = act
                     self._action_to_id[act] = current_id
+                    self._key_to_id[(act.action_type, None, r.id, color)] = current_id
                     current_id += 1
             else:
                 # Specific colored route
@@ -96,6 +101,7 @@ class DiscreteActionSpace:
                 )
                 self._id_to_action[current_id] = act
                 self._action_to_id[act] = current_id
+                self._key_to_id[(act.action_type, None, r.id, r.color)] = current_id
                 current_id += 1
 
     @property
@@ -106,17 +112,7 @@ class DiscreteActionSpace:
         return self._id_to_action[action_id]
 
     def to_id(self, action: Action) -> int | None:
-        # Check direct match
-        if action in self._action_to_id:
-            return self._action_to_id[action]
-
-        # Handle canonical matching for route claim if locomotives_count is specified
-        if action.action_type == ActionType.CLAIM_ROUTE:
-            canonical = Action(
-                action_type=ActionType.CLAIM_ROUTE,
-                route_id=action.route_id,
-                color_chosen=action.color_chosen,
-            )
-            return self._action_to_id.get(canonical)
-
-        return None
+        key = (action.action_type, action.card_index, action.route_id, action.color_chosen)
+        if key in self._key_to_id:
+            return self._key_to_id[key]
+        return self._action_to_id.get(action)

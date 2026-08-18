@@ -99,6 +99,10 @@ class TicketToRideEnv(gym.Env):
         # Auto-step opponent(s) until it is Player 0's turn again or game is over
         self._auto_step_opponents_if_needed()
 
+        # Check turn limit truncation
+        if self.game.state.turn_number >= self.max_turns and not self.game.state.is_game_over:
+            self.game._end_game()
+
         # Calculate reward from the perspective of Player 0
         reward = self.reward_calc.calculate(
             prev_state=prev_state,
@@ -174,6 +178,9 @@ class TicketToRideEnv(gym.Env):
         ):
             valid_actions = self.game.valid_actions()
             if not valid_actions:
+                # If player in NORMAL state has no valid actions, end game cleanly
+                if self.game.state.turn_state == TurnState.NORMAL:
+                    self.game._end_game()
                 break
             opp_action = self.opponent.act(
                 self.game.state,
