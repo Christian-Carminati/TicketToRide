@@ -86,7 +86,7 @@ class GameService:
             agent_seed = request.seed + idx * 100
             p_type_clean = p_type.lower()
             if p_type_clean == "human":
-                agents.append(HumanAgent(name=f"Human ({idx+1})", seed=agent_seed))
+                agents.append(HumanAgent(name=f"Human ({idx+1})"))
             elif p_type_clean == "random":
                 agents.append(RandomAgent(name=f"RandomBot ({idx+1})", seed=agent_seed))
             elif p_type_clean == "greedy":
@@ -100,7 +100,6 @@ class GameService:
                     action_dim=action_space.n,
                     encoder=encoder,
                     discrete_actions=action_space,
-                    seed=agent_seed,
                 )
                 if request.model_checkpoint:
                     try:
@@ -115,7 +114,6 @@ class GameService:
                     action_dim=action_space.n,
                     encoder=encoder,
                     discrete_actions=action_space,
-                    seed=agent_seed,
                 )
                 if request.model_checkpoint:
                     try:

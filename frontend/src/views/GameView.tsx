@@ -33,6 +33,21 @@ export const GameView: React.FC = () => {
     }
   }, [gameState, isLoading, createGame]);
 
+  // Keyboard shortcut: Spacebar steps turn
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!gameState?.is_game_over && !isLoading) {
+          stepGame(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, isLoading, stepGame]);
+
   const handleStartNewGame = () => {
     createGame({
       map_name: mapName,

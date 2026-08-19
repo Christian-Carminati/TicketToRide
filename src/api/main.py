@@ -55,10 +55,19 @@ app.add_middleware(
 )
 
 
-# --- System Health ---
+# --- System Health & Legacy Endpoints ---
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok", "app": "TicketToRide RL Lab", "version": "1.0.0"}
+
+
+@app.get("/state")
+def legacy_state() -> dict[str, Any]:
+    req = GameSessionCreateRequest(map_name="usa", player_types=["human", "greedy"], seed=42)
+    dto = game_service.create_session(req)
+    data = dto.model_dump()
+    data["deck_size"] = 110
+    return data
 
 
 # --- Game Endpoints ---

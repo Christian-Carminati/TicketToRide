@@ -28,6 +28,25 @@ export const ReplayView: React.FC = () => {
     }
   };
 
+  // Keyboard navigation: Space toggles play/pause, Left/Right arrows step frames
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        nextFrame();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        prevFrame();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlay, nextFrame, prevFrame]);
+
   const snapshot = currentFrame?.state_snapshot || {};
   const claimedRoutes: Record<string, string> = snapshot.claimed_routes || {};
   const players = snapshot.players || [];
