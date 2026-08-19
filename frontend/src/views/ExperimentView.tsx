@@ -33,9 +33,6 @@ export const ExperimentView: React.FC = () => {
   }, []);
 
   const handleDeleteSingle = async (expId: string, name: string) => {
-    if (!window.confirm(`Sei sicuro di voler eliminare l'esperimento "${name}" (${expId})?`)) {
-      return;
-    }
     try {
       setIsLoading(true);
       await api.deleteExperiment(expId);
@@ -51,9 +48,6 @@ export const ExperimentView: React.FC = () => {
 
   const handleDeleteAll = async () => {
     if (experiments.length === 0) return;
-    if (!window.confirm(`Sei sicuro di voler cancellare TUTTI i ${experiments.length} esperimenti registrati? L'operazione è irreversibile.`)) {
-      return;
-    }
     try {
       setIsLoading(true);
       const res = await api.deleteAllExperiments();

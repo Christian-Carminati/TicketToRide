@@ -27,9 +27,6 @@ export const CheckpointManagerPane: React.FC = () => {
   }, []);
 
   const handleDeleteSingle = async (ckptId: string, name: string) => {
-    if (!window.confirm(`Sei sicuro di voler eliminare definitivamente il file di checkpoint "${name}" (${ckptId})?`)) {
-      return;
-    }
     try {
       setIsLoading(true);
       await api.deleteCheckpoint(ckptId);
@@ -45,13 +42,6 @@ export const CheckpointManagerPane: React.FC = () => {
 
   const handleDeleteAll = async () => {
     if (checkpoints.length === 0) return;
-    if (
-      !window.confirm(
-        `Sei sicuro di voler eliminare TUTTI i ${checkpoints.length} file di checkpoint salvati in experiments/checkpoints/? L'operazione è irreversibile.`
-      )
-    ) {
-      return;
-    }
     try {
       setIsLoading(true);
       const res = await api.deleteAllCheckpoints();
