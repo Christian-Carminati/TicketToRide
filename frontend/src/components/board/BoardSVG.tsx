@@ -5,8 +5,7 @@ import { CityNode } from './CityNode';
 import {
   BoardCity,
   BoardRoute,
-  BOARD_CITIES,
-  buildBoardRoutes,
+  getMapData,
 } from './mapData';
 import { RouteEdge } from './RouteEdge';
 
@@ -30,6 +29,7 @@ const PADDING_X = 70;
 const PADDING_Y = 60;
 
 export const BoardSVG: React.FC<BoardSVGProps> = ({
+  mapName = 'usa',
   claimedRoutes = {},
   players = [],
   validActions = [],
@@ -47,8 +47,7 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
   const activeHoveredRoute = hoveredRouteId !== undefined && hoveredRouteId !== null ? hoveredRouteId : internalHoveredRoute;
 
   const { cities, routes, cityCoordsMap } = useMemo(() => {
-    const cityList = BOARD_CITIES;
-    const routeList = buildBoardRoutes();
+    const { cities: cityList, routes: routeList } = getMapData(mapName);
 
     const coords: Record<string, { x: number; y: number }> = {};
     cityList.forEach((c) => {
@@ -60,7 +59,7 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
     });
 
     return { cities: cityList, routes: routeList, cityCoordsMap: coords };
-  }, []);
+  }, [mapName]);
 
   // Set of claimable route IDs from valid actions
   const claimableRouteIds = useMemo(() => {
@@ -104,14 +103,14 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
         </defs>
         <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#board-grid)" />
 
-        {/* Observability Mode watermark indicator */}
+        {/* Observability Mode & Map watermark indicator */}
         <g transform="translate(20, 30)" opacity={0.4} style={{ pointerEvents: 'none' }}>
           <text fill="#94A3B8" fontSize={11} fontFamily="monospace" letterSpacing="0.05em">
             {observabilityMode === 'god'
-              ? '● OBSERVER: FULL OMNISCIENT (GOD MODE)'
+              ? `● OBSERVER: FULL OMNISCIENT (GOD MODE) [${mapName.toUpperCase()} MAP]`
               : observabilityMode === 'player_0'
-              ? '● AGENT VIEW: PLAYER 0 (PARTIAL OBSERVABILITY)'
-              : '● AGENT VIEW: PLAYER 1 (PARTIAL OBSERVABILITY)'}
+              ? `● AGENT VIEW: PLAYER 0 (PARTIAL OBSERVABILITY) [${mapName.toUpperCase()} MAP]`
+              : `● AGENT VIEW: PLAYER 1 (PARTIAL OBSERVABILITY) [${mapName.toUpperCase()} MAP]`}
           </text>
         </g>
 

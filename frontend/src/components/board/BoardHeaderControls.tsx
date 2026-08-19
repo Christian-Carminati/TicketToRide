@@ -5,10 +5,15 @@ import { Eye, Bot, MapPin, RefreshCw } from 'lucide-react';
 
 interface BoardHeaderControlsProps {
   onResetZoom?: () => void;
+  onSelectMap?: (mapName: 'usa' | 'mini') => void;
 }
 
-export const BoardHeaderControls: React.FC<BoardHeaderControlsProps> = ({ onResetZoom }) => {
+export const BoardHeaderControls: React.FC<BoardHeaderControlsProps> = ({
+  onResetZoom,
+  onSelectMap,
+}) => {
   const { state, setObservabilityMode } = useWorkbench();
+  const currentMap = state.gameState?.map_name?.toLowerCase() || 'usa';
 
   const handleObservabilityChange = (mode: ObservabilityMode) => {
     setObservabilityMode(mode);
@@ -100,11 +105,48 @@ export const BoardHeaderControls: React.FC<BoardHeaderControlsProps> = ({ onRese
         </div>
       </div>
 
-      {/* Right: Map information & reset */}
+      {/* Right: Map Selector & Reset */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-          <MapPin size={12} /> {state.gameState?.map_name?.toUpperCase() || 'USA BOARD'} (Deterministic)
-        </span>
+        {/* Map Selector */}
+        <div style={{ display: 'flex', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <button
+            onClick={() => onSelectMap?.('usa')}
+            style={{
+              background: currentMap === 'usa' ? '#6366F1' : 'transparent',
+              color: currentMap === 'usa' ? '#FFFFFF' : '#94A3B8',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0.2rem 0.5rem',
+              fontSize: '0.72rem',
+              fontWeight: currentMap === 'usa' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+            }}
+          >
+            <MapPin size={11} /> USA (36 Cities, 100 Routes)
+          </button>
+          <button
+            onClick={() => onSelectMap?.('mini')}
+            style={{
+              background: currentMap === 'mini' ? '#6366F1' : 'transparent',
+              color: currentMap === 'mini' ? '#FFFFFF' : '#94A3B8',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0.2rem 0.5rem',
+              fontSize: '0.72rem',
+              fontWeight: currentMap === 'mini' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+            }}
+          >
+            <MapPin size={11} /> Mini (5 Cities)
+          </button>
+        </div>
+
         {onResetZoom && (
           <button
             onClick={onResetZoom}

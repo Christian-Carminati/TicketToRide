@@ -22,12 +22,13 @@ export const WorkbenchShell: React.FC = () => {
 
   const { studioMode } = state;
   const [isStepping, setIsStepping] = useState(false);
+  const [selectedMap, setSelectedMap] = useState<'usa' | 'mini'>('usa');
 
   // Initialize interactive game session
-  const initGame = useCallback(async () => {
+  const initGame = useCallback(async (mapName: 'usa' | 'mini' = selectedMap) => {
     try {
       const res = await api.createGame({
-        map_name: 'mini',
+        map_name: mapName,
         player_types: ['ppo', 'greedy'],
         seed: 42,
       });
@@ -42,11 +43,16 @@ export const WorkbenchShell: React.FC = () => {
     } catch (err) {
       console.error('Failed to init game session:', err);
     }
-  }, [setGameState, setBrainData]);
+  }, [selectedMap, setGameState, setBrainData]);
 
   useEffect(() => {
-    initGame();
-  }, [initGame]);
+    initGame(selectedMap);
+  }, [selectedMap, initGame]);
+
+  const handleMapChange = (mapName: 'usa' | 'mini') => {
+    setSelectedMap(mapName);
+    initGame(mapName);
+  };
 
   // WebSocket for Live Telemetry
   const { isConnected, lastMessage } = useWebSocket<TelemetryEventDTO>('ws://localhost:8000/ws/telemetry');
@@ -119,7 +125,7 @@ export const WorkbenchShell: React.FC = () => {
       }}
     >
       {/* Studio Master Header */}
-      <StudioHeader onNewGame={initGame} />
+      <StudioHeader onNewGame={() => initGame(selectedMap)} />
 
       {/* Main Studio Body */}
       <div
@@ -154,6 +160,7 @@ export const WorkbenchShell: React.FC = () => {
             {/* Left: Vector Board Canvas & Inventory */}
             <BoardCanvas
               onRouteClick={handleRouteClick}
+              onSelectMap={handleMapChange}
             />
 
             {/* Right: Synced Neural Brain Inspector */}
@@ -170,7 +177,7 @@ export const WorkbenchShell: React.FC = () => {
               alignItems: 'start',
             }}
           >
-            <BoardCanvas />
+            <BoardCanvas onSelectMap={handleMapChange} />
             <BrainInspectorPane />
           </div>
         )}

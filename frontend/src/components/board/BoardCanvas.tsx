@@ -11,6 +11,7 @@ interface BoardCanvasProps {
   onDrawDeckCard?: () => void;
   onDrawVisibleCard?: (index: number) => void;
   onDrawTickets?: () => void;
+  onSelectMap?: (mapName: 'usa' | 'mini') => void;
 }
 
 export const BoardCanvas: React.FC<BoardCanvasProps> = ({
@@ -19,6 +20,7 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
   onDrawDeckCard,
   onDrawVisibleCard,
   onDrawTickets,
+  onSelectMap,
 }) => {
   const { state, setHoveredRouteId } = useWorkbench();
   const gameState = state.gameState;
@@ -39,13 +41,13 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
       }}
     >
-      {/* Header controls with partial-observability selector */}
-      <BoardHeaderControls />
+      {/* Header controls with partial-observability & map selector */}
+      <BoardHeaderControls onSelectMap={onSelectMap} />
 
       {/* Interactive Vector Board */}
       <div style={{ position: 'relative', width: '100%' }}>
         <BoardSVG
-          mapName={gameState?.map_name}
+          mapName={gameState?.map_name || 'usa'}
           claimedRoutes={gameState?.claimed_routes}
           players={gameState?.players}
           validActions={gameState?.valid_actions}

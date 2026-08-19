@@ -32,7 +32,7 @@ export const COLOR_HEX: Record<string, string> = {
   GRAY: '#64748B',
 };
 
-export const BOARD_CITIES: BoardCity[] = [
+export const USA_CITIES: BoardCity[] = [
   { id: 'atlanta', name: 'Atlanta', x: 0.85, y: 0.35 },
   { id: 'boston', name: 'Boston', x: 0.98, y: 0.75 },
   { id: 'calgary', name: 'Calgary', x: 0.25, y: 0.95 },
@@ -174,6 +174,23 @@ export const USA_RAW_ROUTES_DATA: Array<[string, string, number, string | null]>
   ['Boston', 'Montreal', 2, null],
 ];
 
+export const MINI_CITIES: BoardCity[] = [
+  { id: 'A', name: 'City_A', x: 0.15, y: 0.2 },
+  { id: 'B', name: 'City_B', x: 0.85, y: 0.2 },
+  { id: 'C', name: 'City_C', x: 0.85, y: 0.8 },
+  { id: 'D', name: 'City_D', x: 0.5, y: 0.9 },
+  { id: 'E', name: 'City_E', x: 0.15, y: 0.8 },
+];
+
+export const MINI_ROUTES: BoardRoute[] = [
+  { id: 'r_ab_1', city_a: 'City_A', city_b: 'City_B', length: 2, color: 'RED', offset_index: -1 },
+  { id: 'r_ab_2', city_a: 'City_A', city_b: 'City_B', length: 2, color: 'BLUE', offset_index: 1 },
+  { id: 'r_bc', city_a: 'City_B', city_b: 'City_C', length: 3, color: 'GREEN', offset_index: 0 },
+  { id: 'r_cd', city_a: 'City_C', city_b: 'City_D', length: 2, color: null, offset_index: 0 },
+  { id: 'r_de', city_a: 'City_D', city_b: 'City_E', length: 2, color: 'YELLOW', offset_index: 0 },
+  { id: 'r_ea', city_a: 'City_E', city_b: 'City_A', length: 4, color: 'BLACK', offset_index: 0 },
+];
+
 export function buildUsaRoutes(): BoardRoute[] {
   const routes: BoardRoute[] = [];
   const pairCounts: Record<string, number> = {};
@@ -205,5 +222,19 @@ export function buildUsaRoutes(): BoardRoute[] {
   return routes;
 }
 
-export const USA_MAP_CITIES = BOARD_CITIES;
+export function getMapData(mapName: string = 'usa'): { cities: BoardCity[]; routes: BoardRoute[] } {
+  const normalized = mapName?.toLowerCase() || 'usa';
+  if (normalized === 'mini') {
+    return {
+      cities: MINI_CITIES,
+      routes: MINI_ROUTES,
+    };
+  }
+  return {
+    cities: USA_CITIES,
+    routes: buildUsaRoutes(),
+  };
+}
+
+export const BOARD_CITIES = USA_CITIES;
 export const buildBoardRoutes = buildUsaRoutes;
