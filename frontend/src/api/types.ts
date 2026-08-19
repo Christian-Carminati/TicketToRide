@@ -141,3 +141,13 @@ export interface ExperimentRecordDTO {
   metrics: Record<string, number>;
   config: Record<string, any>;
 }
+
+export interface CheckpointDTO {
+  checkpoint_id: string;
+  name: string;
+  algorithm: string;
+  path: string;
+  size_mb: number;
+  modified_at: string;
+  total_timesteps?: number | null;
+}

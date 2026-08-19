@@ -84,6 +84,9 @@ export const api = {
 
   listExperiments: () => fetchJSON<ExperimentRecordDTO[]>('/api/experiments/list'),
 
+  // Checkpoints
+  listCheckpoints: () => fetchJSON<import('./types').CheckpointDTO[]>('/api/checkpoints/list'),
+
   // Brain Introspection
   inspectBrain: (payload: { session_id?: string; model_type?: 'dqn' | 'ppo'; observation?: number[]; action_mask?: boolean[] }) =>
     fetchJSON<BrainInspectionDTO>('/api/brain/inspect', {

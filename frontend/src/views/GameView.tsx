@@ -5,7 +5,8 @@ import { BoardRoute } from '../components/board/mapData';
 import { TrainCardHand } from '../components/cards/TrainCardHand';
 import { VisibleDeck } from '../components/cards/VisibleDeck';
 import { TicketsList } from '../components/cards/TicketsList';
-import { ActionDTO } from '../api/types';
+import { ActionDTO, CheckpointDTO } from '../api/types';
+import { api } from '../api/client';
 
 export const GameView: React.FC = () => {
   const {
@@ -21,16 +22,35 @@ export const GameView: React.FC = () => {
   } = useGameSession();
 
   const [player1Type, setPlayer1Type] = useState<string>('human');
-  const [player2Type, setPlayer2Type] = useState<string>('greedy');
+  const [player2Type, setPlayer2Type] = useState<string>('ppo');
+  const [checkpoints, setCheckpoints] = useState<CheckpointDTO[]>([]);
+  const [selectedCheckpoint, setSelectedCheckpoint] = useState<string>('');
   const [highlightedCities, setHighlightedCities] = useState<string[]>([]);
   const [claimModalRoute, setClaimModalRoute] = useState<BoardRoute | null>(null);
+
+  // Fetch available checkpoints
+  useEffect(() => {
+    api.listCheckpoints()
+      .then((data) => {
+        setCheckpoints(data);
+        if (data.length > 0) {
+          setSelectedCheckpoint(data[0].path);
+        }
+      })
+      .catch((err) => console.error('Failed to list checkpoints:', err));
+  }, []);
 
   // Auto-initialize a USA game session on first mount if none exists
   useEffect(() => {
     if (!gameState && !isLoading) {
-      createGame({ map_name: 'usa', player_types: ['human', 'greedy'], seed: 42 });
+      createGame({
+        map_name: 'usa',
+        player_types: ['human', 'ppo'],
+        seed: 42,
+        model_checkpoint: selectedCheckpoint || undefined,
+      });
     }
-  }, [gameState, isLoading, createGame]);
+  }, [gameState, isLoading, createGame, selectedCheckpoint]);
 
   // Keyboard shortcut: Spacebar steps turn
   useEffect(() => {
@@ -52,6 +72,7 @@ export const GameView: React.FC = () => {
       map_name: 'usa',
       player_types: [player1Type, player2Type],
       seed: Math.floor(Math.random() * 10000),
+      model_checkpoint: selectedCheckpoint || undefined,
     });
   };
 
@@ -157,13 +178,39 @@ export const GameView: React.FC = () => {
               fontSize: '0.85rem',
             }}
           >
-            <option value="greedy">GreedyBot</option>
-            <option value="strategic">StrategicBot</option>
             <option value="ppo">PPO Agent</option>
             <option value="dqn">DQN Agent</option>
+            <option value="greedy">GreedyBot</option>
+            <option value="strategic">StrategicBot</option>
             <option value="random">RandomBot</option>
             <option value="human">Human Player</option>
           </select>
+
+          {(player1Type === 'ppo' || player1Type === 'dqn' || player2Type === 'ppo' || player2Type === 'dqn') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#38BDF8', fontWeight: 600 }}>🤖 Checkpoint:</label>
+              <select
+                value={selectedCheckpoint}
+                onChange={(e) => setSelectedCheckpoint(e.target.value)}
+                style={{
+                  backgroundColor: '#0F172A',
+                  color: '#38BDF8',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  borderRadius: '6px',
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  maxWidth: '280px',
+                }}
+              >
+                {checkpoints.map((ckpt) => (
+                  <option key={ckpt.checkpoint_id} value={ckpt.path}>
+                    {ckpt.name} ({ckpt.size_mb} MB)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button
             onClick={handleStartNewGame}
@@ -173,13 +220,14 @@ export const GameView: React.FC = () => {
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '6px',
-              padding: '0.4rem 0.8rem',
-              fontWeight: 600,
+              padding: '0.4rem 0.9rem',
+              fontWeight: 700,
               fontSize: '0.85rem',
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)',
             }}
           >
-            New Game
+            🎮 Nuova Partita
           </button>
         </div>
 

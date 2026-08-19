@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -11,6 +12,7 @@ from src.api.replay_service import ReplayService
 from src.api.schemas import (
     BrainInspectionDTO,
     BrainInspectRequest,
+    CheckpointDTO,
     GameSessionCreateRequest,
     GameStateDTO,
     GameStepRequest,
@@ -137,6 +139,45 @@ def list_experiments() -> list[dict[str, Any]]:
     return [r if isinstance(r, dict) else r.model_dump() for r in records]
 
 
+@app.get("/api/checkpoints/list", response_model=list[CheckpointDTO])
+def list_checkpoints() -> list[CheckpointDTO]:
+    ckpt_dir = os.path.join("experiments", "checkpoints")
+    if not os.path.exists(ckpt_dir):
+        return []
+
+    results: list[CheckpointDTO] = []
+    files = sorted(
+        [f for f in os.listdir(ckpt_dir) if f.endswith(".pt")],
+        key=lambda x: os.path.getmtime(os.path.join(ckpt_dir, x)),
+        reverse=True,
+    )
+
+    for fname in files:
+        full_path = os.path.join(ckpt_dir, fname)
+        mtime = os.path.getmtime(full_path)
+        size_mb = round(os.path.getsize(full_path) / (1024 * 1024), 2)
+        dt_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime))
+        algo = "ppo" if "ppo" in fname.lower() else "dqn"
+
+        friendly_name = fname.replace(".pt", "").replace("_", " ").title()
+        if "live_latest" in fname:
+            friendly_name = f"⭐ Ultimo Modello Live ({algo.upper()})"
+        elif "usa_trained" in fname:
+            friendly_name = f"🏆 Benchmark Ufficiale USA ({algo.upper()})"
+
+        results.append(
+            CheckpointDTO(
+                checkpoint_id=fname,
+                name=friendly_name,
+                algorithm=algo,
+                path=full_path,
+                size_mb=size_mb,
+                modified_at=dt_str,
+            )
+        )
+    return results
+
+
 # --- Brain Introspection Endpoint ---
 @app.post("/api/brain/inspect", response_model=BrainInspectionDTO)
 def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
@@ -178,7 +219,13 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
             )
             if ckpts:
                 try:
-                    net_dqn.load_state_dict(torch.load(ckpts[0], weights_only=True))
+                    ckpt = torch.load(ckpts[0], weights_only=True)
+                    if isinstance(ckpt, dict) and "policy_state_dict" in ckpt:
+                        net_dqn.load_state_dict(ckpt["policy_state_dict"])
+                    elif isinstance(ckpt, dict) and "state_dict" in ckpt:
+                        net_dqn.load_state_dict(ckpt["state_dict"])
+                    else:
+                        net_dqn.load_state_dict(ckpt)
                 except Exception:  # noqa: BLE001
                     pass
         return brain_service.inspect_q_network(net_dqn, obs_vec, mask_vec, action_labels=labels)
@@ -192,7 +239,13 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
             )
             if ckpts:
                 try:
-                    net_ppo.load_state_dict(torch.load(ckpts[0], weights_only=True))
+                    ckpt = torch.load(ckpts[0], weights_only=True)
+                    if isinstance(ckpt, dict) and "actor_critic_state_dict" in ckpt:
+                        net_ppo.load_state_dict(ckpt["actor_critic_state_dict"])
+                    elif isinstance(ckpt, dict) and "state_dict" in ckpt:
+                        net_ppo.load_state_dict(ckpt["state_dict"])
+                    else:
+                        net_ppo.load_state_dict(ckpt)
                 except Exception:  # noqa: BLE001
                     pass
         return brain_service.inspect_actor_critic(net_ppo, obs_vec, mask_vec, action_labels=labels)

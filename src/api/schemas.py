@@ -145,6 +145,17 @@ class ReplayDetailDTO(BaseModel):
     frames: list[ReplayFrameDTO]
 
 
+# --- Checkpoint DTOs ---
+class CheckpointDTO(BaseModel):
+    checkpoint_id: str
+    name: str
+    algorithm: str
+    path: str
+    size_mb: float
+    modified_at: str
+    total_timesteps: int | None = None
+
+
 # Aliases for backward compatibility
 GameStateResponse = GameStateDTO
 ActionRequest = ActionDTO

@@ -183,10 +183,12 @@ class TrainerService:
                 self.connection_manager.broadcast_sync(telemetry.model_dump())
                 time.sleep(0.04)
 
-            # Auto-save checkpoint
-            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            # Auto-save checkpoints
             os.makedirs(config.training.checkpoint_dir, exist_ok=True)
+            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            live_path = os.path.join(config.training.checkpoint_dir, "ppo_live_latest.pt")
             trainer_ppo.save(ckpt_path)
+            trainer_ppo.save(live_path)
 
         else:
             # DQN Trainer
@@ -249,10 +251,12 @@ class TrainerService:
                 if step % 20 == 0:
                     time.sleep(0.005)
 
-            # Auto-save checkpoint
-            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            # Auto-save checkpoints
             os.makedirs(config.training.checkpoint_dir, exist_ok=True)
+            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            live_path = os.path.join(config.training.checkpoint_dir, "dqn_live_latest.pt")
             trainer_dqn.save(ckpt_path)
+            trainer_dqn.save(live_path)
 
         self._is_training = False
         self._status.is_training = False

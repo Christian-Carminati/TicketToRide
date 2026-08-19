@@ -109,10 +109,9 @@ class GameService:
 
                 if ckpt_path and os.path.exists(ckpt_path):
                     try:
-                        agent.q_net.load_state_dict(torch.load(ckpt_path, weights_only=True))
-                        agent.q_net.eval()
-                    except Exception:  # noqa: BLE001
-                        pass
+                        agent.load(ckpt_path)
+                    except Exception as e:
+                        print(f"Failed to load DQN checkpoint {ckpt_path}: {e}")
                 agents.append(agent)
             elif p_type_clean == "ppo":
                 agent = PPOAgent(
@@ -134,10 +133,9 @@ class GameService:
 
                 if ckpt_path and os.path.exists(ckpt_path):
                     try:
-                        agent.actor_critic.load_state_dict(torch.load(ckpt_path, weights_only=True))
-                        agent.actor_critic.eval()
-                    except Exception:  # noqa: BLE001
-                        pass
+                        agent.load(ckpt_path)
+                    except Exception as e:
+                        print(f"Failed to load PPO checkpoint {ckpt_path}: {e}")
                 agents.append(agent)
             else:
                 agents.append(RandomAgent(name=f"RandomBot ({idx+1})", seed=agent_seed))
