@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useWorkbench } from '../../context';
 import { StudioHeader } from './StudioHeader';
 import { ScrubberTransportBar } from './ScrubberTransportBar';
@@ -23,6 +23,7 @@ export const WorkbenchShell: React.FC = () => {
   const { studioMode } = state;
   const [isStepping, setIsStepping] = useState(false);
   const [selectedMap, setSelectedMap] = useState<'usa' | 'mini'>('usa');
+  const lastDispatchRef = useRef(0);
 
   // Initialize interactive game session
   const initGame = useCallback(async (mapName: 'usa' | 'mini' = selectedMap) => {
@@ -54,7 +55,7 @@ export const WorkbenchShell: React.FC = () => {
     initGame(mapName);
   };
 
-  // WebSocket for Live Telemetry
+  // Shared WebSocket for Live Telemetry (Throttled global context dispatch)
   const { isConnected, lastMessage } = useWebSocket<TelemetryEventDTO>('ws://localhost:8000/ws/telemetry');
 
   useEffect(() => {
@@ -63,7 +64,11 @@ export const WorkbenchShell: React.FC = () => {
 
   useEffect(() => {
     if (lastMessage && lastMessage.type) {
-      addTelemetryEvent(lastMessage);
+      const now = performance.now();
+      if (lastMessage.type !== 'training_step' || now - lastDispatchRef.current > 100) {
+        lastDispatchRef.current = now;
+        addTelemetryEvent(lastMessage);
+      }
     }
   }, [lastMessage, addTelemetryEvent]);
 

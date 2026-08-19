@@ -16,7 +16,7 @@ interface LineChartSVGProps {
   xLabel?: string;
 }
 
-export const LineChartSVG: React.FC<LineChartSVGProps> = ({
+export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
   title,
   series,
   width = 500,
@@ -48,7 +48,6 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = ({
     if (!isFinite(minY)) minY = 0;
     if (!isFinite(maxY) || maxY === minY) maxY = minY + 1;
 
-    // Expand Y slightly for margin
     const yMargin = (maxY - minY) * 0.1 || 0.5;
     return { minX, maxX, minY: minY - yMargin, maxY: maxY + yMargin };
   }, [series]);
@@ -151,7 +150,12 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = ({
         {/* Lines */}
         {series.map((s) => {
           if (s.data.length === 0) return null;
-          const pointsStr = s.data
+          // Decimate points if over 100 points for smooth SVG rendering
+          const dataPoints = s.data.length > 100 
+            ? s.data.filter((_, idx) => idx % Math.ceil(s.data.length / 100) === 0 || idx === s.data.length - 1)
+            : s.data;
+
+          const pointsStr = dataPoints
             .map((p) => `${scaleX(p.x).toFixed(1)},${scaleY(p.y).toFixed(1)}`)
             .join(' ');
 
@@ -170,4 +174,4 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = ({
       </svg>
     </div>
   );
-};
+});

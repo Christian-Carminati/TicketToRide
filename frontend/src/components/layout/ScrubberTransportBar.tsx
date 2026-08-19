@@ -15,7 +15,7 @@ interface ScrubberTransportBarProps {
   isStepping?: boolean;
 }
 
-export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = ({
+export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.memo(({
   onBotStep,
   isStepping = false,
 }) => {
@@ -236,4 +236,4 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = ({
       </div>
     </div>
   );
-};
+});

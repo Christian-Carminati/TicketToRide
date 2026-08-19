@@ -4,3 +4,4 @@ export * from './brain';
 export * from './charts';
 export * from './tournament';
 export * from './dock';
+export * from './layout';

@@ -16,7 +16,7 @@ interface StudioHeaderProps {
   onNewGame?: () => void;
 }
 
-export const StudioHeader: React.FC<StudioHeaderProps> = ({ onNewGame }) => {
+export const StudioHeader: React.FC<StudioHeaderProps> = React.memo(({ onNewGame }) => {
   const { state, setStudioMode, resetSession } = useWorkbench();
   const { studioMode, isConnected } = state;
 
@@ -193,4 +193,4 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ onNewGame }) => {
       </div>
     </header>
   );
-};
+});

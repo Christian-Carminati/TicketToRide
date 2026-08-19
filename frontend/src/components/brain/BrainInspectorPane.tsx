@@ -5,7 +5,7 @@ import { ValueHeadGauge } from './ValueHeadGauge';
 import { ActionProbabilitiesChart } from './ActionProbabilitiesChart';
 import { ObservationTensorViewer } from './ObservationTensorViewer';
 
-export const BrainInspectorPane: React.FC = () => {
+export const BrainInspectorPane: React.FC = React.memo(() => {
   const { state, setHoveredAction, setSelectedAgentModel } = useWorkbench();
   const brainData = state.brainData;
 
@@ -122,4 +122,4 @@ export const BrainInspectorPane: React.FC = () => {
       )}
     </div>
   );
-};
+});

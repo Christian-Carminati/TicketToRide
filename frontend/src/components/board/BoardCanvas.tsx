@@ -14,7 +14,7 @@ interface BoardCanvasProps {
   onSelectMap?: (mapName: 'usa' | 'mini') => void;
 }
 
-export const BoardCanvas: React.FC<BoardCanvasProps> = ({
+export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
   onRouteClick,
   onCityClick,
   onDrawDeckCard,
@@ -96,4 +96,4 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = ({
       )}
     </div>
   );
-};
+});
