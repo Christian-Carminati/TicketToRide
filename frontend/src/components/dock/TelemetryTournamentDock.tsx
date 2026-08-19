@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { useWorkbench } from '../../context';
 import { LineChartSVG, ChartSeries } from '../charts/LineChartSVG';
-import { EloMatrixHeatmap } from '../tournament/EloMatrixHeatmap';
 import { ActionLogStream } from './ActionLogStream';
-import { Activity, Trophy, ListFilter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, ListFilter, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const TelemetryTournamentDock: React.FC = () => {
   const { state, setBottomDockTab, toggleBottomDock } = useWorkbench();
@@ -94,29 +93,6 @@ export const TelemetryTournamentDock: React.FC = () => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setBottomDockTab('tournament');
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              background: bottomDockTab === 'tournament' && isBottomDockOpen ? '#3B82F6' : 'transparent',
-              color: bottomDockTab === 'tournament' && isBottomDockOpen ? '#FFFFFF' : '#94A3B8',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.3rem 0.65rem',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Trophy size={13} /> Tournament Elo Matrix
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
               setBottomDockTab('logs');
             }}
             style={{
@@ -186,10 +162,6 @@ export const TelemetryTournamentDock: React.FC = () => {
                 height={170}
               />
             </div>
-          )}
-
-          {bottomDockTab === 'tournament' && (
-            <EloMatrixHeatmap />
           )}
 
           {bottomDockTab === 'logs' && (

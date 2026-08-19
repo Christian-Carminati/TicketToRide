@@ -5,7 +5,7 @@ import { ScrubberTransportBar } from './ScrubberTransportBar';
 import { BoardCanvas } from '../board';
 import { BrainInspectorPane } from '../brain';
 import { TelemetryTournamentDock } from '../dock';
-import { TrainingView, ExperimentView } from '../../views';
+import { TrainingView, TournamentArenaView } from '../../views';
 import { api } from '../../api';
 import { TelemetryEventDTO } from '../../api/types';
 import { useWebSocket } from '../../hooks';
@@ -151,11 +151,13 @@ export const WorkbenchShell: React.FC = () => {
           gap: '0.75rem',
         }}
       >
-        {/* Scrubber Transport Bar */}
-        <ScrubberTransportBar
-          onBotStep={handleBotStep}
-          isStepping={isStepping}
-        />
+        {/* Scrubber Transport Bar (Only in Interactive and Replay modes) */}
+        {(studioMode === 'interactive' || studioMode === 'replay_scrub') && (
+          <ScrubberTransportBar
+            onBotStep={handleBotStep}
+            isStepping={isStepping}
+          />
+        )}
 
         {/* Studio Mode Views */}
         {studioMode === 'interactive' && (
@@ -199,13 +201,13 @@ export const WorkbenchShell: React.FC = () => {
         )}
 
         {studioMode === 'tournament' && (
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '1rem' }}>
-            <ExperimentView />
-          </div>
+          <TournamentArenaView />
         )}
 
-        {/* Collapsible Telemetry & Tournament Dock */}
-        <TelemetryTournamentDock />
+        {/* Collapsible Telemetry Dock (Available in Interactive, Replay, and Training views) */}
+        {studioMode !== 'tournament' && (
+          <TelemetryTournamentDock />
+        )}
       </div>
     </div>
   );
