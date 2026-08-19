@@ -1,6 +1,5 @@
-"""FastAPI Application entrypoint for TicketToRide RL Lab."""
-
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from typing import Any
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
