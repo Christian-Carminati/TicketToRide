@@ -48,13 +48,13 @@ class TrainerService:
             config = ExperimentConfig(
                 name=f"exp_{uuid.uuid4().hex[:6]}",
                 algorithm="ppo",
-                seed=request.seed,
+                seed=request.seed or 42,
             )
 
         if request.override_timesteps:
             config.training.total_timesteps = request.override_timesteps
 
-        config.seed = request.seed
+        config.seed = request.seed or 42
         algo_name = config.algorithm.name if hasattr(config.algorithm, "name") else str(config.algorithm)
         exp_id = f"{config.name}_{uuid.uuid4().hex[:4]}"
 
@@ -101,6 +101,7 @@ class TrainerService:
         )
 
         algo_name = config.algorithm.name if hasattr(config.algorithm, "name") else str(config.algorithm)
+        algo = algo_name.lower()
 
         # Notify training started
         self.connection_manager.broadcast_sync(
@@ -112,89 +113,125 @@ class TrainerService:
             }
         )
 
-        algo = algo_name.lower()
-        if algo == "dqn":
-            dqn_config = {
-                "lr": config.algorithm.learning_rate,
-                "gamma": config.algorithm.gamma,
-                "batch_size": config.algorithm.batch_size,
-                "buffer_size": config.algorithm.buffer_size,
-                "target_update_freq": config.algorithm.target_update_freq,
-                "epsilon_start": config.algorithm.epsilon_start,
-                "epsilon_end": config.algorithm.epsilon_end,
-                "epsilon_decay_steps": config.algorithm.epsilon_decay_steps,
-                "learning_starts": config.algorithm.learning_starts,
-            }
-            trainer: Any = MaskedDQNTrainer(env=env, config=dqn_config)
-        else:
+        total_steps = config.training.total_timesteps
+        episode_count = 0
+
+        if algo == "ppo":
             ppo_config = {
-                "lr": config.algorithm.learning_rate,
-                "gamma": config.algorithm.gamma,
-                "gae_lambda": config.algorithm.gae_lambda,
-                "rollout_steps": getattr(config.training, "rollout_steps", 64),
-                "minibatch_size": getattr(config.training, "batch_size", 64),
-                "update_epochs": getattr(config.training, "num_epochs", 4),
-                "clip_coef": getattr(config.algorithm, "clip_range", 0.2),
+                "lr": getattr(config.algorithm, "learning_rate", 3e-4),
+                "gamma": getattr(config.algorithm, "gamma", 0.99),
+                "gae_lambda": getattr(config.algorithm, "gae_lambda", 0.95),
+                "rollout_steps": min(getattr(config.training, "rollout_steps", 64), 64),
+                "minibatch_size": getattr(config.training, "batch_size", 32),
+                "num_epochs": getattr(config.training, "num_epochs", 4),
+                "clip_eps": getattr(config.algorithm, "clip_range", 0.2),
                 "ent_coef": getattr(config.algorithm, "entropy_coef", 0.01),
                 "vf_coef": getattr(config.algorithm, "value_coef", 0.5),
             }
-            trainer = MaskedPPOTrainer(env=env, config=ppo_config)
+            trainer_ppo = MaskedPPOTrainer(env=env, config=ppo_config)
 
-        total_steps = config.training.total_timesteps
-        episode_rewards: list[float] = []
-        current_ep_reward = 0.0
-        episode_count = 0
-        start_time = time.time()
+            step = 0
+            rolling_rewards: list[float] = []
+            start_time = time.time()
 
-        for step in range(1, total_steps + 1):
-            if self._stop_requested:
-                break
+            while step < total_steps and not self._stop_requested:
+                # 1. Collect rollout
+                rollout_info = trainer_ppo.collect_rollout()
+                step += trainer_ppo.rollout_steps
+                episodes_in_rollout = int(rollout_info.get("episodes", 0))
+                episode_count += episodes_in_rollout
+                mean_r = float(rollout_info.get("mean_rollout_reward", 0.0))
+                if episodes_in_rollout > 0 or not rolling_rewards:
+                    rolling_rewards.append(mean_r)
 
-            step_res = trainer.step()
-            # step_res returns transition details
-            reward = 0.0
-            done = False
-            if isinstance(step_res, tuple) and len(step_res) >= 3:
-                reward = float(step_res[1])
-                done = bool(step_res[2])
+                # 2. Train epoch
+                metrics = trainer_ppo.train_epoch()
 
-            current_ep_reward += reward
-            if done:
-                episode_count += 1
-                episode_rewards.append(current_ep_reward)
-                current_ep_reward = 0.0
-
-            metrics = trainer.train_step()
-
-            # Broadcast every 10 steps or at episode boundaries
-            if step % 10 == 0 or step == total_steps or done:
-                mean_r = float(np.mean(episode_rewards[-20:])) if episode_rewards else 0.0
                 elapsed = time.time() - start_time
                 fps = float(step / elapsed) if elapsed > 0 else 0.0
+                smooth_reward = float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
 
-                self._status.current_step = step
+                self._status.current_step = min(step, total_steps)
                 self._status.episodes = episode_count
-                self._status.mean_reward = mean_r
+                self._status.mean_reward = smooth_reward
 
                 telemetry = TelemetryEventDTO(
                     type="training_step",
                     experiment_id=exp_id,
-                    step=step,
+                    step=min(step, total_steps),
                     episode=episode_count,
-                    reward=float(reward),
-                    mean_reward=mean_r,
-                    policy_loss=float(metrics.get("policy_loss", 0.0)) if metrics else None,
-                    value_loss=float(metrics.get("value_loss", 0.0)) if metrics else None,
-                    entropy=float(metrics.get("entropy", 0.0)) if metrics else None,
-                    approx_kl=float(metrics.get("approx_kl", 0.0)) if metrics else None,
-                    win_rate=min(0.5 + mean_r * 0.05, 1.0) if mean_r > 0 else 0.0,
+                    reward=mean_r,
+                    mean_reward=smooth_reward,
+                    policy_loss=float(metrics.get("policy_loss", 0.0)),
+                    value_loss=float(metrics.get("value_loss", 0.0)),
+                    entropy=float(metrics.get("entropy", 0.0)),
+                    approx_kl=float(metrics.get("approx_kl", 0.0)),
+                    win_rate=min(max(0.5 + smooth_reward * 0.05, 0.0), 1.0),
                     fps=round(fps, 1),
                 )
                 self.connection_manager.broadcast_sync(telemetry.model_dump())
+                time.sleep(0.04)
 
-            # Slight yield to avoid saturated CPU loop
-            if step % 50 == 0:
-                time.sleep(0.005)
+        else:
+            # DQN Trainer
+            dqn_config = {
+                "lr": getattr(config.algorithm, "learning_rate", 5e-4),
+                "gamma": getattr(config.algorithm, "gamma", 0.99),
+                "batch_size": getattr(config.algorithm, "batch_size", 32),
+                "buffer_size": getattr(config.algorithm, "buffer_size", 10000),
+                "target_update_freq": getattr(config.algorithm, "target_update_freq", 200),
+                "epsilon_start": getattr(config.algorithm, "epsilon_start", 1.0),
+                "epsilon_end": getattr(config.algorithm, "epsilon_end", 0.05),
+                "epsilon_decay_steps": getattr(config.algorithm, "epsilon_decay_steps", 5000),
+                "learning_starts": getattr(config.algorithm, "learning_starts", 50),
+            }
+            trainer_dqn = MaskedDQNTrainer(env=env, config=dqn_config)
+
+            episode_rewards: list[float] = []
+            current_ep_reward = 0.0
+            start_time = time.time()
+
+            for step in range(1, total_steps + 1):
+                if self._stop_requested:
+                    break
+
+                reward, done = trainer_dqn.step()
+                current_ep_reward += reward
+
+                if done:
+                    episode_count += 1
+                    episode_rewards.append(current_ep_reward)
+                    current_ep_reward = 0.0
+
+                metrics = trainer_dqn.train_step()
+
+                if step % 10 == 0 or step == total_steps or done:
+                    mean_r = float(np.mean(episode_rewards[-20:])) if episode_rewards else 0.0
+                    elapsed = time.time() - start_time
+                    fps = float(step / elapsed) if elapsed > 0 else 0.0
+
+                    self._status.current_step = step
+                    self._status.episodes = episode_count
+                    self._status.mean_reward = mean_r
+
+                    telemetry = TelemetryEventDTO(
+                        type="training_step",
+                        experiment_id=exp_id,
+                        step=step,
+                        episode=episode_count,
+                        reward=float(reward),
+                        mean_reward=mean_r,
+                        policy_loss=float(metrics.get("loss", 0.0)),
+                        value_loss=float(metrics.get("loss", 0.0)),
+                        entropy=float(metrics.get("epsilon", 0.0)),
+                        approx_kl=0.0,
+                        win_rate=min(max(0.5 + mean_r * 0.05, 0.0), 1.0),
+                        fps=round(fps, 1),
+                    )
+                    self.connection_manager.broadcast_sync(telemetry.model_dump())
+
+                if step % 20 == 0:
+                    time.sleep(0.005)
 
         self._is_training = False
         self._status.is_training = False

@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import {
   GameView,
-  AgentView,
   BrainView,
   TrainingView,
   ExperimentView,
   ReplayView,
 } from './views';
 
-type ViewMode = 'game' | 'agent' | 'brain' | 'training' | 'experiments' | 'replay';
+type ViewMode = 'game' | 'brain' | 'training' | 'experiments' | 'replay';
 
 interface TabItem {
   id: ViewMode;
@@ -18,8 +17,7 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { id: 'game', label: 'Interactive Game', icon: '🎮' },
-  { id: 'agent', label: 'Agent View', icon: '🤖' },
-  { id: 'brain', label: 'Brain View', icon: '🧠' },
+  { id: 'brain', label: 'Neural Brain & Agent', icon: '🧠' },
   { id: 'training', label: 'Training Live', icon: '📈' },
   { id: 'experiments', label: 'Experiments', icon: '🧪' },
   { id: 'replay', label: 'Replay Player', icon: '🎞️' },
@@ -116,7 +114,6 @@ export default function App() {
       {/* Main View Area */}
       <main style={{ flex: 1, padding: '1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {activeView === 'game' && <GameView />}
-        {activeView === 'agent' && <AgentView />}
         {activeView === 'brain' && <BrainView />}
         {activeView === 'training' && <TrainingView />}
         {activeView === 'experiments' && <ExperimentView />}
