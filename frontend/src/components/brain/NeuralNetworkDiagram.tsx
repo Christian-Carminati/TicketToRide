@@ -119,9 +119,12 @@ export const NeuralNetworkDiagram: React.FC<NeuralNetworkDiagramProps> = ({
                 >
                   <div
                     style={{
-                      height: `${intensity * 100}%`,
+                      height: '100%',
+                      width: '100%',
+                      transform: `scaleY(${intensity})`,
+                      transformOrigin: 'bottom',
                       background: 'linear-gradient(to top, #10B981, #F59E0B)',
-                      transition: 'height 0.3s ease',
+                      transition: 'transform 0.3s ease',
                     }}
                   />
                 </div>

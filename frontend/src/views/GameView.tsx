@@ -20,16 +20,15 @@ export const GameView: React.FC = () => {
     toggleAutoPlay,
   } = useGameSession();
 
-  const [mapName, setMapName] = useState<'mini' | 'usa'>('mini');
   const [player1Type, setPlayer1Type] = useState<string>('human');
   const [player2Type, setPlayer2Type] = useState<string>('greedy');
   const [highlightedCities, setHighlightedCities] = useState<string[]>([]);
   const [claimModalRoute, setClaimModalRoute] = useState<BoardRoute | null>(null);
 
-  // Auto-initialize a mini game session on first mount if none exists
+  // Auto-initialize a USA game session on first mount if none exists
   useEffect(() => {
     if (!gameState && !isLoading) {
-      createGame({ map_name: 'mini', player_types: ['human', 'greedy'], seed: 42 });
+      createGame({ map_name: 'usa', player_types: ['human', 'greedy'], seed: 42 });
     }
   }, [gameState, isLoading, createGame]);
 
@@ -50,7 +49,7 @@ export const GameView: React.FC = () => {
 
   const handleStartNewGame = () => {
     createGame({
-      map_name: mapName,
+      map_name: 'usa',
       player_types: [player1Type, player2Type],
       seed: Math.floor(Math.random() * 10000),
     });
@@ -120,22 +119,9 @@ export const GameView: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Map:</label>
-          <select
-            value={mapName}
-            onChange={(e) => setMapName(e.target.value as 'mini' | 'usa')}
-            style={{
-              backgroundColor: '#1E293B',
-              color: '#F1F5F9',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '6px',
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.85rem',
-            }}
-          >
-            <option value="mini">Mini (5 cities, 6 routes)</option>
-            <option value="usa">USA Official (36 cities, 100 routes)</option>
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', color: '#38BDF8', fontWeight: 600 }}>
+            <span>🗺️ USA Official (36 città, 100 tratte)</span>
+          </div>
 
           <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600, marginLeft: '0.5rem' }}>P1:</label>
           <select

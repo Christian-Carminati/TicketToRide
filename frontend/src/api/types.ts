@@ -31,7 +31,7 @@ export interface GameStateDTO {
   session_id: string;
   turn_number: number;
   current_player_index: number;
-  map_name: 'mini' | 'usa';
+  map_name: string;
   players: PlayerStateDTO[];
   visible_cards: string[];
   deck_size: number;
@@ -47,7 +47,7 @@ export interface GameStateDTO {
 }
 
 export interface GameSessionCreateRequest {
-  map_name?: 'mini' | 'usa';
+  map_name?: string;
   player_types?: string[];
   seed?: number;
   model_checkpoint?: string | null;

@@ -135,14 +135,16 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
                 <div
                   style={{
                     height: '100%',
-                    width: `${item.prob * 100}%`,
+                    width: '100%',
+                    transform: `scaleX(${item.prob})`,
+                    transformOrigin: 'left',
                     background: item.isGreedy
                       ? 'linear-gradient(to right, #10B981, #34D399)'
                       : item.isValid
                       ? 'linear-gradient(to right, #3B82F6, #38BDF8)'
                       : '#475569',
                     borderRadius: '4px',
-                    transition: 'width 0.3s ease',
+                    transition: 'transform 0.3s ease',
                   }}
                 />
               </div>

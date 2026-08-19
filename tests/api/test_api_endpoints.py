@@ -55,7 +55,7 @@ def test_training_endpoints():
     # 2. Start
     start_res = client.post(
         "/api/training/start",
-        json={"config_name": "ppo_mini.yaml", "override_timesteps": 50, "seed": 42},
+        json={"config_name": "ppo_usa.yaml", "override_timesteps": 50, "seed": 42},
     )
     assert start_res.status_code == 200
     assert start_res.json()["is_training"] is True

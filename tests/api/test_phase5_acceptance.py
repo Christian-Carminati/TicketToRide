@@ -44,7 +44,7 @@ def test_phase5_e2e_training_telemetry_flow():
     # Start training with minimal timesteps
     start_res = client.post(
         "/api/training/start",
-        json={"config_name": "ppo_mini.yaml", "override_timesteps": 30, "seed": 42},
+        json={"config_name": "ppo_usa.yaml", "override_timesteps": 30, "seed": 42},
     )
     assert start_res.status_code == 200
     status = start_res.json()

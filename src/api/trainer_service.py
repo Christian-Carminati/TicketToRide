@@ -14,8 +14,8 @@ from src.agents.random_agent import RandomAgent
 from src.api.schemas import TelemetryEventDTO, TrainingStartRequest, TrainingStatusDTO
 from src.api.websocket import ConnectionManager
 from src.environment.env import TicketToRideEnv
-from src.experiments.config import ExperimentConfig
-from src.game.maps import create_synthetic_mini_board, load_usa_board
+from src.experiments.config import AlgorithmConfig, EnvironmentConfig, ExperimentConfig
+from src.game.maps import load_usa_board
 from src.rl.dqn import MaskedDQNTrainer
 from src.rl.ppo import MaskedPPOTrainer
 
@@ -44,10 +44,11 @@ class TrainerService:
                 raw_cfg = yaml.safe_load(f)
             config = ExperimentConfig.model_validate(raw_cfg)
         else:
-            # Fallback default PPO config
+            algo_req = "dqn" if "dqn" in request.config_name.lower() else "ppo"
             config = ExperimentConfig(
                 name=f"exp_{uuid.uuid4().hex[:6]}",
-                algorithm="ppo",
+                algorithm=AlgorithmConfig(name=algo_req),
+                environment=EnvironmentConfig(board="usa", players=2),
                 seed=request.seed or 42,
             )
 
@@ -88,10 +89,7 @@ class TrainerService:
         torch.manual_seed(config.seed)
         np.random.seed(config.seed)
 
-        if config.environment.board.lower() == "mini":
-            board, tickets = create_synthetic_mini_board()
-        else:
-            board, tickets = load_usa_board()
+        board, tickets = load_usa_board()
 
         env = TicketToRideEnv(
             board=board,

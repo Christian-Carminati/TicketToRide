@@ -10,7 +10,7 @@ def test_trainer_service_start_status_stop():
     manager = ConnectionManager()
     service = TrainerService(connection_manager=manager)
 
-    req = TrainingStartRequest(config_name="ppo_mini.yaml", override_timesteps=100, seed=42)
+    req = TrainingStartRequest(config_name="ppo_usa.yaml", override_timesteps=100, seed=42)
     status = service.start_training(req)
     assert status.is_training is True
     assert status.algorithm == "ppo"

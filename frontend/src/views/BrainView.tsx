@@ -22,16 +22,16 @@ const PRESET_SCENARIOS: ScenarioPreset[] = [
     icon: '🌱',
     cards: { RED: 2, BLUE: 1, LOCOMOTIVE: 1 },
     trains: 45,
-    tickets: [{ city_a: 'City_A', city_b: 'City_B', points: 4 }],
+    tickets: [{ city_a: 'New York', city_b: 'Boston', points: 4 }],
   },
   {
     id: 'route_claim',
     name: 'Opportunità di Conquista Tratta',
-    description: 'Il bot ha accumulato carte sufficienti per occupare la tratta City_A ⟷ City_B.',
+    description: 'Il bot ha accumulato carte sufficienti per occupare la tratta New York ⟷ Boston.',
     icon: '🛤️',
     cards: { RED: 4, BLUE: 2, LOCOMOTIVE: 2 },
     trains: 38,
-    tickets: [{ city_a: 'City_A', city_b: 'City_C', points: 8 }],
+    tickets: [{ city_a: 'New York', city_b: 'Atlanta', points: 6 }],
   },
   {
     id: 'endgame_pressure',
@@ -40,7 +40,7 @@ const PRESET_SCENARIOS: ScenarioPreset[] = [
     icon: '🏁',
     cards: { GREEN: 3, YELLOW: 2, LOCOMOTIVE: 1 },
     trains: 4,
-    tickets: [{ city_a: 'City_D', city_b: 'City_E', points: 5 }],
+    tickets: [{ city_a: 'Los Angeles', city_b: 'Seattle', points: 9 }],
   },
 ];
 
@@ -271,11 +271,11 @@ export const BrainView: React.FC = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#38BDF8' }}>
-                🗺️ Mappa & Connettività
+                🗺️ Topologia Mappa USA
               </h4>
-              <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Mini Board</span>
+              <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>36 Città</span>
             </div>
-            <BoardSVG mapName="mini" />
+            <BoardSVG mapName="usa" />
           </div>
 
           {/* Hand Inventory */}

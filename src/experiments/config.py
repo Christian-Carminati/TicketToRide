@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class EnvironmentConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    board: str = "mini"
+    board: str = "usa"
     players: int = 2
     observation_version: int = 1
     reward_version: int = 1

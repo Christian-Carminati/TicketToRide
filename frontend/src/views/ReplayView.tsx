@@ -50,7 +50,7 @@ export const ReplayView: React.FC = () => {
   const snapshot = currentFrame?.state_snapshot || {};
   const claimedRoutes: Record<string, string> = snapshot.claimed_routes || {};
   const players = snapshot.players || [];
-  const mapName: 'mini' | 'usa' = (selectedReplay?.map_name as 'mini' | 'usa') || 'mini';
+  const mapName: string = selectedReplay?.map_name || 'usa';
 
   return (
     <div className="replay-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

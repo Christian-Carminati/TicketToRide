@@ -80,8 +80,8 @@ def test_brain_dto_serialization():
 
 
 def test_training_and_replay_dtos():
-    train_req = TrainingStartRequest(config_name="ppo_mini.yaml", override_timesteps=1000, seed=42)
-    assert train_req.config_name == "ppo_mini.yaml"
+    train_req = TrainingStartRequest(config_name="ppo_usa.yaml", override_timesteps=1000, seed=42)
+    assert train_req.config_name == "ppo_usa.yaml"
 
     train_status = TrainingStatusDTO(
         is_training=True,

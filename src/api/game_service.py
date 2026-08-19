@@ -72,10 +72,7 @@ class GameService:
     def create_session(self, request: GameSessionCreateRequest) -> GameStateDTO:
         session_id = f"sess_{uuid.uuid4().hex[:8]}"
 
-        if request.map_name == "usa":
-            board, tickets = load_usa_board()
-        else:
-            board, tickets = create_synthetic_mini_board()
+        board, tickets = load_usa_board()
 
         action_space = DiscreteActionSpace(board=board)
         masker = ActionMasker(action_space=action_space)

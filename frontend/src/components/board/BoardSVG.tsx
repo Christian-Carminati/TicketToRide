@@ -4,15 +4,13 @@ import { CityNode } from './CityNode';
 import {
   BoardCity,
   BoardRoute,
-  MINI_MAP_CITIES,
-  MINI_MAP_ROUTES,
-  USA_MAP_CITIES,
-  buildUsaRoutes,
+  BOARD_CITIES,
+  buildBoardRoutes,
 } from './mapData';
 import { RouteEdge } from './RouteEdge';
 
 interface BoardSVGProps {
-  mapName?: 'mini' | 'usa';
+  mapName?: string;
   claimedRoutes?: Record<string, string>; // route_id -> player_id
   players?: PlayerStateDTO[];
   validActions?: ActionDTO[];
@@ -27,7 +25,6 @@ const PADDING_X = 70;
 const PADDING_Y = 60;
 
 export const BoardSVG: React.FC<BoardSVGProps> = ({
-  mapName = 'mini',
   claimedRoutes = {},
   players = [],
   validActions = [],
@@ -39,9 +36,8 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
   const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
 
   const { cities, routes, cityCoordsMap } = useMemo(() => {
-    const isUsa = mapName === 'usa';
-    const cityList = isUsa ? USA_MAP_CITIES : MINI_MAP_CITIES;
-    const routeList = isUsa ? buildUsaRoutes() : MINI_MAP_ROUTES;
+    const cityList = BOARD_CITIES;
+    const routeList = buildBoardRoutes();
 
     const coords: Record<string, { x: number; y: number }> = {};
     cityList.forEach((c) => {
@@ -53,7 +49,7 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
     });
 
     return { cities: cityList, routes: routeList, cityCoordsMap: coords };
-  }, [mapName]);
+  }, []);
 
   // Set of claimable route IDs from valid actions
   const claimableRouteIds = useMemo(() => {
