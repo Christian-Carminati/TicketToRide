@@ -1,23 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { ExperimentRecordDTO } from '../api/types';
+import { Trash2, RefreshCw, Search, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export const ExperimentView: React.FC = () => {
   const [experiments, setExperiments] = useState<ExperimentRecordDTO[]>([]);
   const [selectedExp, setSelectedExp] = useState<ExperimentRecordDTO | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
+  const fetchExperiments = () => {
     setIsLoading(true);
     api.listExperiments()
       .then((list) => {
         setExperiments(list);
-        if (list.length > 0) setSelectedExp(list[0]);
+        if (list.length > 0) {
+          setSelectedExp((prev) => (prev ? list.find((e) => e.experiment_id === prev.experiment_id) || list[0] : list[0]));
+        } else {
+          setSelectedExp(null);
+        }
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error(err);
+        setActionMessage({ type: 'error', text: 'Impossibile caricare gli esperimenti.' });
+      })
       .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    fetchExperiments();
   }, []);
+
+  const handleDeleteSingle = async (expId: string, name: string) => {
+    if (!window.confirm(`Sei sicuro di voler eliminare l'esperimento "${name}" (${expId})?`)) {
+      return;
+    }
+    try {
+      setIsLoading(true);
+      await api.deleteExperiment(expId);
+      setActionMessage({ type: 'success', text: `Esperimento "${name}" eliminato con successo.` });
+      fetchExperiments();
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: 'error', text: "Errore durante l'eliminazione dell'esperimento." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (experiments.length === 0) return;
+    if (!window.confirm(`Sei sicuro di voler cancellare TUTTI i ${experiments.length} esperimenti registrati? L'operazione è irreversibile.`)) {
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const res = await api.deleteAllExperiments();
+      setActionMessage({ type: 'success', text: `Tutti gli esperimenti (${res.deleted_count}) sono stati cancellati.` });
+      setExperiments([]);
+      setSelectedExp(null);
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: 'error', text: "Errore durante l'eliminazione di tutti gli esperimenti." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filtered = experiments.filter(
     (e) =>
@@ -27,6 +76,35 @@ export const ExperimentView: React.FC = () => {
 
   return (
     <div className="experiment-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Action Notification Banner */}
+      {actionMessage && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            background: actionMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+            border: `1px solid ${actionMessage.type === 'success' ? '#10B981' : '#F43F5E'}`,
+            color: actionMessage.type === 'success' ? '#34D399' : '#F43F5E',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {actionMessage.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+            <span>{actionMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setActionMessage(null)}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 700 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div
         style={{
@@ -41,48 +119,78 @@ export const ExperimentView: React.FC = () => {
           gap: '1rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#F1F5F9' }}>
-            🧪 Experiment Registry & Benchmarks ({experiments.length})
+            🧪 Registro Esperimenti & Benchmark ({experiments.length})
           </h4>
-          <input
-            type="text"
-            placeholder="Search experiments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              backgroundColor: '#1E293B',
-              color: '#F1F5F9',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '6px',
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.85rem',
-              minWidth: '200px',
-            }}
-          />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={14} color="#64748B" style={{ position: 'absolute', left: '0.6rem' }} />
+            <input
+              type="text"
+              placeholder="Filtra esperimenti..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                backgroundColor: '#1E293B',
+                color: '#F1F5F9',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                padding: '0.35rem 0.6rem 0.35rem 2rem',
+                fontSize: '0.85rem',
+                minWidth: '200px',
+              }}
+            />
+          </div>
         </div>
 
-        <button
-          onClick={() => {
-            setIsLoading(true);
-            api.listExperiments()
-              .then(setExperiments)
-              .finally(() => setIsLoading(false));
-          }}
-          disabled={isLoading}
-          style={{
-            backgroundColor: '#3B82F6',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: '6px',
-            padding: '0.4rem 0.8rem',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
-        >
-          🔄 Refresh
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Delete All Button */}
+          <button
+            onClick={handleDeleteAll}
+            disabled={isLoading || experiments.length === 0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: experiments.length === 0 ? 'rgba(239, 68, 68, 0.2)' : '#EF4444',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '0.4rem 0.85rem',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: experiments.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: experiments.length === 0 ? 0.5 : 1,
+              transition: 'all 0.15s ease',
+            }}
+            title="Elimina tutti gli esperimenti dal registro"
+          >
+            <Trash2 size={14} />
+            <span>Elimina Tutti ({experiments.length})</span>
+          </button>
+
+          {/* Refresh Button */}
+          <button
+            onClick={fetchExperiments}
+            disabled={isLoading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: '#3B82F6',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '0.4rem 0.85rem',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCw size={14} />
+            <span>Aggiorna</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid: List on Left, Detail & JSON on Right */}
@@ -100,11 +208,11 @@ export const ExperimentView: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8' }}>
-                  <th style={{ padding: '0.6rem' }}>Name</th>
-                  <th style={{ padding: '0.6rem' }}>Algo</th>
+                  <th style={{ padding: '0.6rem' }}>Nome Esperimento</th>
+                  <th style={{ padding: '0.6rem' }}>Algoritmo</th>
                   <th style={{ padding: '0.6rem' }}>Seed</th>
                   <th style={{ padding: '0.6rem' }}>Win Rate</th>
-                  <th style={{ padding: '0.6rem' }}>Date</th>
+                  <th style={{ padding: '0.6rem', textAlign: 'center' }}>Azioni</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,18 +247,38 @@ export const ExperimentView: React.FC = () => {
                           {exp.algorithm.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ padding: '0.6rem', color: '#94A3B8' }}>{exp.seed}</td>
-                      <td style={{ padding: '0.6rem', fontWeight: 700, color: '#10B981' }}>{winRate}</td>
-                      <td style={{ padding: '0.6rem', color: '#64748B', fontSize: '0.75rem' }}>
-                        {exp.timestamp ? new Date(exp.timestamp).toLocaleDateString() : 'N/A'}
+                      <td style={{ padding: '0.6rem', color: '#94A3B8', fontFamily: 'monospace' }}>{exp.seed}</td>
+                      <td style={{ padding: '0.6rem', fontWeight: 700, color: '#10B981', fontFamily: 'monospace' }}>{winRate}</td>
+                      <td style={{ padding: '0.6rem', textAlign: 'center' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSingle(exp.experiment_id, exp.name);
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: '4px',
+                            color: '#F87171',
+                            padding: '0.2rem 0.45rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                            fontSize: '0.72rem',
+                          }}
+                          title="Elimina questo esperimento"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748B' }}>
-                      No experiment records found in experiments/registry.json. Run a training session to create benchmark records.
+                    <td colSpan={5} style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                      Nessun record di esperimento presente. Avvia una sessione di training per registrare nuovi benchmark.
                     </td>
                   </tr>
                 )}
@@ -171,25 +299,49 @@ export const ExperimentView: React.FC = () => {
             gap: '1rem',
           }}
         >
-          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#F1F5F9' }}>
-            📝 Experiment Details & Hyperparameters
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#F1F5F9' }}>
+              📝 Dettagli Esperimento & Metriche
+            </h4>
+            {selectedExp && (
+              <button
+                onClick={() => handleDeleteSingle(selectedExp.experiment_id, selectedExp.name)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '6px',
+                  color: '#F87171',
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={13} /> Elimina Selezionato
+              </button>
+            )}
+          </div>
 
           {selectedExp ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Experiment ID:</span>
-                <div style={{ fontSize: '0.85rem', color: '#38BDF8', fontWeight: 600 }}>{selectedExp.experiment_id}</div>
+                <div style={{ fontSize: '0.85rem', color: '#38BDF8', fontWeight: 600, fontFamily: 'monospace' }}>
+                  {selectedExp.experiment_id}
+                </div>
               </div>
 
               {/* Metrics Grid */}
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Evaluated Metrics:</span>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Metriche Valutate:</span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem' }}>
                   {Object.entries(selectedExp.metrics || {}).map(([k, v]) => (
                     <div key={k} style={{ background: 'rgba(30, 41, 59, 0.6)', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
                       <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{k}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F1F5F9' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F1F5F9', fontFamily: 'monospace' }}>
                         {typeof v === 'number' ? v.toFixed(3) : String(v)}
                       </div>
                     </div>
@@ -199,7 +351,7 @@ export const ExperimentView: React.FC = () => {
 
               {/* Config JSON viewer */}
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Configuration:</span>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Configurazione:</span>
                 <pre
                   style={{
                     background: '#0B1120',
@@ -210,6 +362,7 @@ export const ExperimentView: React.FC = () => {
                     maxHeight: '220px',
                     overflowY: 'auto',
                     marginTop: '0.25rem',
+                    fontFamily: 'monospace',
                   }}
                 >
                   {JSON.stringify(selectedExp.config || {}, null, 2)}
@@ -218,7 +371,7 @@ export const ExperimentView: React.FC = () => {
             </div>
           ) : (
             <div style={{ fontSize: '0.85rem', color: '#64748B', fontStyle: 'italic', padding: '1rem 0' }}>
-              Select an experiment from the left table to inspect details.
+              Seleziona un esperimento dalla tabella a sinistra per visualizzare dettagli e iperparametri.
             </div>
           )}
         </div>

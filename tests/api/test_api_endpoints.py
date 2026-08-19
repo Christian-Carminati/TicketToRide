@@ -77,6 +77,16 @@ def test_replays_and_experiments_endpoints():
     assert exp_res.status_code == 200
     assert isinstance(exp_res.json(), list)
 
+    # Delete all experiments
+    del_all_res = client.delete("/api/experiments")
+    assert del_all_res.status_code == 200
+    assert del_all_res.json()["success"] is True
+
+    # List should now be empty
+    exp_empty_res = client.get("/api/experiments/list")
+    assert exp_empty_res.status_code == 200
+    assert exp_empty_res.json() == []
+
 
 def test_brain_inspect_endpoint():
     # Inspect a synthetic observation

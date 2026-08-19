@@ -139,6 +139,20 @@ def list_experiments() -> list[dict[str, Any]]:
     return [r if isinstance(r, dict) else r.model_dump() for r in records]
 
 
+@app.delete("/api/experiments/{experiment_id}")
+def delete_experiment(experiment_id: str) -> dict[str, Any]:
+    deleted = registry.delete_experiment(experiment_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found.")
+    return {"success": True, "deleted_id": experiment_id}
+
+
+@app.delete("/api/experiments")
+def delete_all_experiments() -> dict[str, Any]:
+    count = registry.clear_all_experiments()
+    return {"success": True, "deleted_count": count}
+
+
 @app.get("/api/checkpoints/list", response_model=list[CheckpointDTO])
 def list_checkpoints() -> list[CheckpointDTO]:
     ckpt_dir = os.path.join("experiments", "checkpoints")

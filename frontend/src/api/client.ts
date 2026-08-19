@@ -84,6 +84,16 @@ export const api = {
 
   listExperiments: () => fetchJSON<ExperimentRecordDTO[]>('/api/experiments/list'),
 
+  deleteExperiment: (experimentId: string) =>
+    fetchJSON<{ success: boolean; deleted_id: string }>(`/api/experiments/${experimentId}`, {
+      method: 'DELETE',
+    }),
+
+  deleteAllExperiments: () =>
+    fetchJSON<{ success: boolean; deleted_count: number }>('/api/experiments', {
+      method: 'DELETE',
+    }),
+
   // Checkpoints
   listCheckpoints: () => fetchJSON<import('./types').CheckpointDTO[]>('/api/checkpoints/list'),
 
