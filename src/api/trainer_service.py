@@ -126,6 +126,8 @@ class TrainerService:
 
         total_steps = config.training.total_timesteps
         episode_count = 0
+        last_broadcast_time = 0.0
+        broadcast_interval = 0.05  # Max 20 FPS
 
         if algo == "ppo":
             ppo_config = {
@@ -166,22 +168,24 @@ class TrainerService:
                 self._status.episodes = episode_count
                 self._status.mean_reward = smooth_reward
 
-                telemetry = TelemetryEventDTO(
-                    type="training_step",
-                    experiment_id=exp_id,
-                    step=min(step, total_steps),
-                    episode=episode_count,
-                    reward=mean_r,
-                    mean_reward=smooth_reward,
-                    policy_loss=float(metrics.get("policy_loss", 0.0)),
-                    value_loss=float(metrics.get("value_loss", 0.0)),
-                    entropy=float(metrics.get("entropy", 0.0)),
-                    approx_kl=float(metrics.get("approx_kl", 0.0)),
-                    win_rate=min(max(0.5 + smooth_reward * 0.05, 0.0), 1.0),
-                    fps=round(fps, 1),
-                )
-                self.connection_manager.broadcast_sync(telemetry.model_dump())
-                time.sleep(0.04)
+                now = time.time()
+                if now - last_broadcast_time >= broadcast_interval or step >= total_steps:
+                    last_broadcast_time = now
+                    telemetry = TelemetryEventDTO(
+                        type="training_step",
+                        experiment_id=exp_id,
+                        step=min(step, total_steps),
+                        episode=episode_count,
+                        reward=mean_r,
+                        mean_reward=smooth_reward,
+                        policy_loss=float(metrics.get("policy_loss", 0.0)),
+                        value_loss=float(metrics.get("value_loss", 0.0)),
+                        entropy=float(metrics.get("entropy", 0.0)),
+                        approx_kl=float(metrics.get("approx_kl", 0.0)),
+                        win_rate=min(max(0.5 + smooth_reward * 0.05, 0.0), 1.0),
+                        fps=round(fps, 1),
+                    )
+                    self.connection_manager.broadcast_sync(telemetry.model_dump())
 
             # Auto-save checkpoints
             os.makedirs(config.training.checkpoint_dir, exist_ok=True)
@@ -223,7 +227,9 @@ class TrainerService:
 
                 metrics = trainer_dqn.train_step()
 
-                if step % 10 == 0 or step == total_steps or done:
+                now = time.time()
+                if now - last_broadcast_time >= broadcast_interval or step == total_steps or done:
+                    last_broadcast_time = now
                     mean_r = float(np.mean(episode_rewards[-20:])) if episode_rewards else 0.0
                     elapsed = time.time() - start_time
                     fps = float(step / elapsed) if elapsed > 0 else 0.0
@@ -247,9 +253,6 @@ class TrainerService:
                         fps=round(fps, 1),
                     )
                     self.connection_manager.broadcast_sync(telemetry.model_dump())
-
-                if step % 20 == 0:
-                    time.sleep(0.005)
 
             # Auto-save checkpoints
             os.makedirs(config.training.checkpoint_dir, exist_ok=True)
