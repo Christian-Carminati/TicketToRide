@@ -151,3 +151,39 @@ export interface CheckpointDTO {
   modified_at: string;
   total_timesteps?: number | null;
 }
+
+export interface TournamentAgentDTO {
+  agent_id: string;
+  name: string;
+  elo: number;
+  win_rate: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  avg_score: number;
+  total_games: number;
+}
+
+export interface TournamentMatchupDTO {
+  agent_a: string;
+  agent_b: string;
+  wins_a: number;
+  wins_b: number;
+  draws: number;
+  win_rate_a: number;
+  avg_score_a: number;
+  avg_score_b: number;
+  games_played: number;
+}
+
+export interface TournamentLeaderboardDTO {
+  leaderboard: TournamentAgentDTO[];
+  matchups: TournamentMatchupDTO[];
+  total_games: number;
+  updated_at: string;
+}
+
+export interface TournamentRunRequest {
+  games_per_pair?: number;
+  seed?: number;
+}

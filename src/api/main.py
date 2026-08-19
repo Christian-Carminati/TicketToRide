@@ -3,6 +3,7 @@ import os
 import time
 from contextlib import asynccontextmanager
 from typing import Any
+import torch
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,9 +18,12 @@ from src.api.schemas import (
     GameStateDTO,
     GameStepRequest,
     ReplayDetailDTO,
+    TournamentLeaderboardDTO,
+    TournamentRunRequest,
     TrainingStartRequest,
     TrainingStatusDTO,
 )
+from src.api.tournament_service import TournamentService
 from src.api.trainer_service import TrainerService
 from src.api.websocket import ConnectionManager
 from src.experiments.registry import ExperimentRegistry
@@ -30,6 +34,7 @@ game_service = GameService()
 brain_service = BrainService()
 replay_service = ReplayService()
 trainer_service = TrainerService(connection_manager=connection_manager)
+tournament_service = TournamentService()
 registry = ExperimentRegistry()
 
 
@@ -117,6 +122,17 @@ def start_training(request: TrainingStartRequest) -> TrainingStatusDTO:
 @app.post("/api/training/stop", response_model=TrainingStatusDTO)
 def stop_training() -> TrainingStatusDTO:
     return trainer_service.stop_training()
+
+
+# --- Tournament & Leaderboard Endpoints ---
+@app.get("/api/tournament/leaderboard", response_model=TournamentLeaderboardDTO)
+def get_tournament_leaderboard() -> TournamentLeaderboardDTO:
+    return tournament_service.get_leaderboard()
+
+
+@app.post("/api/tournament/run", response_model=TournamentLeaderboardDTO)
+def run_tournament(request: TournamentRunRequest) -> TournamentLeaderboardDTO:
+    return tournament_service.run_tournament(games_per_pair=request.games_per_pair, seed=request.seed)
 
 
 # --- Replays & Experiments Endpoints ---
@@ -214,7 +230,6 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
         elif hasattr(agent, "actor_critic"):
             return brain_service.inspect_actor_critic(agent.actor_critic, obs, mask, action_labels=action_labels)
         else:
-            # Synthetic default model for inspection
             net = MaskedActorCritic(input_dim=len(obs), action_dim=len(mask), hidden_dim=128)
             return brain_service.inspect_actor_critic(net, obs, mask, action_labels=action_labels)
 

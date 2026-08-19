@@ -1,18 +1,10 @@
-"""Pydantic v2 schemas and DTO models for REST and WebSocket messages in TicketToRide RL Lab."""
+"""Pydantic Data Transfer Objects (DTOs) for API serialization."""
 
 from typing import Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-# --- Game DTOs ---
-class ActionDTO(BaseModel):
-    action_type: str
-    card_index: int | None = None
-    route_id: str | None = None
-    card_color: str | None = None
-    ticket_ids: list[str] | None = None
-
-
+# --- Game State DTOs ---
 class PlayerStateDTO(BaseModel):
     player_id: str
     name: str
@@ -24,11 +16,12 @@ class PlayerStateDTO(BaseModel):
     color: str
 
 
-class GameSessionCreateRequest(BaseModel):
-    map_name: Literal["mini", "usa"] = "mini"
-    player_types: list[str] = Field(default_factory=lambda: ["human", "random"])
-    seed: int = 42
-    model_checkpoint: str | None = None
+class ActionDTO(BaseModel):
+    action_type: str
+    card_index: int | None = None
+    route_id: str | None = None
+    card_color: str | None = None
+    ticket_ids: list[str] | None = None
 
 
 class GameStateDTO(BaseModel):
@@ -41,21 +34,28 @@ class GameStateDTO(BaseModel):
     deck_size: int
     discard_pile_size: int
     tickets_deck_size: int
-    claimed_routes: dict[str, str] = Field(default_factory=dict)  # route_id -> player_id
-    valid_actions: list[ActionDTO] = Field(default_factory=list)
-    action_mask: list[bool] = Field(default_factory=list)
-    is_game_over: bool = False
+    claimed_routes: dict[str, str]  # route_id -> player_id
+    valid_actions: list[ActionDTO]
+    action_mask: list[bool] | None = None
+    is_game_over: bool
     winner_id: str | None = None
     last_action: ActionDTO | None = None
     last_reward: float | None = None
 
 
+class GameSessionCreateRequest(BaseModel):
+    map_name: str = "usa"
+    player_types: list[str] = ["human", "random"]  # "human", "random", "greedy", "strategic", "dqn", "ppo"
+    seed: int = 42
+    model_checkpoint: str | None = None
+
+
 class GameStepRequest(BaseModel):
     session_id: str
-    action: ActionDTO | None = None
+    action: ActionDTO | None = None  # None for bot step
 
 
-# --- Brain & Introspection DTOs ---
+# --- Neural Brain Inspection DTOs ---
 class LayerActivationDTO(BaseModel):
     layer_name: str
     shape: list[int]
@@ -63,20 +63,20 @@ class LayerActivationDTO(BaseModel):
     std: float
     min: float
     max: float
-    values: list[float] = Field(default_factory=list)
+    values: list[float]
 
 
 class BrainInspectionDTO(BaseModel):
     model_type: Literal["dqn", "ppo"]
-    observation_vector: list[float]
+    estimated_value: float
+    action_probabilities: list[float]  # Policy distribution (PPO) or Q-values (DQN)
     action_mask: list[bool]
-    layer_activations: list[LayerActivationDTO]
-    raw_logits_or_q: list[float]
-    masked_logits_or_q: list[float]
-    action_probabilities: list[float]
-    estimated_value: float | None = None
+    action_labels: list[str]
     greedy_action_index: int
-    action_labels: list[str] = Field(default_factory=list)
+    raw_logits_or_q: list[float] | None = None
+    masked_logits_or_q: list[float]
+    observation_vector: list[float]
+    layer_activations: list[LayerActivationDTO] | None = None
 
 
 class BrainInspectRequest(BaseModel):
@@ -118,6 +118,43 @@ class TelemetryEventDTO(BaseModel):
     approx_kl: float | None = None
     win_rate: float | None = None
     fps: float | None = None
+
+
+# --- Tournament & Leaderboard DTOs ---
+class TournamentAgentDTO(BaseModel):
+    agent_id: str
+    name: str
+    elo: float
+    win_rate: float
+    wins: int
+    losses: int
+    draws: int
+    avg_score: float
+    total_games: int
+
+
+class TournamentMatchupDTO(BaseModel):
+    agent_a: str
+    agent_b: str
+    wins_a: int
+    wins_b: int
+    draws: int
+    win_rate_a: float
+    avg_score_a: float
+    avg_score_b: float
+    games_played: int
+
+
+class TournamentLeaderboardDTO(BaseModel):
+    leaderboard: list[TournamentAgentDTO]
+    matchups: list[TournamentMatchupDTO]
+    total_games: int
+    updated_at: str
+
+
+class TournamentRunRequest(BaseModel):
+    games_per_pair: int = 20
+    seed: int = 42
 
 
 # --- Replay DTOs ---

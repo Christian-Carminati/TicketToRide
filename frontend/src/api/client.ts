@@ -5,10 +5,13 @@
 import {
   ActionDTO,
   BrainInspectionDTO,
+  CheckpointDTO,
   ExperimentRecordDTO,
   GameSessionCreateRequest,
   GameStateDTO,
   ReplayDetailDTO,
+  TournamentLeaderboardDTO,
+  TournamentRunRequest,
   TrainingStartRequest,
   TrainingStatusDTO,
 } from './types';
@@ -77,6 +80,15 @@ export const api = {
       method: 'POST',
     }),
 
+  // Tournament
+  getTournamentLeaderboard: () => fetchJSON<TournamentLeaderboardDTO>('/api/tournament/leaderboard'),
+
+  runTournament: (req: TournamentRunRequest = { games_per_pair: 20, seed: 42 }) =>
+    fetchJSON<TournamentLeaderboardDTO>('/api/tournament/run', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
   // Replays & Experiments
   listReplays: () => fetchJSON<Array<{ replay_id: string; map_name: string; total_steps: number; date: string; winner_index: number }>>('/api/replays/list'),
 
@@ -95,7 +107,7 @@ export const api = {
     }),
 
   // Checkpoints
-  listCheckpoints: () => fetchJSON<import('./types').CheckpointDTO[]>('/api/checkpoints/list'),
+  listCheckpoints: () => fetchJSON<CheckpointDTO[]>('/api/checkpoints/list'),
 
   // Brain Introspection
   inspectBrain: (payload: { session_id?: string; model_type?: 'dqn' | 'ppo'; observation?: number[]; action_mask?: boolean[] }) =>

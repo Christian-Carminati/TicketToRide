@@ -78,7 +78,10 @@ class GameService:
 
         session_id = f"sess_{uuid.uuid4().hex[:8]}"
 
-        board, tickets = load_usa_board()
+        if request.map_name == "mini":
+            board, tickets = create_synthetic_mini_board()
+        else:
+            board, tickets = load_usa_board()
 
         action_space = DiscreteActionSpace(board=board)
         masker = ActionMasker(action_space=action_space)
