@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { ExperimentRecordDTO } from '../api/types';
+import { EloMatrixHeatmap } from '../components/tournament/EloMatrixHeatmap';
 import { Trash2, RefreshCw, Search, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export const ExperimentView: React.FC = () => {
@@ -76,6 +77,18 @@ export const ExperimentView: React.FC = () => {
 
   return (
     <div className="experiment-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Live Tournament Elo Matrix & Participant Configuration */}
+      <div
+        style={{
+          background: 'rgba(15, 23, 42, 0.9)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
+          padding: '0.75rem',
+        }}
+      >
+        <EloMatrixHeatmap />
+      </div>
+
       {/* Action Notification Banner */}
       {actionMessage && (
         <div
