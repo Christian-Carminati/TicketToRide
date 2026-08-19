@@ -16,8 +16,8 @@ export const TrainingView: React.FC = () => {
   } = useTrainingStream();
 
   const [configName, setConfigName] = useState('ppo_usa.yaml');
-  const [opponentType, setOpponentType] = useState<'random' | 'greedy' | 'strategic'>('random');
-  const [overrideTimesteps, setOverrideTimesteps] = useState<number>(10000);
+  const [opponentType, setOpponentType] = useState<'random' | 'greedy' | 'strategic'>('greedy');
+  const [overrideTimesteps, setOverrideTimesteps] = useState<number>(15000);
   const [seed, setSeed] = useState<number>(42);
   const [experiments, setExperiments] = useState<ExperimentRecordDTO[]>([]);
   const [isLoadingExperiments, setIsLoadingExperiments] = useState(false);
@@ -229,7 +229,7 @@ export const TrainingView: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            <option value="ppo_usa.yaml">Masked PPO (Policy Gradient)</option>
+            <option value="ppo_usa.yaml">⭐ Masked PPO (Consigliato - Policy Gradient)</option>
             <option value="dqn_usa.yaml">Double-DQN (Deep Q-Network)</option>
           </select>
 
@@ -249,9 +249,9 @@ export const TrainingView: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            <option value="random">🎲 RandomBot (Mosse Casuali Legali)</option>
-            <option value="greedy">⚡ GreedyBot (Occupa Tratte Lunghe)</option>
-            <option value="strategic">🧠 StrategicBot (Ottimizza Biglietti)</option>
+            <option value="greedy">⭐ ⚡ GreedyBot (Consigliato - Pressione Competitiva Tratte)</option>
+            <option value="strategic">🧠 StrategicBot (Avanzato - Ottimizzazione Biglietti)</option>
+            <option value="random">🎲 RandomBot (Base - Esplorazione Iniziale)</option>
           </select>
 
           {/* Timesteps */}
