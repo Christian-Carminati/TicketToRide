@@ -83,7 +83,10 @@ export const api = {
   // Tournament
   getTournamentLeaderboard: () => fetchJSON<TournamentLeaderboardDTO>('/api/tournament/leaderboard'),
 
-  runTournament: (req: TournamentRunRequest = { games_per_pair: 20, seed: 42 }) =>
+  getAvailableTournamentParticipants: () =>
+    fetchJSON<import('./types').TournamentParticipantOptionDTO[]>('/api/tournament/participants/available'),
+
+  runTournament: (req: TournamentRunRequest = { games_per_pair: 15, seed: 42 }) =>
     fetchJSON<TournamentLeaderboardDTO>('/api/tournament/run', {
       method: 'POST',
       body: JSON.stringify(req),

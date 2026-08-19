@@ -121,6 +121,15 @@ class TelemetryEventDTO(BaseModel):
 
 
 # --- Tournament & Leaderboard DTOs ---
+class TournamentParticipantOptionDTO(BaseModel):
+    id: str
+    name: str
+    category: Literal["baseline", "checkpoint"]
+    algorithm: str  # "strategic", "greedy", "random", "ppo", "dqn"
+    checkpoint_path: str | None = None
+    description: str | None = None
+
+
 class TournamentAgentDTO(BaseModel):
     agent_id: str
     name: str
@@ -150,10 +159,14 @@ class TournamentLeaderboardDTO(BaseModel):
     matchups: list[TournamentMatchupDTO]
     total_games: int
     updated_at: str
+    map_name: str = "usa"
+    available_participants: list[TournamentParticipantOptionDTO] | None = None
 
 
 class TournamentRunRequest(BaseModel):
-    games_per_pair: int = 20
+    participant_ids: list[str] | None = None  # Specific list of IDs to include
+    games_per_pair: int = 15
+    map_name: str = "usa"
     seed: int = 42
 
 

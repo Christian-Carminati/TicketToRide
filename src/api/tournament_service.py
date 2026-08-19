@@ -11,19 +11,85 @@ from src.agents.greedy_agent import GreedyAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.strategic_agent import StrategicAgent
-from src.api.schemas import TournamentAgentDTO, TournamentLeaderboardDTO, TournamentMatchupDTO
+from src.api.schemas import (
+    TournamentAgentDTO,
+    TournamentLeaderboardDTO,
+    TournamentMatchupDTO,
+    TournamentParticipantOptionDTO,
+)
 from src.environment.action_space import DiscreteActionSpace
 from src.environment.observation import ObservationV1
 from src.evaluation.tournament import Tournament
-from src.game.maps import load_usa_board
+from src.game.maps import create_synthetic_mini_board, load_usa_board
 
 
 class TournamentService:
-    """Manages tournament executions and calculates live Elo rankings across all agents."""
+    """Manages tournament executions, customizable participants, and calculates live Elo rankings."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._cached_leaderboard: TournamentLeaderboardDTO | None = self._create_baseline_cache()
+
+    def get_available_participants(self) -> list[TournamentParticipantOptionDTO]:
+        """Discover all baseline bots and saved model checkpoints available for tournament play."""
+        options: list[TournamentParticipantOptionDTO] = [
+            TournamentParticipantOptionDTO(
+                id="baseline_strategic",
+                name="Strategic Heuristic",
+                category="baseline",
+                algorithm="strategic",
+                description="Agente euristico avanzato con pianificazione ticket e rotte ad alto punteggio",
+            ),
+            TournamentParticipantOptionDTO(
+                id="baseline_greedy",
+                name="Greedy Score Bot",
+                category="baseline",
+                algorithm="greedy",
+                description="Agente avido che massimizza il punteggio immediato turno per turno",
+            ),
+            TournamentParticipantOptionDTO(
+                id="baseline_random",
+                name="Uniform Random",
+                category="baseline",
+                algorithm="random",
+                description="Agente di controllo che seleziona uniformemente tra le mosse legali",
+            ),
+        ]
+
+        ckpt_dir = os.path.join("experiments", "checkpoints")
+        if os.path.exists(ckpt_dir):
+            files = sorted(
+                [f for f in os.listdir(ckpt_dir) if f.endswith(".pt")],
+                key=lambda x: os.path.getmtime(os.path.join(ckpt_dir, x)),
+                reverse=True,
+            )
+            for fname in files:
+                full_path = os.path.join(ckpt_dir, fname)
+                algo = "ppo" if "ppo" in fname.lower() else "dqn"
+                clean_name = fname.replace(".pt", "").replace("_", " ").title()
+
+                if "live_latest" in fname:
+                    display_name = f"⭐ Ultimo Checkpoint Live ({algo.upper()})"
+                    desc = f"Pesi neurali più recenti salvati dall'ultimo addestramento {algo.upper()}"
+                elif "usa_trained" in fname:
+                    display_name = f"🏆 Benchmark Ufficiale USA ({algo.upper()})"
+                    desc = f"Modello pre-addestrato per benchmark su mappa USA ({algo.upper()})"
+                else:
+                    display_name = f"🧠 {clean_name}"
+                    desc = f"Checkpoint addestrato salvato ({algo.upper()})"
+
+                options.append(
+                    TournamentParticipantOptionDTO(
+                        id=f"ckpt_{fname.replace('.', '_')}",
+                        name=display_name,
+                        category="checkpoint",
+                        algorithm=algo,
+                        checkpoint_path=full_path,
+                        description=desc,
+                    )
+                )
+
+        return options
 
     def _create_baseline_cache(self) -> TournamentLeaderboardDTO:
         """Create an initial baseline leaderboard immediately on startup."""
@@ -53,75 +119,85 @@ class TournamentService:
             matchups=matchups,
             total_games=100,
             updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            map_name="usa",
+            available_participants=self.get_available_participants(),
         )
 
-    def _get_agent_pool(self) -> list[BaseAgent]:
-        board, tickets = load_usa_board()
+    def _build_agent(
+        self,
+        participant: TournamentParticipantOptionDTO,
+        board: Any,
+        tickets: Any,
+    ) -> BaseAgent:
         action_space = DiscreteActionSpace(board=board)
         encoder = ObservationV1(board=board, initial_tickets=tickets, num_players=2)
 
-        agents: list[BaseAgent] = [
-            StrategicAgent(name="Strategic Heuristic"),
-            GreedyAgent(name="Greedy Score Bot"),
-            RandomAgent(name="Uniform Random", seed=42),
-        ]
-
-        # Add PPO Trained if checkpoint exists
-        ppo_agent = PPOAgent(
-            name="PPO Masked AC",
-            input_dim=encoder.observation_shape[0],
-            action_dim=action_space.n,
-            encoder=encoder,
-            discrete_actions=action_space,
-        )
-        if os.path.exists("experiments/checkpoints"):
-            ppo_ckpts = sorted(
-                [
-                    os.path.join("experiments/checkpoints", f)
-                    for f in os.listdir("experiments/checkpoints")
-                    if "ppo" in f.lower() and f.endswith(".pt")
-                ],
-                key=os.path.getmtime,
-                reverse=True,
+        algo = participant.algorithm.lower()
+        if algo == "strategic":
+            return StrategicAgent(name=participant.name)
+        elif algo == "greedy":
+            return GreedyAgent(name=participant.name)
+        elif algo == "random":
+            return RandomAgent(name=participant.name, seed=42)
+        elif algo == "dqn":
+            agent_dqn = DQNAgent(
+                name=participant.name,
+                input_dim=encoder.observation_shape[0],
+                action_dim=action_space.n,
+                encoder=encoder,
+                discrete_actions=action_space,
             )
-            if ppo_ckpts:
+            if participant.checkpoint_path and os.path.exists(participant.checkpoint_path):
                 try:
-                    ppo_agent.load(ppo_ckpts[0])
-                except Exception:
-                    pass
-        agents.insert(0, ppo_agent)
-
-        # Add DQN Trained if checkpoint exists
-        dqn_agent = DQNAgent(
-            name="DQN Masked Q-Net",
-            input_dim=encoder.observation_shape[0],
-            action_dim=action_space.n,
-            encoder=encoder,
-            discrete_actions=action_space,
-        )
-        if os.path.exists("experiments/checkpoints"):
-            dqn_ckpts = sorted(
-                [
-                    os.path.join("experiments/checkpoints", f)
-                    for f in os.listdir("experiments/checkpoints")
-                    if "dqn" in f.lower() and f.endswith(".pt")
-                ],
-                key=os.path.getmtime,
-                reverse=True,
+                    agent_dqn.load(participant.checkpoint_path)
+                except Exception as e:
+                    print(f"Failed to load DQN checkpoint {participant.checkpoint_path}: {e}")
+            return agent_dqn
+        elif algo == "ppo":
+            agent_ppo = PPOAgent(
+                name=participant.name,
+                input_dim=encoder.observation_shape[0],
+                action_dim=action_space.n,
+                encoder=encoder,
+                discrete_actions=action_space,
             )
-            if dqn_ckpts:
+            if participant.checkpoint_path and os.path.exists(participant.checkpoint_path):
                 try:
-                    dqn_agent.load(dqn_ckpts[0])
-                except Exception:
-                    pass
-        agents.insert(1, dqn_agent)
+                    agent_ppo.load(participant.checkpoint_path)
+                except Exception as e:
+                    print(f"Failed to load PPO checkpoint {participant.checkpoint_path}: {e}")
+            return agent_ppo
+        else:
+            return RandomAgent(name=participant.name, seed=42)
 
-        return agents
-
-    def run_tournament(self, games_per_pair: int = 20, seed: int = 42) -> TournamentLeaderboardDTO:
+    def run_tournament(
+        self,
+        participant_ids: list[str] | None = None,
+        games_per_pair: int = 15,
+        map_name: str = "usa",
+        seed: int = 42,
+    ) -> TournamentLeaderboardDTO:
         with self._lock:
-            agents = self._get_agent_pool()
-            board, tickets = load_usa_board()
+            all_available = self.get_available_participants()
+
+            if participant_ids and len(participant_ids) >= 2:
+                selected_options = [p for p in all_available if p.id in participant_ids]
+            else:
+                # Default selection: baseline bots + live latest checkpoints
+                selected_options = [p for p in all_available if p.category == "baseline" or "live_latest" in p.id]
+                if len(selected_options) < 2:
+                    selected_options = all_available[:5]
+
+            # Load map
+            if map_name == "mini":
+                board, tickets = create_synthetic_mini_board()
+            else:
+                board, tickets = load_usa_board()
+
+            agents: list[BaseAgent] = [
+                self._build_agent(opt, board=board, tickets=tickets)
+                for opt in selected_options
+            ]
 
             tourney = Tournament(
                 agents=agents,
@@ -176,6 +252,8 @@ class TournamentService:
                 matchups=matchup_dtos,
                 total_games=total_tourney_games,
                 updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                map_name=map_name,
+                available_participants=all_available,
             )
             self._cached_leaderboard = dto
             return dto
@@ -183,4 +261,7 @@ class TournamentService:
     def get_leaderboard(self) -> TournamentLeaderboardDTO:
         if self._cached_leaderboard is None:
             self._cached_leaderboard = self._create_baseline_cache()
+        else:
+            # Refresh available participants dynamically
+            self._cached_leaderboard.available_participants = self.get_available_participants()
         return self._cached_leaderboard

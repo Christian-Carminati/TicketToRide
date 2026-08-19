@@ -19,6 +19,7 @@ from src.api.schemas import (
     GameStepRequest,
     ReplayDetailDTO,
     TournamentLeaderboardDTO,
+    TournamentParticipantOptionDTO,
     TournamentRunRequest,
     TrainingStartRequest,
     TrainingStatusDTO,
@@ -125,6 +126,11 @@ def stop_training() -> TrainingStatusDTO:
 
 
 # --- Tournament & Leaderboard Endpoints ---
+@app.get("/api/tournament/participants/available", response_model=list[TournamentParticipantOptionDTO])
+def get_available_tournament_participants() -> list[TournamentParticipantOptionDTO]:
+    return tournament_service.get_available_participants()
+
+
 @app.get("/api/tournament/leaderboard", response_model=TournamentLeaderboardDTO)
 def get_tournament_leaderboard() -> TournamentLeaderboardDTO:
     return tournament_service.get_leaderboard()
@@ -132,7 +138,12 @@ def get_tournament_leaderboard() -> TournamentLeaderboardDTO:
 
 @app.post("/api/tournament/run", response_model=TournamentLeaderboardDTO)
 def run_tournament(request: TournamentRunRequest) -> TournamentLeaderboardDTO:
-    return tournament_service.run_tournament(games_per_pair=request.games_per_pair, seed=request.seed)
+    return tournament_service.run_tournament(
+        participant_ids=request.participant_ids,
+        games_per_pair=request.games_per_pair,
+        map_name=request.map_name,
+        seed=request.seed,
+    )
 
 
 # --- Replays & Experiments Endpoints ---

@@ -152,6 +152,15 @@ export interface CheckpointDTO {
   total_timesteps?: number | null;
 }
 
+export interface TournamentParticipantOptionDTO {
+  id: string;
+  name: string;
+  category: 'baseline' | 'checkpoint';
+  algorithm: string;
+  checkpoint_path?: string | null;
+  description?: string | null;
+}
+
 export interface TournamentAgentDTO {
   agent_id: string;
   name: string;
@@ -181,9 +190,13 @@ export interface TournamentLeaderboardDTO {
   matchups: TournamentMatchupDTO[];
   total_games: number;
   updated_at: string;
+  map_name?: string;
+  available_participants?: TournamentParticipantOptionDTO[];
 }
 
 export interface TournamentRunRequest {
+  participant_ids?: string[];
   games_per_pair?: number;
+  map_name?: 'usa' | 'mini';
   seed?: number;
 }
