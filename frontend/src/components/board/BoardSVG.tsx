@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ActionDTO, PlayerStateDTO } from '../../api/types';
+import { ObservabilityMode, HoveredActionMeta } from '../../context/workbenchTypes';
 import { CityNode } from './CityNode';
 import {
   BoardCity,
@@ -15,8 +16,12 @@ interface BoardSVGProps {
   players?: PlayerStateDTO[];
   validActions?: ActionDTO[];
   highlightedCities?: string[];
+  observabilityMode?: ObservabilityMode;
+  hoveredRouteId?: string | null;
+  hoveredMeta?: HoveredActionMeta | null;
   onRouteClick?: (route: BoardRoute) => void;
   onCityClick?: (city: BoardCity) => void;
+  onRouteHover?: (routeId: string | null) => void;
 }
 
 const SVG_WIDTH = 1000;
@@ -29,11 +34,17 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
   players = [],
   validActions = [],
   highlightedCities = [],
+  observabilityMode = 'god',
+  hoveredRouteId = null,
+  hoveredMeta = null,
   onRouteClick,
   onCityClick,
+  onRouteHover,
 }) => {
-  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
-  const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
+  const [internalHoveredCity, setInternalHoveredCity] = useState<string | null>(null);
+  const [internalHoveredRoute, setInternalHoveredRoute] = useState<string | null>(null);
+
+  const activeHoveredRoute = hoveredRouteId !== undefined && hoveredRouteId !== null ? hoveredRouteId : internalHoveredRoute;
 
   const { cities, routes, cityCoordsMap } = useMemo(() => {
     const cityList = BOARD_CITIES;
@@ -93,6 +104,17 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
         </defs>
         <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#board-grid)" />
 
+        {/* Observability Mode watermark indicator */}
+        <g transform="translate(20, 30)" opacity={0.4} style={{ pointerEvents: 'none' }}>
+          <text fill="#94A3B8" fontSize={11} fontFamily="monospace" letterSpacing="0.05em">
+            {observabilityMode === 'god'
+              ? '● OBSERVER: FULL OMNISCIENT (GOD MODE)'
+              : observabilityMode === 'player_0'
+              ? '● AGENT VIEW: PLAYER 0 (PARTIAL OBSERVABILITY)'
+              : '● AGENT VIEW: PLAYER 1 (PARTIAL OBSERVABILITY)'}
+          </text>
+        </g>
+
         {/* Routes Layer (drawn behind cities) */}
         <g className="routes-layer">
           {routes.map((r) => {
@@ -103,7 +125,7 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
             const claimedPlayerId = claimedRoutes[r.id];
             const claimedPlayer = claimedPlayerId ? playerMap[claimedPlayerId] : null;
             const isClaimable = claimableRouteIds.has(r.id);
-            const isHovered = hoveredRoute === r.id;
+            const isHovered = activeHoveredRoute === r.id;
 
             return (
               <RouteEdge
@@ -117,8 +139,15 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
                 claimedByPlayerName={claimedPlayer ? claimedPlayer.name : null}
                 isClaimable={isClaimable}
                 isHovered={isHovered}
-                onMouseEnter={() => setHoveredRoute(r.id)}
-                onMouseLeave={() => setHoveredRoute(null)}
+                hoveredMeta={isHovered ? hoveredMeta : null}
+                onMouseEnter={() => {
+                  setInternalHoveredRoute(r.id);
+                  onRouteHover?.(r.id);
+                }}
+                onMouseLeave={() => {
+                  setInternalHoveredRoute(null);
+                  onRouteHover?.(null);
+                }}
                 onClick={() => onRouteClick?.(r)}
               />
             );
@@ -132,7 +161,7 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
             if (!pos) return null;
 
             const isHighlighted = highlightedCities.includes(c.name) || highlightedCities.includes(c.id);
-            const isHovered = hoveredCity === c.name || hoveredCity === c.id;
+            const isHovered = internalHoveredCity === c.name || internalHoveredCity === c.id;
 
             return (
               <CityNode
@@ -142,8 +171,8 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
                 y={pos.y}
                 isHighlighted={isHighlighted}
                 isHovered={isHovered}
-                onMouseEnter={() => setHoveredCity(c.name)}
-                onMouseLeave={() => setHoveredCity(null)}
+                onMouseEnter={() => setInternalHoveredCity(c.name)}
+                onMouseLeave={() => setInternalHoveredCity(null)}
                 onClick={() => onCityClick?.(c)}
               />
             );

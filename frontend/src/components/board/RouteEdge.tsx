@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoardRoute, COLOR_HEX } from './mapData';
+import { HoveredActionMeta } from '../../context/workbenchTypes';
 
 interface RouteEdgeProps {
   route: BoardRoute;
@@ -11,6 +12,7 @@ interface RouteEdgeProps {
   claimedByPlayerName?: string | null;
   isClaimable?: boolean;
   isHovered?: boolean;
+  hoveredMeta?: HoveredActionMeta | null;
   onMouseEnter?: (route: BoardRoute) => void;
   onMouseLeave?: (route: BoardRoute) => void;
   onClick?: (route: BoardRoute) => void;
@@ -26,6 +28,7 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
   claimedByPlayerName,
   isClaimable = false,
   isHovered = false,
+  hoveredMeta = null,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -48,13 +51,16 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
   const ox2 = x2 + nx * offsetDist;
   const oy2 = y2 + ny * offsetDist;
 
+  const midX = (ox1 + ox2) / 2;
+  const midY = (oy1 + oy2) / 2;
+
   const baseColor = route.color ? COLOR_HEX[route.color] || '#64748B' : '#64748B';
   const isClaimed = Boolean(claimedByPlayerColor);
   const trackColor = isClaimed ? claimedByPlayerColor! : baseColor;
 
   return (
     <g
-      className={`route-edge ${isClaimable ? 'claimable' : ''} ${isClaimed ? 'claimed' : ''}`}
+      className={`route-edge ${isClaimable ? 'claimable' : ''} ${isClaimed ? 'claimed' : ''} ${isHovered ? 'hover-linked' : ''}`}
       style={{ cursor: isClaimable || isClaimed ? 'pointer' : 'default' }}
       onMouseEnter={() => onMouseEnter?.(route)}
       onMouseLeave={() => onMouseLeave?.(route)}
@@ -66,10 +72,14 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
         y1={oy1}
         x2={ox2}
         y2={oy2}
-        stroke="#0F172A"
-        strokeWidth={isHovered ? 12 : 10}
+        stroke={isHovered ? '#38BDF8' : '#0F172A'}
+        strokeWidth={isHovered ? 14 : 10}
         strokeLinecap="round"
-        opacity={0.8}
+        opacity={isHovered ? 0.9 : 0.8}
+        style={{
+          transition: 'all 0.15s ease',
+          filter: isHovered ? 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.8))' : undefined,
+        }}
       />
 
       {/* Segmented dashed track for train pieces */}
@@ -83,13 +93,13 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
         strokeDasharray={`${Math.max(8, len / route.length - 4)} 4`}
         strokeLinecap="round"
         style={{
-          transition: 'all 0.2s ease',
+          transition: 'all 0.15s ease',
           filter: isClaimed ? 'drop-shadow(0 0 4px rgba(255,255,255,0.4))' : undefined,
         }}
       />
 
       {/* Claimable highlight pulse */}
-      {isClaimable && !isClaimed && (
+      {isClaimable && !isClaimed && !isHovered && (
         <line
           x1={ox1}
           y1={oy1}
@@ -109,6 +119,34 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
             repeatCount="indefinite"
           />
         </line>
+      )}
+
+      {/* Neural Hover Overlay Badge on Track */}
+      {isHovered && hoveredMeta && hoveredMeta.probability !== undefined && (
+        <g transform={`translate(${midX}, ${midY})`} style={{ pointerEvents: 'none' }}>
+          <rect
+            x={-35}
+            y={-14}
+            width={70}
+            height={28}
+            rx={6}
+            fill="rgba(15, 23, 42, 0.95)"
+            stroke={hoveredMeta.isMasked ? '#F43F5E' : '#38BDF8'}
+            strokeWidth={1.5}
+            filter="drop-shadow(0 2px 8px rgba(0,0,0,0.6))"
+          />
+          <text
+            x={0}
+            y={4}
+            textAnchor="middle"
+            fill={hoveredMeta.isMasked ? '#F43F5E' : '#38BDF8'}
+            fontSize={11}
+            fontWeight="bold"
+            fontFamily="monospace"
+          >
+            {hoveredMeta.isMasked ? 'MASKED' : `P: ${(hoveredMeta.probability * 100).toFixed(0)}%`}
+          </text>
+        </g>
       )}
 
       {/* Tooltip on hover */}
