@@ -1,6 +1,5 @@
-"""Player state representation and hand management."""
+"""Player state and inventory representation."""
 
-from dataclasses import dataclass, field
 from typing import Any
 
 from src.game.card import CardColor, TrainCard
@@ -8,18 +7,36 @@ from src.game.route import Route
 from src.game.ticket import DestinationTicket
 
 
-@dataclass
 class Player:
-    id: str
-    name: str
-    trains_remaining: int = 45
-    score: int = 0
-    cards: dict[CardColor, int] = field(
-        default_factory=lambda: {color: 0 for color in CardColor}
-    )
-    tickets: list[DestinationTicket] = field(default_factory=list)
-    claimed_route_ids: list[str] = field(default_factory=list)
-    pending_tickets: list[DestinationTicket] = field(default_factory=list)
+    """Represents a player's private inventory and public scoring state."""
+
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        trains_remaining: int = 45,
+        score: int = 0,
+        cards: dict[CardColor, int] | None = None,
+        tickets: list[DestinationTicket] | None = None,
+        claimed_route_ids: list[str] | None = None,
+        pending_tickets: list[DestinationTicket] | None = None,
+    ) -> None:
+        self.id = id
+        self.name = name
+        self.trains_remaining = trains_remaining
+        self.score = score
+        self.cards: dict[CardColor, int] = (
+            cards.copy() if cards is not None else {c: 0 for c in CardColor}
+        )
+        self.tickets: list[DestinationTicket] = (
+            tickets.copy() if tickets is not None else []
+        )
+        self.claimed_route_ids: list[str] = (
+            claimed_route_ids.copy() if claimed_route_ids is not None else []
+        )
+        self.pending_tickets: list[DestinationTicket] = (
+            pending_tickets.copy() if pending_tickets is not None else []
+        )
 
     def total_cards(self) -> int:
         return sum(self.cards.values())
@@ -59,7 +76,6 @@ class Player:
             # Colored route: must use route.color and/or LOCOMOTIVE
             color_count = self.cards.get(route.color, 0)
             if color_count + locomotives >= required_len:
-                # Can use between max(0, required_len - locomotives) and min(required_len, color_count) of the specific color
                 min_color_needed = max(0, required_len - locomotives)
                 max_color_possible = min(required_len, color_count)
                 for c_used in range(min_color_needed, max_color_possible + 1):
@@ -73,10 +89,9 @@ class Player:
                         options.append(option)
         else:
             # Gray route: can use any single color (plus locomotives) or all locomotives
-            for color in CardColor:
-                if color == CardColor.LOCOMOTIVE:
+            for color, color_count in self.cards.items():
+                if color == CardColor.LOCOMOTIVE or color_count == 0:
                     continue
-                color_count = self.cards.get(color, 0)
                 if color_count + locomotives >= required_len:
                     min_color_needed = max(1, required_len - locomotives)
                     max_color_possible = min(required_len, color_count)

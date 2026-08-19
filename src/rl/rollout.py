@@ -44,14 +44,10 @@ class RolloutBuffer:
         done: bool,
         action_mask: np.ndarray,
     ) -> None:
-        obs_arr = np.asarray(obs, dtype=np.float32).ravel()
-        mask_arr = np.asarray(action_mask, dtype=bool).ravel()
-
         if not self.initialized or self.obs_buf is None or self.masks_buf is None:
-            self._lazy_init(len(obs_arr), len(mask_arr))
+            self._lazy_init(len(obs), len(action_mask))
 
         if self.ptr >= self.capacity:
-            # Expand capacity if needed
             new_cap = self.capacity * 2
             new_obs = np.zeros((new_cap, self.obs_dim), dtype=np.float32)
             new_masks = np.zeros((new_cap, self.action_dim), dtype=bool)
@@ -67,13 +63,13 @@ class RolloutBuffer:
             self.dones_buf = np.pad(self.dones_buf, (0, self.capacity))
             self.capacity = new_cap
 
-        self.obs_buf[self.ptr] = obs_arr
+        self.obs_buf[self.ptr] = obs
         self.actions_buf[self.ptr] = int(action)
         self.rewards_buf[self.ptr] = float(reward)
         self.values_buf[self.ptr] = float(value)
         self.log_probs_buf[self.ptr] = float(log_prob)
         self.dones_buf[self.ptr] = bool(done)
-        self.masks_buf[self.ptr] = mask_arr
+        self.masks_buf[self.ptr] = action_mask
 
         self.ptr += 1
         self.size = self.ptr
@@ -129,12 +125,12 @@ class RolloutBuffer:
         indices = np.random.permutation(total_steps)
 
         # Convert full rollout once for all minibatches in this epoch
-        t_obs = torch.as_tensor(self.obs_buf[:total_steps], dtype=torch.float32, device=device)
-        t_act = torch.as_tensor(self.actions_buf[:total_steps], dtype=torch.int64, device=device)
-        t_lp = torch.as_tensor(self.log_probs_buf[:total_steps], dtype=torch.float32, device=device)
-        t_adv = torch.as_tensor(advantages[:total_steps], dtype=torch.float32, device=device)
-        t_ret = torch.as_tensor(returns[:total_steps], dtype=torch.float32, device=device)
-        t_mask = torch.as_tensor(self.masks_buf[:total_steps], dtype=torch.bool, device=device)
+        t_obs = torch.from_numpy(self.obs_buf[:total_steps]).to(device=device)
+        t_act = torch.from_numpy(self.actions_buf[:total_steps]).to(device=device)
+        t_lp = torch.from_numpy(self.log_probs_buf[:total_steps]).to(device=device)
+        t_adv = torch.from_numpy(advantages[:total_steps]).to(device=device)
+        t_ret = torch.from_numpy(returns[:total_steps]).to(device=device)
+        t_mask = torch.from_numpy(self.masks_buf[:total_steps]).to(device=device)
 
         for start in range(0, total_steps, batch_size):
             mb_idx = indices[start : start + batch_size]

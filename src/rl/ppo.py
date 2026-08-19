@@ -33,6 +33,9 @@ class MaskedPPOTrainer:
         self.max_grad_norm: float = self.config.get("max_grad_norm", 0.5)
         self.device: str = self.config.get("device", "cpu")
 
+        if self.device == "cpu" and torch.get_num_threads() > 2:
+            torch.set_num_threads(2)
+
         obs_dim = self.env.observation_space.shape[0]
         action_dim = int(self.env.action_space.n)
 
@@ -54,8 +57,8 @@ class MaskedPPOTrainer:
         current_ep_reward = 0.0
 
         for _ in range(self.rollout_steps):
-            obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
-            mask_tensor = torch.as_tensor(self.current_info["action_mask"], dtype=torch.bool, device=self.device).unsqueeze(0)
+            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
+            mask_tensor = torch.from_numpy(self.current_info["action_mask"]).unsqueeze(0).to(device=self.device)
 
             with torch.no_grad():
                 action, log_prob, _, value = self.actor_critic.get_action_and_value(
@@ -94,7 +97,7 @@ class MaskedPPOTrainer:
         """Perform PPO optimization on collected rollout."""
         # Estimate next state value for GAE boundary
         with torch.no_grad():
-            obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
             _, next_val = self.actor_critic(obs_tensor)
             next_value = float(next_val.item())
 

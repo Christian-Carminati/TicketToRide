@@ -79,19 +79,16 @@ class ReplayBuffer:
         done: bool,
         next_action_mask: np.ndarray | None = None,
     ) -> None:
-        obs_arr = np.asarray(obs, dtype=np.float32).ravel()
-        next_obs_arr = np.asarray(next_obs, dtype=np.float32).ravel()
-        mask_arr = np.asarray(next_action_mask if next_action_mask is not None else [True], dtype=bool).ravel()
-
         if not self.initialized or self.obs_buf is None or self.masks_buf is None:
-            self._lazy_init(len(obs_arr), len(mask_arr))
+            self._lazy_init(len(obs), len(next_action_mask) if next_action_mask is not None else 1)
 
-        self.obs_buf[self.ptr] = obs_arr
+        self.obs_buf[self.ptr] = obs
         self.actions_buf[self.ptr] = int(action)
         self.rewards_buf[self.ptr] = float(reward)
-        self.next_obs_buf[self.ptr] = next_obs_arr
+        self.next_obs_buf[self.ptr] = next_obs
         self.dones_buf[self.ptr] = float(done)
-        self.masks_buf[self.ptr] = mask_arr
+        if next_action_mask is not None:
+            self.masks_buf[self.ptr] = next_action_mask
 
         self.ptr = (self.ptr + 1) % self.capacity
         self.size = min(self.size + 1, self.capacity)
@@ -99,12 +96,12 @@ class ReplayBuffer:
     def sample(self, batch_size: int, device: str = "cpu") -> ReplayBatch:
         idxs = np.random.randint(0, self.size, size=batch_size)
         return ReplayBatch(
-            obs=torch.as_tensor(self.obs_buf[idxs], dtype=torch.float32, device=device),
-            actions=torch.as_tensor(self.actions_buf[idxs], dtype=torch.int64, device=device),
-            rewards=torch.as_tensor(self.rewards_buf[idxs], dtype=torch.float32, device=device),
-            next_obs=torch.as_tensor(self.next_obs_buf[idxs], dtype=torch.float32, device=device),
-            dones=torch.as_tensor(self.dones_buf[idxs], dtype=torch.float32, device=device),
-            next_action_masks=torch.as_tensor(self.masks_buf[idxs], dtype=torch.bool, device=device),
+            obs=torch.from_numpy(self.obs_buf[idxs]).to(device=device),
+            actions=torch.from_numpy(self.actions_buf[idxs]).to(device=device),
+            rewards=torch.from_numpy(self.rewards_buf[idxs]).to(device=device),
+            next_obs=torch.from_numpy(self.next_obs_buf[idxs]).to(device=device),
+            dones=torch.from_numpy(self.dones_buf[idxs]).to(device=device),
+            next_action_masks=torch.from_numpy(self.masks_buf[idxs]).to(device=device),
         )
 
     def __len__(self) -> int:

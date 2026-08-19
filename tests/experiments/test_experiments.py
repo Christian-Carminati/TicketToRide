@@ -26,7 +26,18 @@ def test_experiment_config_roundtrip():
 def test_experiment_registry_and_runner():
     with tempfile.TemporaryDirectory() as tmpdir:
         registry_file = os.path.join(tmpdir, "registry.jsonl")
-        config = ExperimentConfig(name="exp_run_test")
+        config = ExperimentConfig(
+            name="exp_run_test",
+            training={
+                "total_timesteps": 64,
+                "rollout_steps": 32,
+                "batch_size": 16,
+                "eval_freq": 32,
+                "eval_episodes_per_opponent": 1,
+                "checkpoint_dir": tmpdir,
+            },
+            evaluation={"opponents": ["random"]},
+        )
         runner = ExperimentRunner(config)
         runner.registry = ExperimentRegistry(registry_file=registry_file)
 

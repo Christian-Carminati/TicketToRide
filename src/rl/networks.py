@@ -32,24 +32,25 @@ class MaskedQNetwork(nn.Module):
         epsilon: float = 0.0,
     ) -> int:
         """Select an action using epsilon-greedy strategy over legally valid actions."""
-        if isinstance(action_mask, torch.Tensor):
-            mask_np = action_mask.detach().cpu().numpy()
-        else:
-            mask_np = action_mask
-
-        valid_indices = np.where(mask_np)[0]
-        if len(valid_indices) == 0:
+        if epsilon > 0.0 and random.random() < epsilon:
+            if isinstance(action_mask, torch.Tensor):
+                mask_np = action_mask.detach().cpu().numpy()
+            else:
+                mask_np = action_mask
+            valid_indices = np.where(mask_np)[0]
+            if len(valid_indices) > 0:
+                return int(random.choice(valid_indices))
             return 0
-
-        if random.random() < epsilon:
-            return int(random.choice(valid_indices))
 
         with torch.no_grad():
             if obs.dim() == 1:
                 obs = obs.unsqueeze(0)
             q_values = self.forward(obs).squeeze(0)
-            mask_tensor = torch.as_tensor(mask_np, dtype=torch.bool, device=q_values.device)
-            masked_q = q_values.masked_fill(~mask_tensor, -1e9)
+            if isinstance(action_mask, torch.Tensor):
+                mask_tensor = action_mask.to(device=q_values.device, dtype=torch.bool)
+            else:
+                mask_tensor = torch.as_tensor(action_mask, dtype=torch.bool, device=q_values.device)
+            masked_q = torch.where(mask_tensor, q_values, -1e9)
             return int(torch.argmax(masked_q).item())
 
 
@@ -91,7 +92,7 @@ class MaskedActorCritic(nn.Module):
 
         if action_mask is not None:
             # Mask out invalid actions with -1e8 before softmax
-            masked_logits = logits.masked_fill(~action_mask, -1e8)
+            masked_logits = torch.where(action_mask, logits, -1e8)
         else:
             masked_logits = logits
 

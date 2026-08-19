@@ -32,6 +32,9 @@ class MaskedDQNTrainer:
         self.max_grad_norm: float = self.config.get("max_grad_norm", 1.0)
         self.device: str = self.config.get("device", "cpu")
 
+        if self.device == "cpu" and torch.get_num_threads() > 2:
+            torch.set_num_threads(2)
+
         obs_dim = self.env.observation_space.shape[0]
         action_dim = int(self.env.action_space.n)
 
@@ -60,8 +63,9 @@ class MaskedDQNTrainer:
         eps = self.get_epsilon() if epsilon is None else epsilon
         action_mask = self.current_info["action_mask"]
 
-        obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device)
-        action = self.policy_net.select_action(obs_tensor, action_mask, epsilon=eps)
+        with torch.no_grad():
+            obs_tensor = torch.from_numpy(self.current_obs).to(device=self.device)
+            action = self.policy_net.select_action(obs_tensor, action_mask, epsilon=eps)
 
         next_obs, reward, terminated, truncated, next_info = self.env.step(action)
         done = terminated or truncated
@@ -106,7 +110,7 @@ class MaskedDQNTrainer:
         # 1. Best action chosen by policy_net over valid next actions
         with torch.no_grad():
             next_q_policy = self.policy_net(next_obs)
-            masked_next_q = next_q_policy.masked_fill(~next_masks, -1e9)
+            masked_next_q = torch.where(next_masks, next_q_policy, -1e9)
             best_next_actions = torch.argmax(masked_next_q, dim=1, keepdim=True)
 
             # 2. Value estimated by target_net for best_next_actions
