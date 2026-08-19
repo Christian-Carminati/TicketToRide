@@ -41,7 +41,11 @@ class MaskedDQNTrainer:
         self.target_net.eval()
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
-        self.replay_buffer = ReplayBuffer(capacity=self.buffer_size)
+        self.replay_buffer = ReplayBuffer(
+            capacity=self.buffer_size,
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+        )
 
         self.total_timesteps = 0
         self.current_obs, self.current_info = self.env.reset()
@@ -56,7 +60,7 @@ class MaskedDQNTrainer:
         eps = self.get_epsilon() if epsilon is None else epsilon
         action_mask = self.current_info["action_mask"]
 
-        obs_tensor = torch.tensor(self.current_obs, dtype=torch.float32, device=self.device)
+        obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device)
         action = self.policy_net.select_action(obs_tensor, action_mask, epsilon=eps)
 
         next_obs, reward, terminated, truncated, next_info = self.env.step(action)
@@ -87,12 +91,12 @@ class MaskedDQNTrainer:
             return {"loss": 0.0, "q_mean": 0.0, "epsilon": self.get_epsilon()}
 
         batch = self.replay_buffer.sample(self.batch_size, device=self.device)
-        obs = batch["obs"]
-        actions = batch["actions"]
-        rewards = batch["rewards"]
-        next_obs = batch["next_obs"]
-        dones = batch["dones"]
-        next_masks = batch["next_action_masks"]
+        obs = batch.obs
+        actions = batch.actions
+        rewards = batch.rewards
+        next_obs = batch.next_obs
+        dones = batch.dones
+        next_masks = batch.next_action_masks
 
         # Current Q(s, a)
         q_values = self.policy_net(obs)
@@ -101,9 +105,9 @@ class MaskedDQNTrainer:
         # Double DQN Target:
         # 1. Best action chosen by policy_net over valid next actions
         with torch.no_grad():
-            next_q_policy = self.policy_net(next_obs).clone()
-            next_q_policy[~next_masks] = -1e9
-            best_next_actions = torch.argmax(next_q_policy, dim=1, keepdim=True)
+            next_q_policy = self.policy_net(next_obs)
+            masked_next_q = next_q_policy.masked_fill(~next_masks, -1e9)
+            best_next_actions = torch.argmax(masked_next_q, dim=1, keepdim=True)
 
             # 2. Value estimated by target_net for best_next_actions
             next_q_target = self.target_net(next_obs)
