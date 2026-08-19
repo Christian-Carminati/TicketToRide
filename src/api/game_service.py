@@ -92,29 +92,51 @@ class GameService:
                 agents.append(StrategicAgent(name=f"StrategicBot ({idx+1})"))
             elif p_type_clean == "dqn":
                 agent = DQNAgent(
-                    name=f"DQN ({idx+1})",
+                    name=f"DQN Trained ({idx+1})",
                     input_dim=encoder.observation_shape[0],
                     action_dim=action_space.n,
                     encoder=encoder,
                     discrete_actions=action_space,
                 )
-                if request.model_checkpoint:
+                ckpt_path = request.model_checkpoint
+                if not ckpt_path and os.path.exists("experiments/checkpoints"):
+                    ckpts = sorted(
+                        [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "dqn" in f.lower() and f.endswith(".pt")],
+                        key=os.path.getmtime,
+                        reverse=True,
+                    )
+                    if ckpts:
+                        ckpt_path = ckpts[0]
+
+                if ckpt_path and os.path.exists(ckpt_path):
                     try:
-                        agent.q_net.load_state_dict(torch.load(request.model_checkpoint, weights_only=True))
+                        agent.q_net.load_state_dict(torch.load(ckpt_path, weights_only=True))
+                        agent.q_net.eval()
                     except Exception:  # noqa: BLE001
                         pass
                 agents.append(agent)
             elif p_type_clean == "ppo":
                 agent = PPOAgent(
-                    name=f"PPO ({idx+1})",
+                    name=f"PPO Trained ({idx+1})",
                     input_dim=encoder.observation_shape[0],
                     action_dim=action_space.n,
                     encoder=encoder,
                     discrete_actions=action_space,
                 )
-                if request.model_checkpoint:
+                ckpt_path = request.model_checkpoint
+                if not ckpt_path and os.path.exists("experiments/checkpoints"):
+                    ckpts = sorted(
+                        [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "ppo" in f.lower() and f.endswith(".pt")],
+                        key=os.path.getmtime,
+                        reverse=True,
+                    )
+                    if ckpts:
+                        ckpt_path = ckpts[0]
+
+                if ckpt_path and os.path.exists(ckpt_path):
                     try:
-                        agent.actor_critic.load_state_dict(torch.load(request.model_checkpoint, weights_only=True))
+                        agent.actor_critic.load_state_dict(torch.load(ckpt_path, weights_only=True))
+                        agent.actor_critic.eval()
                     except Exception:  # noqa: BLE001
                         pass
                 agents.append(agent)

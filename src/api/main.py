@@ -171,9 +171,31 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
 
     if request.model_type == "dqn":
         net_dqn = MaskedQNetwork(input_dim=len(obs_vec), action_dim=len(mask_vec), hidden_dim=128)
+        if os.path.exists("experiments/checkpoints"):
+            ckpts = sorted(
+                [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "dqn" in f.lower() and f.endswith(".pt")],
+                key=os.path.getmtime,
+                reverse=True,
+            )
+            if ckpts:
+                try:
+                    net_dqn.load_state_dict(torch.load(ckpts[0], weights_only=True))
+                except Exception:  # noqa: BLE001
+                    pass
         return brain_service.inspect_q_network(net_dqn, obs_vec, mask_vec, action_labels=labels)
     else:
         net_ppo = MaskedActorCritic(input_dim=len(obs_vec), action_dim=len(mask_vec), hidden_dim=128)
+        if os.path.exists("experiments/checkpoints"):
+            ckpts = sorted(
+                [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "ppo" in f.lower() and f.endswith(".pt")],
+                key=os.path.getmtime,
+                reverse=True,
+            )
+            if ckpts:
+                try:
+                    net_ppo.load_state_dict(torch.load(ckpts[0], weights_only=True))
+                except Exception:  # noqa: BLE001
+                    pass
         return brain_service.inspect_actor_critic(net_ppo, obs_vec, mask_vec, action_labels=labels)
 
 
