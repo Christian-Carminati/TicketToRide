@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { HoveredActionMeta } from '../../context/workbenchTypes';
 
 interface ActionProbabilitiesChartProps {
   probabilities: number[];
@@ -6,6 +7,7 @@ interface ActionProbabilitiesChartProps {
   actionLabels: string[];
   rawLogitsOrQ?: number[];
   greedyActionIndex?: number;
+  onActionHover?: (meta: HoveredActionMeta | null) => void;
 }
 
 export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> = ({
@@ -14,18 +16,31 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
   actionLabels,
   rawLogitsOrQ,
   greedyActionIndex,
+  onActionHover,
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'valid' | 'top10'>('valid');
 
   const items = useMemo(() => {
-    const list = probabilities.map((prob, idx) => ({
-      index: idx,
-      label: actionLabels[idx] || `Action ${idx}`,
-      prob: prob,
-      isValid: actionMask[idx] ?? true,
-      rawScore: rawLogitsOrQ ? rawLogitsOrQ[idx] : undefined,
-      isGreedy: idx === greedyActionIndex,
-    }));
+    const list = probabilities.map((prob, idx) => {
+      const label = actionLabels[idx] || `Action ${idx}`;
+
+      // Extract routeId if present in label (e.g., "Claim Route r_0_bos_ny" or "Claim r_0_bos_ny")
+      let routeId: string | undefined = undefined;
+      const match = label.match(/r_\d+_[a-z]+_[a-z]+/i) || label.match(/route_([a-z0-9_]+)/i);
+      if (match) {
+        routeId = match[0];
+      }
+
+      return {
+        index: idx,
+        label,
+        routeId,
+        prob: prob,
+        isValid: actionMask[idx] ?? true,
+        rawScore: rawLogitsOrQ ? rawLogitsOrQ[idx] : undefined,
+        isGreedy: idx === greedyActionIndex,
+      };
+    });
 
     if (filterMode === 'valid') {
       return list.filter((i) => i.isValid);
@@ -38,11 +53,12 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
 
   return (
     <div
+      className="action-probabilities-chart"
       style={{
-        background: 'rgba(15, 23, 42, 0.9)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '12px',
-        padding: '1.25rem',
+        background: 'rgba(15, 23, 42, 0.85)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '10px',
+        padding: '0.85rem',
       }}
     >
       <div
@@ -51,29 +67,34 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '0.5rem',
-          marginBottom: '1rem',
+          gap: '0.4rem',
+          marginBottom: '0.6rem',
         }}
       >
-        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#F1F5F9' }}>
-          📊 Action Distribution & Masking (π(a|s))
-        </h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#F1F5F9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Policy Head: π(a|s)
+          </span>
+          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+            ({items.length} actions)
+          </span>
+        </div>
 
         {/* Filter Buttons */}
-        <div style={{ display: 'flex', gap: '0.3rem' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '6px', padding: '2px' }}>
           {(['valid', 'top10', 'all'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setFilterMode(mode)}
               style={{
-                background: filterMode === mode ? '#3B82F6' : 'rgba(30, 41, 59, 0.8)',
+                background: filterMode === mode ? '#3B82F6' : 'transparent',
                 color: filterMode === mode ? '#FFFFFF' : '#94A3B8',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: 'none',
                 borderRadius: '4px',
-                padding: '0.2rem 0.5rem',
-                fontSize: '0.75rem',
+                padding: '0.15rem 0.45rem',
+                fontSize: '0.7rem',
                 cursor: 'pointer',
-                fontWeight: 600,
+                fontWeight: filterMode === mode ? 700 : 500,
                 textTransform: 'capitalize',
               }}
             >
@@ -87,10 +108,10 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.4rem',
-          maxHeight: '340px',
+          gap: '0.35rem',
+          maxHeight: '260px',
           overflowY: 'auto',
-          paddingRight: '0.4rem',
+          paddingRight: '0.3rem',
         }}
       >
         {items.map((item) => {
@@ -98,36 +119,51 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
           return (
             <div
               key={item.index}
+              onMouseEnter={() => {
+                onActionHover?.({
+                  actionIndex: item.index,
+                  actionType: item.label,
+                  routeId: item.routeId,
+                  probability: item.prob,
+                  value: item.rawScore,
+                  isMasked: !item.isValid,
+                });
+              }}
+              onMouseLeave={() => onActionHover?.(null)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.35rem 0.6rem',
+                gap: '0.5rem',
+                padding: '0.3rem 0.5rem',
                 borderRadius: '6px',
                 background: item.isGreedy
                   ? 'rgba(16, 185, 129, 0.15)'
                   : item.isValid
-                  ? 'rgba(30, 41, 59, 0.6)'
+                  ? 'rgba(30, 41, 59, 0.5)'
                   : 'rgba(15, 23, 42, 0.4)',
                 border: item.isGreedy
                   ? '1px solid #10B981'
                   : '1px solid rgba(255,255,255,0.05)',
-                opacity: item.isValid ? 1 : 0.4,
+                opacity: item.isValid ? 1 : 0.45,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               {/* Action Label */}
-              <div style={{ minWidth: '160px', fontSize: '0.8rem', color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span>{item.isValid ? (item.isGreedy ? '⭐' : '✓') : '🔒'}</span>
-                <span style={{ fontWeight: item.isGreedy ? 700 : 500 }}>{item.label}</span>
+              <div style={{ minWidth: '140px', fontSize: '0.75rem', color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.7rem' }}>{item.isValid ? (item.isGreedy ? '⭐' : '✓') : '🔒'}</span>
+                <span style={{ fontWeight: item.isGreedy ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {item.label}
+                </span>
               </div>
 
               {/* Progress Probability Bar */}
               <div
                 style={{
                   flex: 1,
-                  height: '14px',
+                  height: '10px',
                   backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                  borderRadius: '4px',
+                  borderRadius: '3px',
                   overflow: 'hidden',
                   position: 'relative',
                 }}
@@ -142,24 +178,25 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
                       ? 'linear-gradient(to right, #10B981, #34D399)'
                       : item.isValid
                       ? 'linear-gradient(to right, #3B82F6, #38BDF8)'
-                      : '#475569',
-                    borderRadius: '4px',
-                    transition: 'transform 0.3s ease',
+                      : '#F43F5E',
+                    borderRadius: '3px',
+                    transition: 'transform 0.2s ease',
                   }}
                 />
               </div>
 
-              {/* Numerical Value */}
+              {/* Numerical Value / Mask Badge */}
               <div
                 style={{
-                  minWidth: '55px',
+                  minWidth: '50px',
                   textAlign: 'right',
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
-                  color: item.isGreedy ? '#34D399' : item.isValid ? '#38BDF8' : '#64748B',
+                  fontFamily: 'monospace',
+                  color: item.isGreedy ? '#34D399' : item.isValid ? '#38BDF8' : '#F43F5E',
                 }}
               >
-                {item.isValid ? `${pct}%` : 'Masked'}
+                {item.isValid ? `${pct}%` : 'MASKED'}
               </div>
             </div>
           );
