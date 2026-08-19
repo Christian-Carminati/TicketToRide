@@ -89,9 +89,10 @@ class BrainInspectRequest(BaseModel):
 
 # --- Training Telemetry DTOs ---
 class TrainingStartRequest(BaseModel):
-    config_name: str
+    config_name: str = "ppo_usa.yaml"
     override_timesteps: int | None = None
     seed: int = 42
+    opponent_type: str = "random"  # "random", "greedy", "strategic"
 
 
 class TrainingStatusDTO(BaseModel):

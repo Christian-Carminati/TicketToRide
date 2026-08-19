@@ -80,6 +80,7 @@ export interface TrainingStartRequest {
   config_name: string;
   override_timesteps?: number | null;
   seed?: number;
+  opponent_type?: 'random' | 'greedy' | 'strategic';
 }
 
 export interface TrainingStatusDTO {

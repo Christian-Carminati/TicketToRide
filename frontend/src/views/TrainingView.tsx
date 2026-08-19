@@ -1,43 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTrainingStream } from '../hooks/useTrainingStream';
 import { LineChartSVG } from '../components/charts/LineChartSVG';
 import { TelemetryCard } from '../components/charts/TelemetryCard';
-import { TelemetryEventDTO } from '../api/types';
-
-// Default baseline curve synthesized from the 20,000 steps PPO training run
-function generateBaselineTelemetry(): TelemetryEventDTO[] {
-  const points: TelemetryEventDTO[] = [];
-  let reward = 2.0;
-  let mean_reward = 2.0;
-  let p_loss = 0.85;
-  let v_loss = 1.45;
-  let entropy = 3.65;
-
-  for (let step = 250; step <= 20000; step += 250) {
-    const progress = step / 20000;
-    p_loss = Math.max(0.05, 0.85 * Math.exp(-progress * 3.2) + (Math.sin(step * 0.05) * 0.03));
-    v_loss = Math.max(0.12, 1.45 * Math.exp(-progress * 2.8) + (Math.cos(step * 0.04) * 0.04));
-    entropy = Math.max(0.4, 3.65 * (1 - progress * 0.75));
-    reward = 2.0 + progress * 8.5 + (Math.sin(step * 0.1) * 1.5);
-    mean_reward = 2.0 + progress * 8.2;
-
-    points.push({
-      type: 'training_step',
-      experiment_id: 'ppo_usa_benchmark',
-      step,
-      episode: Math.floor(step / 35),
-      reward: Number(reward.toFixed(2)),
-      mean_reward: Number(mean_reward.toFixed(2)),
-      policy_loss: Number(p_loss.toFixed(4)),
-      value_loss: Number(v_loss.toFixed(4)),
-      entropy: Number(entropy.toFixed(3)),
-      approx_kl: Number((0.005 + progress * 0.01).toFixed(4)),
-      win_rate: Number(Math.min(0.2 + progress * 0.45, 0.65).toFixed(2)),
-      fps: 480.0,
-    });
-  }
-  return points;
-}
+import { api } from '../api/client';
+import { ExperimentRecordDTO } from '../api/types';
 
 export const TrainingView: React.FC = () => {
   const {
@@ -50,50 +16,66 @@ export const TrainingView: React.FC = () => {
   } = useTrainingStream();
 
   const [configName, setConfigName] = useState('ppo_usa.yaml');
+  const [opponentType, setOpponentType] = useState<'random' | 'greedy' | 'strategic'>('random');
   const [overrideTimesteps, setOverrideTimesteps] = useState<number>(10000);
   const [seed, setSeed] = useState<number>(42);
+  const [experiments, setExperiments] = useState<ExperimentRecordDTO[]>([]);
+  const [isLoadingExperiments, setIsLoadingExperiments] = useState(false);
+
+  // Dynamically load all real logged experiment benchmarks
+  const loadExperiments = () => {
+    setIsLoadingExperiments(true);
+    api.listExperiments()
+      .then((data) => setExperiments(data))
+      .catch((err) => console.error('Failed to load experiments:', err))
+      .finally(() => setIsLoadingExperiments(false));
+  };
+
+  useEffect(() => {
+    loadExperiments();
+  }, []);
+
+  // Reload experiments when a training run completes
+  useEffect(() => {
+    if (!status?.is_training) {
+      loadExperiments();
+    }
+  }, [status?.is_training]);
 
   const handleStart = () => {
     startTraining({
       config_name: configName,
       override_timesteps: overrideTimesteps,
       seed: seed,
+      opponent_type: opponentType,
     });
   };
 
   const isTraining = Boolean(status?.is_training);
+  const latest = telemetryHistory.length > 0 ? telemetryHistory[telemetryHistory.length - 1] : null;
 
-  // Use live stream if active or present, otherwise use preloaded benchmark curve
-  const activeTelemetry = useMemo(() => {
-    if (telemetryHistory.length > 0) return telemetryHistory;
-    return generateBaselineTelemetry();
-  }, [telemetryHistory]);
-
-  const isShowingHistorical = telemetryHistory.length === 0;
-  const latest = activeTelemetry[activeTelemetry.length - 1];
-
-  // Chart data series preparations
-  const rewardSeries = [
+  // Chart data series dynamically computed from telemetry history
+  const rewardSeries = useMemo(() => [
     {
       id: 'mean_reward',
-      name: 'Mean Reward (20-ep)',
+      name: 'Mean Reward (Rolling)',
       color: '#10B981',
-      data: activeTelemetry.map((t) => ({ x: t.step, y: t.mean_reward })),
+      data: telemetryHistory.map((t) => ({ x: t.step, y: t.mean_reward })),
     },
     {
       id: 'step_reward',
-      name: 'Instant Reward',
+      name: 'Step Reward',
       color: '#38BDF8',
-      data: activeTelemetry.map((t) => ({ x: t.step, y: t.reward })),
+      data: telemetryHistory.map((t) => ({ x: t.step, y: t.reward })),
     },
-  ];
+  ], [telemetryHistory]);
 
-  const lossSeries = [
+  const lossSeries = useMemo(() => [
     {
       id: 'policy_loss',
       name: 'Policy Loss',
       color: '#F59E0B',
-      data: activeTelemetry
+      data: telemetryHistory
         .filter((t) => t.policy_loss !== null && t.policy_loss !== undefined)
         .map((t) => ({ x: t.step, y: t.policy_loss! })),
     },
@@ -101,37 +83,37 @@ export const TrainingView: React.FC = () => {
       id: 'value_loss',
       name: 'Value Loss',
       color: '#EF4444',
-      data: activeTelemetry
+      data: telemetryHistory
         .filter((t) => t.value_loss !== null && t.value_loss !== undefined)
         .map((t) => ({ x: t.step, y: t.value_loss! })),
     },
-  ];
+  ], [telemetryHistory]);
 
-  const entropySeries = [
+  const entropySeries = useMemo(() => [
     {
       id: 'entropy',
       name: 'Policy Entropy',
       color: '#8B5CF6',
-      data: activeTelemetry
+      data: telemetryHistory
         .filter((t) => t.entropy !== null && t.entropy !== undefined)
         .map((t) => ({ x: t.step, y: t.entropy! })),
     },
-  ];
+  ], [telemetryHistory]);
 
-  const winRateSeries = [
+  const winRateSeries = useMemo(() => [
     {
       id: 'win_rate',
-      name: 'Estimated Win Rate',
+      name: 'Estimated Win Rate %',
       color: '#06B6D4',
-      data: activeTelemetry
+      data: telemetryHistory
         .filter((t) => t.win_rate !== null && t.win_rate !== undefined)
         .map((t) => ({ x: t.step, y: t.win_rate! * 100 })),
     },
-  ];
+  ], [telemetryHistory]);
 
   return (
     <div className="training-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Benchmark Summary Leaderboard Card */}
+      {/* Dynamic Experiments History & Benchmark Card */}
       <div
         style={{
           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
@@ -144,47 +126,79 @@ export const TrainingView: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#F8FAFC' }}>
-              🏆 Benchmark Modelli RL Addestrati & Leaderboard (Mappa USA Ufficiale)
+              📊 Storico Benchmark & Modelli Addestrati (Calcolato Dinamicamente)
             </h3>
             <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
-              Risultati di valutazione deterministica su 50 partite per coppia e torneo Elo round-robin
+              Metrice effettive caricate in tempo reale dal registro esperimenti
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <span style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10B981', color: '#34D399', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
-              PPO Checkpoint: Attivo (Elo 1210)
-            </span>
-          </div>
+
+          <button
+            onClick={loadExperiments}
+            style={{
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '6px',
+              padding: '0.3rem 0.75rem',
+              color: '#38BDF8',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            🔄 Aggiorna Registro
+          </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem' }}>
-          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>PPO vs RandomBot</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10B981' }}>62.0% Win Rate</div>
-            <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>Punti Medi: 10.1 vs 6.9 (+3.2 diff)</div>
+        {experiments.length === 0 ? (
+          <div style={{ padding: '1rem', textAlign: 'center', color: '#64748B', fontSize: '0.85rem' }}>
+            {isLoadingExperiments ? 'Caricamento esperimenti...' : 'Nessun esperimento registrato. Avvia un training qui sotto per generare le prime metriche!'}
           </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {experiments.slice(-4).reverse().map((exp) => (
+              <div
+                key={exp.experiment_id}
+                style={{
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.3rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>
+                    {exp.name}
+                  </span>
+                  <span style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem', color: '#93C5FD', fontWeight: 700 }}>
+                    {exp.algorithm.toUpperCase()}
+                  </span>
+                </div>
 
-          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>PPO vs GreedyBot</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#38BDF8' }}>32.0% Win Rate</div>
-            <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>Punti Medi: 6.2 vs 10.8</div>
-          </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Seed: {exp.seed} | ID: {exp.experiment_id}
+                </div>
 
-          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>PPO vs StrategicBot</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F59E0B' }}>34.0% Win Rate</div>
-            <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>Punti Medi: 7.2 vs 9.8</div>
+                <div style={{ marginTop: '0.2rem', fontSize: '0.75rem', color: '#CBD5E1', lineHeight: '1.4' }}>
+                  {Object.entries(exp.metrics).map(([key, val]) => (
+                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94A3B8' }}>{key.replace(/_/g, ' ')}:</span>
+                      <strong style={{ color: typeof val === 'number' && val > 0.5 ? '#10B981' : '#F1F5F9' }}>
+                        {typeof val === 'number' ? (val <= 1.0 && val > 0 && !Number.isInteger(val) ? `${(val * 100).toFixed(1)}%` : val.toFixed(2)) : String(val)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-
-          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>Scontro Diretto: PPO vs DQN</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#A78BFA' }}>96.0% Win Rate</div>
-            <div style={{ fontSize: '0.75rem', color: '#CBD5E1' }}>Punti Medi: 12.7 vs 4.3 (PPO Dominante)</div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Top Configuration & Control Bar */}
+      {/* Top Configuration & Control Bar with Opponent Selection */}
       <div
         style={{
           background: 'rgba(15, 23, 42, 0.9)',
@@ -199,7 +213,8 @@ export const TrainingView: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Configurazione YAML:</label>
+          {/* Algorithm Config */}
+          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Algoritmo:</label>
           <select
             value={configName}
             disabled={isTraining}
@@ -214,10 +229,32 @@ export const TrainingView: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            <option value="ppo_usa.yaml">ppo_usa.yaml (Masked PPO - USA Map)</option>
-            <option value="dqn_usa.yaml">dqn_usa.yaml (Double-DQN - USA Map)</option>
+            <option value="ppo_usa.yaml">Masked PPO (Policy Gradient)</option>
+            <option value="dqn_usa.yaml">Double-DQN (Deep Q-Network)</option>
           </select>
 
+          {/* Opponent Selector */}
+          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Avversario di Training:</label>
+          <select
+            value={opponentType}
+            disabled={isTraining}
+            onChange={(e) => setOpponentType(e.target.value as 'random' | 'greedy' | 'strategic')}
+            style={{
+              backgroundColor: '#1E293B',
+              color: '#F1F5F9',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              padding: '0.35rem 0.6rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+            }}
+          >
+            <option value="random">🎲 RandomBot (Mosse Casuali Legali)</option>
+            <option value="greedy">⚡ GreedyBot (Occupa Tratte Lunghe)</option>
+            <option value="strategic">🧠 StrategicBot (Ottimizza Biglietti)</option>
+          </select>
+
+          {/* Timesteps */}
           <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Timesteps:</label>
           <input
             type="number"
@@ -225,7 +262,7 @@ export const TrainingView: React.FC = () => {
             value={overrideTimesteps}
             onChange={(e) => setOverrideTimesteps(Number(e.target.value))}
             style={{
-              width: '90px',
+              width: '85px',
               backgroundColor: '#1E293B',
               color: '#F1F5F9',
               border: '1px solid rgba(255,255,255,0.1)',
@@ -235,6 +272,7 @@ export const TrainingView: React.FC = () => {
             }}
           />
 
+          {/* Seed */}
           <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>Seed:</label>
           <input
             type="number"
@@ -242,7 +280,7 @@ export const TrainingView: React.FC = () => {
             value={seed}
             onChange={(e) => setSeed(Number(e.target.value))}
             style={{
-              width: '70px',
+              width: '65px',
               backgroundColor: '#1E293B',
               color: '#F1F5F9',
               border: '1px solid rgba(255,255,255,0.1)',
@@ -293,11 +331,12 @@ export const TrainingView: React.FC = () => {
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '6px',
-                padding: '0.45rem 1rem',
+                padding: '0.45rem 1.1rem',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 cursor: isConnected ? 'pointer' : 'not-allowed',
                 opacity: isConnected ? 1 : 0.5,
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)',
               }}
             >
               ▶️ Avvia Training Live
@@ -306,14 +345,14 @@ export const TrainingView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode / History Banner */}
+      {/* Live Training Status Bar */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: isTraining ? 'rgba(16, 185, 129, 0.1)' : 'rgba(56, 189, 248, 0.1)',
-          border: `1px solid ${isTraining ? '#10B981' : 'rgba(56, 189, 248, 0.3)'}`,
+          background: isTraining ? 'rgba(16, 185, 129, 0.1)' : 'rgba(30, 41, 59, 0.5)',
+          border: `1px solid ${isTraining ? '#10B981' : 'rgba(255, 255, 255, 0.08)'}`,
           borderRadius: '8px',
           padding: '0.6rem 1rem',
           fontSize: '0.8rem',
@@ -321,13 +360,13 @@ export const TrainingView: React.FC = () => {
       >
         <span style={{ color: '#F1F5F9', fontWeight: 600 }}>
           {isTraining
-            ? `⚡ Training in tempo reale: Step ${status?.current_step} / ${status?.total_timesteps} (${status?.algorithm?.toUpperCase()})`
-            : isShowingHistorical
-            ? '📊 Visualizzazione Curve di Addestramento del Benchmark PPO (20.000 Timesteps)'
-            : '✅ Telemetria dell\'ultima sessione di training completata'}
+            ? `⚡ Training in corso: Step ${status?.current_step} / ${status?.total_timesteps} (${status?.algorithm?.toUpperCase()}) contro ${opponentType.toUpperCase()}`
+            : telemetryHistory.length > 0
+            ? `✅ Telemetria acquisita: ${telemetryHistory.length} step campionati in questa sessione`
+            : '💡 Seleziona i parametri e clicca "Avvia Training Live" per generare curve e metriche in tempo reale.'}
         </span>
         <span style={{ color: '#94A3B8' }}>
-          {activeTelemetry.length} punti campionati
+          {telemetryHistory.length} campioni live
         </span>
       </div>
 
@@ -341,8 +380,8 @@ export const TrainingView: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         <TelemetryCard
           label="Current Step"
-          value={latest ? `${latest.step.toLocaleString()} / ${(status?.total_timesteps || 20000).toLocaleString()}` : '--'}
-          subtext={latest ? `Episodi: ${latest.episode}` : undefined}
+          value={latest ? `${latest.step.toLocaleString()} / ${(status?.total_timesteps || overrideTimesteps).toLocaleString()}` : '--'}
+          subtext={latest ? `Episodi: ${latest.episode}` : 'In attesa di training'}
           icon="⏱️"
         />
         <TelemetryCard
@@ -355,14 +394,14 @@ export const TrainingView: React.FC = () => {
         <TelemetryCard
           label="Policy / Value Loss"
           value={latest && latest.policy_loss !== null ? `${latest.policy_loss?.toFixed(3)} / ${latest.value_loss?.toFixed(3)}` : '--'}
-          subtext="GAE Advantage Gradient"
+          subtext="Gradiente di Ottimizzazione"
           color="#F59E0B"
           icon="📉"
         />
         <TelemetryCard
           label="Throughput (FPS)"
           value={latest && latest.fps ? `${latest.fps.toFixed(0)} FPS` : '--'}
-          subtext="Ambiente & Batch Step"
+          subtext="Velocità Campionamento"
           color="#8B5CF6"
           icon="⚡"
         />

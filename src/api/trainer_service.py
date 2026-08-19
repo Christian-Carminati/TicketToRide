@@ -10,11 +10,14 @@ import numpy as np
 import torch
 import yaml
 
+from src.agents.greedy_agent import GreedyAgent
 from src.agents.random_agent import RandomAgent
+from src.agents.strategic_agent import StrategicAgent
 from src.api.schemas import TelemetryEventDTO, TrainingStartRequest, TrainingStatusDTO
 from src.api.websocket import ConnectionManager
 from src.environment.env import TicketToRideEnv
 from src.experiments.config import AlgorithmConfig, EnvironmentConfig, ExperimentConfig
+from src.experiments.registry import ExperimentRecord, ExperimentRegistry
 from src.game.maps import load_usa_board
 from src.rl.dqn import MaskedDQNTrainer
 from src.rl.ppo import MaskedPPOTrainer
@@ -29,6 +32,7 @@ class TrainerService:
         self._stop_requested = False
         self._thread: threading.Thread | None = None
         self._status = TrainingStatusDTO(is_training=False)
+        self.registry = ExperimentRegistry()
 
     def get_status(self) -> TrainingStatusDTO:
         return self._status
@@ -73,7 +77,7 @@ class TrainerService:
 
         self._thread = threading.Thread(
             target=self._run_training,
-            args=(config, exp_id),
+            args=(config, exp_id, request.opponent_type),
             daemon=True,
         )
         self._thread.start()
@@ -85,16 +89,24 @@ class TrainerService:
         self._status.is_training = False
         return self._status
 
-    def _run_training(self, config: ExperimentConfig, exp_id: str) -> None:
+    def _run_training(self, config: ExperimentConfig, exp_id: str, opponent_type: str = "random") -> None:
         torch.manual_seed(config.seed)
         np.random.seed(config.seed)
 
         board, tickets = load_usa_board()
 
+        opp_clean = opponent_type.lower()
+        if opp_clean == "greedy":
+            opponent_agent = GreedyAgent(name="GreedyBot")
+        elif opp_clean == "strategic":
+            opponent_agent = StrategicAgent(name="StrategicBot")
+        else:
+            opponent_agent = RandomAgent(name="RandomBot", seed=config.seed)
+
         env = TicketToRideEnv(
             board=board,
             tickets_deck=tickets,
-            opponent=RandomAgent(seed=config.seed),
+            opponent=opponent_agent,
             num_players=config.environment.players,
         )
 
@@ -107,6 +119,7 @@ class TrainerService:
                 "type": "training_started",
                 "experiment_id": exp_id,
                 "algorithm": algo_name,
+                "opponent": opponent_agent.name,
                 "total_timesteps": config.training.total_timesteps,
             }
         )
@@ -170,6 +183,11 @@ class TrainerService:
                 self.connection_manager.broadcast_sync(telemetry.model_dump())
                 time.sleep(0.04)
 
+            # Auto-save checkpoint
+            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            os.makedirs(config.training.checkpoint_dir, exist_ok=True)
+            trainer_ppo.save(ckpt_path)
+
         else:
             # DQN Trainer
             dqn_config = {
@@ -231,8 +249,30 @@ class TrainerService:
                 if step % 20 == 0:
                     time.sleep(0.005)
 
+            # Auto-save checkpoint
+            ckpt_path = os.path.join(config.training.checkpoint_dir, f"{exp_id}_latest.pt")
+            os.makedirs(config.training.checkpoint_dir, exist_ok=True)
+            trainer_dqn.save(ckpt_path)
+
         self._is_training = False
         self._status.is_training = False
+
+        # Log experiment dynamically to registry
+        exp_record = ExperimentRecord(
+            experiment_id=exp_id,
+            name=f"{algo_name.upper()} vs {opponent_agent.name} ({self._status.current_step} steps)",
+            seed=config.seed,
+            algorithm=algo_name,
+            env_version=1,
+            reward_version=1,
+            metrics={
+                f"mean_reward_vs_{opp_clean}": round(self._status.mean_reward, 2),
+                f"episodes_vs_{opp_clean}": episode_count,
+                "total_timesteps": self._status.current_step,
+            },
+        )
+        self.registry.log_experiment(exp_record)
+
         self.connection_manager.broadcast_sync(
             {
                 "type": "training_finished",
