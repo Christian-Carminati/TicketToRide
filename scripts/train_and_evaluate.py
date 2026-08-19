@@ -124,18 +124,18 @@ def main():
     os.makedirs("experiments/checkpoints", exist_ok=True)
     os.makedirs("experiments/replays", exist_ok=True)
 
-    board, tickets = create_synthetic_mini_board()
+    board, tickets = load_usa_board()
     registry = ExperimentRegistry()
     replay_service = ReplayService()
 
     # -------------------------------------------------------------
     # 1. PPO Training
     # -------------------------------------------------------------
-    print("\n[1/3] 🎯 Training Masked PPO Agent (20,000 steps)...")
+    print("\n[1/3] 🎯 Training Masked PPO Agent against GreedyBot (10,000 steps)...")
     env_ppo = TicketToRideEnv(
         board=board,
         tickets_deck=tickets,
-        opponent=RandomAgent(seed=42),
+        opponent=GreedyAgent(name="GreedyBot"),
         num_players=2,
     )
     ppo_config = {
@@ -151,56 +151,56 @@ def main():
     }
     ppo_trainer = MaskedPPOTrainer(env=env_ppo, config=ppo_config)
 
-    total_timesteps_ppo = 20000
+    total_timesteps_ppo = 10000
     current_steps = 0
     while current_steps < total_timesteps_ppo:
         ppo_trainer.collect_rollout()
         ppo_trainer.train_epoch()
         current_steps += ppo_trainer.rollout_steps
-        if (current_steps // ppo_trainer.rollout_steps) % 20 == 0:
+        if (current_steps // ppo_trainer.rollout_steps) % 15 == 0:
             print(f"  PPO Progress: {current_steps}/{total_timesteps_ppo} steps ({current_steps/total_timesteps_ppo*100:.0f}%)")
 
-    ppo_ckpt_path = "experiments/checkpoints/ppo_mini_trained.pt"
+    ppo_ckpt_path = "experiments/checkpoints/ppo_usa_trained.pt"
     ppo_trainer.save(ppo_ckpt_path)
     print(f"  ✓ PPO Model Checkpoint saved to: {ppo_ckpt_path}")
 
     # -------------------------------------------------------------
     # 2. DQN Training
     # -------------------------------------------------------------
-    print("\n[2/3] ⚡ Training Masked Double-DQN Agent (20,000 steps)...")
+    print("\n[2/3] ⚡ Training Masked Double-DQN Agent (10,000 steps)...")
     env_dqn = TicketToRideEnv(
         board=board,
         tickets_deck=tickets,
-        opponent=RandomAgent(seed=43),
+        opponent=GreedyAgent(name="GreedyBot"),
         num_players=2,
     )
     dqn_config = {
         "lr": 0.0005,
         "gamma": 0.99,
         "batch_size": 32,
-        "buffer_size": 15000,
+        "buffer_size": 10000,
         "target_update_freq": 250,
         "epsilon_start": 1.0,
         "epsilon_end": 0.05,
-        "epsilon_decay_steps": 8000,
+        "epsilon_decay_steps": 5000,
         "learning_starts": 200,
     }
     dqn_trainer = MaskedDQNTrainer(env=env_dqn, config=dqn_config)
 
-    for step in range(1, 20001):
+    for step in range(1, 10001):
         dqn_trainer.step()
         dqn_trainer.train_step()
-        if step % 5000 == 0:
-            print(f"  DQN Progress: {step}/20000 steps ({step/20000*100:.0f}%) | ε = {dqn_trainer.get_epsilon():.3f}")
+        if step % 2500 == 0:
+            print(f"  DQN Progress: {step}/10000 steps ({step/10000*100:.0f}%) | ε = {dqn_trainer.get_epsilon():.3f}")
 
-    dqn_ckpt_path = "experiments/checkpoints/dqn_mini_trained.pt"
+    dqn_ckpt_path = "experiments/checkpoints/dqn_usa_trained.pt"
     dqn_trainer.save(dqn_ckpt_path)
     print(f"  ✓ DQN Model Checkpoint saved to: {dqn_ckpt_path}")
 
     # -------------------------------------------------------------
     # 3. Multi-Opponent Evaluation & Tournament
     # -------------------------------------------------------------
-    print("\n[3/3] 🏆 Evaluating Trained Agents vs Baselines (50 matches per pair)...")
+    print("\n[3/3] 🏆 Evaluating Trained Agents vs Baselines (20 matches per pair)...")
 
     obs_dim = env_ppo.observation_space.shape[0]
     act_dim = int(env_ppo.action_space.n)
@@ -279,8 +279,8 @@ def main():
     # 5. Log Experiments to Registry
     # -------------------------------------------------------------
     exp_ppo = ExperimentRecord(
-        experiment_id=f"ppo_mini_{uuid.uuid4().hex[:6]}",
-        name="PPO Mini 20k Benchmark",
+        experiment_id=f"ppo_usa_{uuid.uuid4().hex[:6]}",
+        name="PPO USA 10k Benchmark (vs Greedy)",
         seed=42,
         algorithm="ppo",
         env_version=1,
@@ -290,8 +290,8 @@ def main():
     registry.log_experiment(exp_ppo)
 
     exp_dqn = ExperimentRecord(
-        experiment_id=f"dqn_mini_{uuid.uuid4().hex[:6]}",
-        name="Double-DQN Mini 20k Benchmark",
+        experiment_id=f"dqn_usa_{uuid.uuid4().hex[:6]}",
+        name="Double-DQN USA 10k Benchmark (vs Greedy)",
         seed=43,
         algorithm="dqn",
         env_version=1,
@@ -304,16 +304,16 @@ def main():
     # 6. Generate Replay Recordings
     # -------------------------------------------------------------
     print("\n🎞️ Generating Match Replays for Web Lab Viewer...")
-    replay1 = record_match_replay(trained_ppo, greedy_agent, "replay_ppo_vs_greedy_mini", board, tickets, seed=501)
+    replay1 = record_match_replay(trained_ppo, greedy_agent, "replay_ppo_vs_greedy_usa", board, tickets, seed=501)
     replay_service.save_replay(replay1)
 
-    replay2 = record_match_replay(trained_ppo, strategic_agent, "replay_ppo_vs_strategic_mini", board, tickets, seed=502)
+    replay2 = record_match_replay(trained_ppo, strategic_agent, "replay_ppo_vs_strategic_usa", board, tickets, seed=502)
     replay_service.save_replay(replay2)
 
-    replay3 = record_match_replay(trained_dqn, greedy_agent, "replay_dqn_vs_greedy_mini", board, tickets, seed=503)
+    replay3 = record_match_replay(trained_dqn, greedy_agent, "replay_dqn_vs_greedy_usa", board, tickets, seed=503)
     replay_service.save_replay(replay3)
 
-    replay4 = record_match_replay(trained_ppo, trained_dqn, "replay_ppo_vs_dqn_mini", board, tickets, seed=504)
+    replay4 = record_match_replay(trained_ppo, trained_dqn, "replay_ppo_vs_dqn_usa", board, tickets, seed=504)
     replay_service.save_replay(replay4)
 
     print("  ✓ Saved 4 rich match replays into experiments/replays/ (accessible in Replay Player UI)")
