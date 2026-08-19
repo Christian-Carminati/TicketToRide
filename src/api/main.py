@@ -219,6 +219,42 @@ def list_checkpoints() -> list[CheckpointDTO]:
     return results
 
 
+@app.delete("/api/checkpoints/{checkpoint_id}")
+def delete_checkpoint(checkpoint_id: str) -> dict[str, Any]:
+    ckpt_dir = os.path.join("experiments", "checkpoints")
+    safe_name = os.path.basename(checkpoint_id)
+    if not safe_name.endswith(".pt"):
+        safe_name = f"{safe_name}.pt"
+    full_path = os.path.join(ckpt_dir, safe_name)
+
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail=f"Checkpoint '{checkpoint_id}' non trovato.")
+
+    try:
+        os.remove(full_path)
+        return {"success": True, "deleted_id": safe_name}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Errore durante l'eliminazione: {exc}")
+
+
+@app.delete("/api/checkpoints")
+def delete_all_checkpoints() -> dict[str, Any]:
+    ckpt_dir = os.path.join("experiments", "checkpoints")
+    if not os.path.exists(ckpt_dir):
+        return {"success": True, "deleted_count": 0}
+
+    deleted_count = 0
+    for fname in os.listdir(ckpt_dir):
+        if fname.endswith(".pt"):
+            try:
+                os.remove(os.path.join(ckpt_dir, fname))
+                deleted_count += 1
+            except Exception:
+                pass
+
+    return {"success": True, "deleted_count": deleted_count}
+
+
 # --- Brain Introspection Endpoint ---
 @app.post("/api/brain/inspect", response_model=BrainInspectionDTO)
 def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:

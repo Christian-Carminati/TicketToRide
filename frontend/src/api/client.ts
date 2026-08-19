@@ -112,6 +112,16 @@ export const api = {
   // Checkpoints
   listCheckpoints: () => fetchJSON<CheckpointDTO[]>('/api/checkpoints/list'),
 
+  deleteCheckpoint: (checkpointId: string) =>
+    fetchJSON<{ success: boolean; deleted_id: string }>(`/api/checkpoints/${checkpointId}`, {
+      method: 'DELETE',
+    }),
+
+  deleteAllCheckpoints: () =>
+    fetchJSON<{ success: boolean; deleted_count: number }>('/api/checkpoints', {
+      method: 'DELETE',
+    }),
+
   // Brain Introspection
   inspectBrain: (payload: { session_id?: string; model_type?: 'dqn' | 'ppo'; observation?: number[]; action_mask?: boolean[] }) =>
     fetchJSON<BrainInspectionDTO>('/api/brain/inspect', {
