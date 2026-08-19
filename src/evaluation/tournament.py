@@ -17,11 +17,19 @@ class Tournament:
         games_per_pair: int = 50,
         initial_elo: float = 1200.0,
         k_factor: float = 32.0,
+        evaluator: Evaluator | None = None,
+        board: Any = None,
+        tickets_deck: Any = None,
     ) -> None:
         self.agents = agents
         self.games_per_pair = games_per_pair
         self.elo_system = EloSystem(initial_rating=initial_elo, k_factor=k_factor)
-        self.evaluator = Evaluator()
+        if evaluator is not None:
+            self.evaluator = evaluator
+        elif board is not None or tickets_deck is not None:
+            self.evaluator = Evaluator(board=board, tickets_deck=tickets_deck)
+        else:
+            self.evaluator = Evaluator()
 
     def run(self, seed: int = 42) -> dict[str, Any]:
         """Execute round-robin pairings, update Elo, and compile leaderboard."""
