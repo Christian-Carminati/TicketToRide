@@ -23,10 +23,13 @@ export const WorkbenchShell: React.FC = () => {
   const { studioMode } = state;
   const [isStepping, setIsStepping] = useState(false);
   const [selectedMap, setSelectedMap] = useState<'usa' | 'mini'>('usa');
+  const isInitializingRef = useRef(false);
   const lastDispatchRef = useRef(0);
 
-  // Initialize interactive game session
-  const initGame = useCallback(async (mapName: 'usa' | 'mini' = selectedMap) => {
+  // Initialize interactive game session with concurrency guard
+  const initGame = useCallback(async (mapName: 'usa' | 'mini') => {
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
     try {
       const res = await api.createGame({
         map_name: mapName,
@@ -43,16 +46,18 @@ export const WorkbenchShell: React.FC = () => {
       setBrainData(brain);
     } catch (err) {
       console.error('Failed to init game session:', err);
+    } finally {
+      isInitializingRef.current = false;
     }
-  }, [selectedMap, setGameState, setBrainData]);
+  }, [setGameState, setBrainData]);
 
+  // Only run when selectedMap explicitly changes
   useEffect(() => {
     initGame(selectedMap);
   }, [selectedMap, initGame]);
 
   const handleMapChange = (mapName: 'usa' | 'mini') => {
     setSelectedMap(mapName);
-    initGame(mapName);
   };
 
   // Shared WebSocket for Live Telemetry (Throttled global context dispatch)

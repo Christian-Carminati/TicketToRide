@@ -17,6 +17,7 @@ from src.game.action import Action, ActionType
 from src.game.card import CardColor
 from src.game.game import Game
 from src.game.maps import create_synthetic_mini_board, load_usa_board
+from src.game.state import GameState
 
 
 class HumanAgent(BaseAgent):
@@ -63,12 +64,18 @@ PLAYER_COLORS = ["#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6"]
 
 
 class GameService:
-    """Thread-safe manager of active game sessions."""
+    """Thread-safe manager of active game sessions with LRU cache eviction."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_sessions: int = 20) -> None:
         self._sessions: dict[str, ActiveGameSession] = {}
+        self.max_sessions = max_sessions
 
     def create_session(self, request: GameSessionCreateRequest) -> GameStateDTO:
+        # Evict oldest sessions if exceeding capacity to prevent memory bloat
+        if len(self._sessions) >= self.max_sessions:
+            oldest_key = next(iter(self._sessions))
+            del self._sessions[oldest_key]
+
         session_id = f"sess_{uuid.uuid4().hex[:8]}"
 
         board, tickets = load_usa_board()

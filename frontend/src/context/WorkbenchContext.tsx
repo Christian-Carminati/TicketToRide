@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, useCallback, ReactNode } from 'react';
 import {
   WorkbenchState,
   WorkbenchAction,
@@ -114,27 +114,65 @@ const WorkbenchContext = createContext<WorkbenchContextValue | undefined>(undefi
 export const WorkbenchProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(workbenchReducer, initialState);
 
+  // Stable action dispatchers that NEVER change reference across renders
+  const setStudioMode = useCallback((mode: StudioMode) => dispatch({ type: 'SET_STUDIO_MODE', payload: mode }), []);
+  const setObservabilityMode = useCallback((mode: ObservabilityMode) => dispatch({ type: 'SET_OBSERVABILITY_MODE', payload: mode }), []);
+  const setGameState = useCallback((game: GameStateDTO | null) => dispatch({ type: 'SET_GAME_STATE', payload: game }), []);
+  const setBrainData = useCallback((brain: BrainInspectionDTO | null) => dispatch({ type: 'SET_BRAIN_DATA', payload: brain }), []);
+  const addTelemetryEvent = useCallback((event: TelemetryEventDTO) => dispatch({ type: 'ADD_TELEMETRY_EVENT', payload: event }), []);
+  const setReplayData = useCallback((replay: ReplayDetailDTO | null) => dispatch({ type: 'SET_REPLAY_DATA', payload: replay }), []);
+  const setStepIndex = useCallback((index: number) => dispatch({ type: 'SET_STEP_INDEX', payload: index }), []);
+  const setIsPlaying = useCallback((playing: boolean) => dispatch({ type: 'SET_IS_PLAYING', payload: playing }), []);
+  const setPlaybackSpeed = useCallback((speed: number) => dispatch({ type: 'SET_PLAYBACK_SPEED', payload: speed }), []);
+  const setHoveredAction = useCallback((meta: HoveredActionMeta | null) => dispatch({ type: 'SET_HOVERED_ACTION', payload: meta }), []);
+  const setHoveredRouteId = useCallback((routeId: string | null) => dispatch({ type: 'SET_HOVERED_ROUTE_ID', payload: routeId }), []);
+  const setBottomDockTab = useCallback((tab: BottomDockTab) => dispatch({ type: 'SET_BOTTOM_DOCK_TAB', payload: tab }), []);
+  const toggleBottomDock = useCallback(() => dispatch({ type: 'TOGGLE_BOTTOM_DOCK' }), []);
+  const setBottomDockOpen = useCallback((open: boolean) => dispatch({ type: 'SET_BOTTOM_DOCK_OPEN', payload: open }), []);
+  const setSelectedAgentModel = useCallback((model: 'ppo' | 'dqn' | 'heuristic' | 'random') => dispatch({ type: 'SET_SELECTED_AGENT_MODEL', payload: model }), []);
+  const setConnected = useCallback((connected: boolean) => dispatch({ type: 'SET_CONNECTED', payload: connected }), []);
+  const resetSession = useCallback(() => dispatch({ type: 'RESET_SESSION' }), []);
+
   const value = useMemo<WorkbenchContextValue>(() => ({
     state,
     dispatch,
-    setStudioMode: (mode) => dispatch({ type: 'SET_STUDIO_MODE', payload: mode }),
-    setObservabilityMode: (mode) => dispatch({ type: 'SET_OBSERVABILITY_MODE', payload: mode }),
-    setGameState: (game) => dispatch({ type: 'SET_GAME_STATE', payload: game }),
-    setBrainData: (brain) => dispatch({ type: 'SET_BRAIN_DATA', payload: brain }),
-    addTelemetryEvent: (event) => dispatch({ type: 'ADD_TELEMETRY_EVENT', payload: event }),
-    setReplayData: (replay) => dispatch({ type: 'SET_REPLAY_DATA', payload: replay }),
-    setStepIndex: (index) => dispatch({ type: 'SET_STEP_INDEX', payload: index }),
-    setIsPlaying: (playing) => dispatch({ type: 'SET_IS_PLAYING', payload: playing }),
-    setPlaybackSpeed: (speed) => dispatch({ type: 'SET_PLAYBACK_SPEED', payload: speed }),
-    setHoveredAction: (meta) => dispatch({ type: 'SET_HOVERED_ACTION', payload: meta }),
-    setHoveredRouteId: (routeId) => dispatch({ type: 'SET_HOVERED_ROUTE_ID', payload: routeId }),
-    setBottomDockTab: (tab) => dispatch({ type: 'SET_BOTTOM_DOCK_TAB', payload: tab }),
-    toggleBottomDock: () => dispatch({ type: 'TOGGLE_BOTTOM_DOCK' }),
-    setBottomDockOpen: (open) => dispatch({ type: 'SET_BOTTOM_DOCK_OPEN', payload: open }),
-    setSelectedAgentModel: (model) => dispatch({ type: 'SET_SELECTED_AGENT_MODEL', payload: model }),
-    setConnected: (connected) => dispatch({ type: 'SET_CONNECTED', payload: connected }),
-    resetSession: () => dispatch({ type: 'RESET_SESSION' }),
-  }), [state]);
+    setStudioMode,
+    setObservabilityMode,
+    setGameState,
+    setBrainData,
+    addTelemetryEvent,
+    setReplayData,
+    setStepIndex,
+    setIsPlaying,
+    setPlaybackSpeed,
+    setHoveredAction,
+    setHoveredRouteId,
+    setBottomDockTab,
+    toggleBottomDock,
+    setBottomDockOpen,
+    setSelectedAgentModel,
+    setConnected,
+    resetSession,
+  }), [
+    state,
+    setStudioMode,
+    setObservabilityMode,
+    setGameState,
+    setBrainData,
+    addTelemetryEvent,
+    setReplayData,
+    setStepIndex,
+    setIsPlaying,
+    setPlaybackSpeed,
+    setHoveredAction,
+    setHoveredRouteId,
+    setBottomDockTab,
+    toggleBottomDock,
+    setBottomDockOpen,
+    setSelectedAgentModel,
+    setConnected,
+    resetSession,
+  ]);
 
   return <WorkbenchContext.Provider value={value}>{children}</WorkbenchContext.Provider>;
 };
