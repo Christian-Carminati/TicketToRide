@@ -6,7 +6,7 @@ from typing import Any
 
 from src.game.action import Action, ActionType
 from src.game.board import Board
-from src.game.graph import check_ticket_completed
+from src.game.graph import check_ticket_completed, check_tickets_completed_batch
 from src.game.maps import load_usa_board
 from src.game.rules import GameRules
 from src.game.state import GameState
@@ -69,7 +69,8 @@ class DefaultRewardCalculator(BaseRewardCalculator):
 
         # 1. Step route points delta
         delta_score = 0.0
-        if action and hasattr(action, "action_type") and action.action_type == ActionType.CLAIM_ROUTE:
+        is_claim = (action is not None and hasattr(action, "action_type") and action.action_type == ActionType.CLAIM_ROUTE)
+        if is_claim:
             route = self._routes_by_id.get(action.route_id or "")
             if route:
                 delta_score = float(GameRules.points_for_route_length(route.length))
@@ -78,24 +79,27 @@ class DefaultRewardCalculator(BaseRewardCalculator):
 
         reward = self.weights.route_points_weight * delta_score - self.weights.step_penalty
 
-        # 2. Ticket completion delta during the step
-        prev_routes = [
-            self._routes_by_id[rid]
-            for rid in prev_player.claimed_route_ids
-            if rid in self._routes_by_id
-        ]
-        next_routes = [
-            self._routes_by_id[rid]
-            for rid in next_player.claimed_route_ids
-            if rid in self._routes_by_id
-        ]
+        # 2. Ticket completion delta during the step (only relevant if route was claimed or tickets changed)
+        if is_claim or len(next_player.claimed_route_ids) != len(prev_player.claimed_route_ids):
+            prev_routes = [
+                self._routes_by_id[rid]
+                for rid in prev_player.claimed_route_ids
+                if rid in self._routes_by_id
+            ]
+            next_routes = [
+                self._routes_by_id[rid]
+                for rid in next_player.claimed_route_ids
+                if rid in self._routes_by_id
+            ]
 
-        prev_completed = {
-            t.id for t in prev_player.tickets if check_ticket_completed(prev_routes, t)
-        }
-        for t in next_player.tickets:
-            if t.id not in prev_completed and check_ticket_completed(next_routes, t):
-                reward += self.weights.ticket_completion_weight * float(t.points)
+            prev_completed = check_tickets_completed_batch(prev_routes, prev_player.tickets)
+            next_completed = check_tickets_completed_batch(next_routes, next_player.tickets)
+
+            for t in next_player.tickets:
+                was_done = prev_completed.get(t.id, False)
+                is_done = next_completed.get(t.id, False)
+                if not was_done and is_done:
+                    reward += self.weights.ticket_completion_weight * float(t.points)
 
         # 3. Terminal outcome reward
         if next_state.is_game_over:
@@ -113,8 +117,14 @@ class DefaultRewardCalculator(BaseRewardCalculator):
             reward += self.weights.score_diff_weight * score_diff
 
             # Uncompleted tickets penalty
+            terminal_routes = [
+                self._routes_by_id[rid]
+                for rid in next_player.claimed_route_ids
+                if rid in self._routes_by_id
+            ]
+            final_completed = check_tickets_completed_batch(terminal_routes, next_player.tickets)
             for t in next_player.tickets:
-                if not check_ticket_completed(next_routes, t):
+                if not final_completed.get(t.id, False):
                     reward -= self.weights.ticket_failure_penalty_weight * float(t.points)
 
         return float(reward)

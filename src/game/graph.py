@@ -1,38 +1,101 @@
 """Graph connectivity and longest continuous trail algorithms for Ticket to Ride."""
 
-from collections import defaultdict, deque
-
+from collections import defaultdict
 from src.game.route import Route
 from src.game.ticket import DestinationTicket
 
 
+class DisjointSet:
+    """Fast Disjoint Set Union (DSU) with path compression and union by rank."""
+
+    __slots__ = ("parent", "rank")
+
+    def __init__(self, size: int) -> None:
+        self.parent = list(range(size))
+        self.rank = [0] * size
+
+    def find(self, i: int) -> int:
+        root = i
+        while root != self.parent[root]:
+            root = self.parent[root]
+        curr = i
+        while curr != root:
+            nxt = self.parent[curr]
+            self.parent[curr] = root
+            curr = nxt
+        return root
+
+    def union(self, i: int, j: int) -> None:
+        root_i = self.find(i)
+        root_j = self.find(j)
+        if root_i != root_j:
+            if self.rank[root_i] < self.rank[root_j]:
+                self.parent[root_i] = root_j
+            elif self.rank[root_i] > self.rank[root_j]:
+                self.parent[root_j] = root_i
+            else:
+                self.parent[root_j] = root_i
+                self.rank[root_i] += 1
+
+    def connected(self, i: int, j: int) -> bool:
+        return self.find(i) == self.find(j)
+
+
 def check_ticket_completed(player_routes: list[Route], ticket: DestinationTicket) -> bool:
-    """Check if city_a and city_b are connected by player_routes using BFS."""
+    """Check if city_a and city_b are connected by player_routes using fast DSU."""
     if not player_routes:
         return False
 
-    adj: dict[str, set[str]] = defaultdict(set)
+    city_to_idx: dict[str, int] = {}
+    idx = 0
     for r in player_routes:
-        adj[r.city_a].add(r.city_b)
-        adj[r.city_b].add(r.city_a)
+        if r.city_a not in city_to_idx:
+            city_to_idx[r.city_a] = idx
+            idx += 1
+        if r.city_b not in city_to_idx:
+            city_to_idx[r.city_b] = idx
+            idx += 1
 
-    if ticket.city_a not in adj or ticket.city_b not in adj:
+    if ticket.city_a not in city_to_idx or ticket.city_b not in city_to_idx:
         return False
 
-    visited: set[str] = set()
-    queue: deque[str] = deque([ticket.city_a])
-    visited.add(ticket.city_a)
+    dsu = DisjointSet(idx)
+    for r in player_routes:
+        dsu.union(city_to_idx[r.city_a], city_to_idx[r.city_b])
 
-    while queue:
-        current = queue.popleft()
-        if current == ticket.city_b:
-            return True
-        for neighbor in adj[current]:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
+    return dsu.connected(city_to_idx[ticket.city_a], city_to_idx[ticket.city_b])
 
-    return False
+
+def check_tickets_completed_batch(
+    player_routes: list[Route], tickets: list[DestinationTicket]
+) -> dict[str, bool]:
+    """Check completion for a batch of tickets in a single DSU pass."""
+    if not tickets:
+        return {}
+    if not player_routes:
+        return {t.id: False for t in tickets}
+
+    city_to_idx: dict[str, int] = {}
+    idx = 0
+    for r in player_routes:
+        if r.city_a not in city_to_idx:
+            city_to_idx[r.city_a] = idx
+            idx += 1
+        if r.city_b not in city_to_idx:
+            city_to_idx[r.city_b] = idx
+            idx += 1
+
+    dsu = DisjointSet(idx)
+    for r in player_routes:
+        dsu.union(city_to_idx[r.city_a], city_to_idx[r.city_b])
+
+    result = {}
+    for t in tickets:
+        if t.city_a not in city_to_idx or t.city_b not in city_to_idx:
+            result[t.id] = False
+        else:
+            result[t.id] = dsu.connected(city_to_idx[t.city_a], city_to_idx[t.city_b])
+    return result
 
 
 def compute_longest_continuous_path(player_routes: list[Route]) -> int:
@@ -53,7 +116,8 @@ def compute_longest_continuous_path(player_routes: list[Route]) -> int:
 
     def dfs(current_city: str, current_len: int, visited_edges: set[str]) -> None:
         nonlocal max_length
-        max_length = max(max_length, current_len)
+        if current_len > max_length:
+            max_length = current_len
 
         for neighbor, edge_id, length in adj[current_city]:
             if edge_id not in visited_edges:

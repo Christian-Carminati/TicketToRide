@@ -1,12 +1,11 @@
 """Observation encoders for converting GameState to bounded vector representations."""
 
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
-
 import numpy as np
 
 from src.game.board import Board
 from src.game.card import CardColor
+from src.game.graph import check_tickets_completed_batch
 from src.game.maps import load_usa_board
 from src.game.route import Route
 from src.game.state import GameState, TurnState
@@ -23,30 +22,6 @@ STANDARD_CARD_COLORS = [
     CardColor.GREEN,
     CardColor.LOCOMOTIVE,
 ]
-
-
-def _build_adjacency(player_routes: list[Route]) -> dict[str, set[str]]:
-    adj: dict[str, set[str]] = defaultdict(set)
-    for r in player_routes:
-        adj[r.city_a].add(r.city_b)
-        adj[r.city_b].add(r.city_a)
-    return adj
-
-
-def _is_connected(adj: dict[str, set[str]], city_a: str, city_b: str) -> bool:
-    if city_a not in adj or city_b not in adj:
-        return False
-    visited: set[str] = {city_a}
-    queue: deque[str] = deque([city_a])
-    while queue:
-        curr = queue.popleft()
-        if curr == city_b:
-            return True
-        for neighbor in adj[curr]:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append(neighbor)
-    return False
 
 
 class BaseObservationEncoder(ABC):
@@ -155,21 +130,17 @@ class ObservationV1(BaseObservationEncoder):
             for rid in player.claimed_route_ids
             if rid in self._routes_by_id
         ]
-        adj = _build_adjacency(player_routes)
-        owned_ticket_ids = {t.id for t in player.tickets}
+        completion_status = check_tickets_completed_batch(player_routes, player.tickets)
+        owned_ticket_map = {t.id: t for t in player.tickets}
 
         for i, t_id in enumerate(self._ticket_ids):
             base = offset + i * 3
-            if t_id in owned_ticket_ids:
-                ticket_obj = self._ticket_map[t_id]
-                is_completed = _is_connected(adj, ticket_obj.city_a, ticket_obj.city_b)
+            if t_id in owned_ticket_map:
+                ticket_obj = owned_ticket_map[t_id]
+                is_completed = completion_status.get(t_id, False)
                 obs[base] = 1.0  # Owned
                 obs[base + 1] = 1.0 if is_completed else 0.0
                 obs[base + 2] = min(ticket_obj.points / 25.0, 1.0)
-            else:
-                obs[base] = 0.0
-                obs[base + 1] = 0.0
-                obs[base + 2] = 0.0
         offset += len(self._ticket_ids) * 3
 
         # 6. Opponent public status ((N-1) * 4)
