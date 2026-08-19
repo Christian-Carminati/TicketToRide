@@ -38,7 +38,11 @@ class MaskedPPOTrainer:
 
         self.actor_critic = MaskedActorCritic(input_dim=obs_dim, action_dim=action_dim).to(self.device)
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=self.lr, eps=1e-5)
-        self.rollout_buffer = RolloutBuffer()
+        self.rollout_buffer = RolloutBuffer(
+            capacity=self.rollout_steps,
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+        )
 
         self.total_timesteps = 0
         self.current_obs, self.current_info = self.env.reset()
@@ -50,8 +54,8 @@ class MaskedPPOTrainer:
         current_ep_reward = 0.0
 
         for _ in range(self.rollout_steps):
-            obs_tensor = torch.tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
-            mask_tensor = torch.tensor(self.current_info["action_mask"], dtype=torch.bool, device=self.device).unsqueeze(0)
+            obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+            mask_tensor = torch.as_tensor(self.current_info["action_mask"], dtype=torch.bool, device=self.device).unsqueeze(0)
 
             with torch.no_grad():
                 action, log_prob, _, value = self.actor_critic.get_action_and_value(
@@ -90,14 +94,15 @@ class MaskedPPOTrainer:
         """Perform PPO optimization on collected rollout."""
         # Estimate next state value for GAE boundary
         with torch.no_grad():
-            obs_tensor = torch.tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+            obs_tensor = torch.as_tensor(self.current_obs, dtype=torch.float32, device=self.device).unsqueeze(0)
             _, next_val = self.actor_critic(obs_tensor)
             next_value = float(next_val.item())
 
+        n_steps = self.rollout_buffer.size
         advantages, returns = compute_gae(
-            rewards=self.rollout_buffer.rewards,
-            values=self.rollout_buffer.values,
-            dones=self.rollout_buffer.dones,
+            rewards=self.rollout_buffer.rewards_buf[:n_steps],
+            values=self.rollout_buffer.values_buf[:n_steps],
+            dones=self.rollout_buffer.dones_buf[:n_steps],
             next_value=next_value,
             gamma=self.gamma,
             gae_lambda=self.gae_lambda,
@@ -156,7 +161,7 @@ class MaskedPPOTrainer:
                     approx_kls.append(approx_kl.item())
 
         y_true = returns
-        y_pred = np.array(self.rollout_buffer.values, dtype=np.float32)
+        y_pred = self.rollout_buffer.values_buf[:n_steps]
         var_y = np.var(y_true)
         explained_var = float(np.nan if var_y == 0 else 1.0 - np.var(y_true - y_pred) / var_y)
 

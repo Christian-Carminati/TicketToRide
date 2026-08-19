@@ -1,7 +1,6 @@
 """Generalized Advantage Estimation (GAE) for Actor-Critic methods."""
 
 from collections.abc import Sequence
-
 import numpy as np
 
 
@@ -19,16 +18,24 @@ def compute_gae(
     A_t = delta_t + (gamma * lambda) * (1 - done_t) * A_{t+1}
     Returns_t = A_t + V(s_t)
     """
-    n_steps = len(rewards)
+    r_arr = np.asarray(rewards, dtype=np.float32)
+    v_arr = np.asarray(values, dtype=np.float32)
+    d_arr = np.asarray(dones, dtype=np.float32)
+    n_steps = len(r_arr)
+
+    if n_steps == 0:
+        return np.zeros(0, dtype=np.float32), np.zeros(0, dtype=np.float32)
+
     advantages = np.zeros(n_steps, dtype=np.float32)
     last_gae = 0.0
+    gamma_lambda = gamma * gae_lambda
 
     for t in reversed(range(n_steps)):
-        v_next = next_value if t == n_steps - 1 else float(values[t + 1])
-        non_terminal = 1.0 - float(dones[t])
-        delta = float(rewards[t]) + gamma * v_next * non_terminal - float(values[t])
-        last_gae = delta + gamma * gae_lambda * non_terminal * last_gae
+        v_next = next_value if t == n_steps - 1 else v_arr[t + 1]
+        non_terminal = 1.0 - d_arr[t]
+        delta = r_arr[t] + gamma * v_next * non_terminal - v_arr[t]
+        last_gae = delta + gamma_lambda * non_terminal * last_gae
         advantages[t] = last_gae
 
-    returns = advantages + np.array(values, dtype=np.float32)
+    returns = advantages + v_arr
     return advantages, returns
