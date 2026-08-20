@@ -40,7 +40,33 @@ def test_environment_lifecycle(sample_game):
     valid_indices = np.where(info["action_mask"])[0]
     action = int(valid_indices[0])
 
-    next_obs, reward, terminated, _truncated, _next_info = env.step(action)
+    next_obs, reward, terminated, _truncated, next_info = env.step(action)
     assert isinstance(next_obs, np.ndarray)
     assert isinstance(reward, (int, float))
     assert isinstance(terminated, bool)
+    assert "reward_components" in next_info
+    assert isinstance(next_info["reward_components"], dict)
+
+
+def test_environment_reward_version_initialization(sample_game):
+    env_v1 = TicketToRideEnv(
+        board=sample_game.board,
+        tickets_deck=sample_game.initial_tickets,
+        reward_calculator="sparse",
+    )
+    assert env_v1.reward_calc.__class__.__name__ == "RewardV1_Sparse"
+
+    env_v2 = TicketToRideEnv(
+        board=sample_game.board,
+        tickets_deck=sample_game.initial_tickets,
+        reward_calculator="dense_routes",
+    )
+    assert env_v2.reward_calc.__class__.__name__ == "RewardV2_DenseRoutes"
+
+    env_v3 = TicketToRideEnv(
+        board=sample_game.board,
+        tickets_deck=sample_game.initial_tickets,
+        reward_calculator=3,
+    )
+    assert env_v3.reward_calc.__class__.__name__ == "RewardV3_TicketMilestones"
+

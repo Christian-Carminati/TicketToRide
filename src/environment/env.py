@@ -9,7 +9,7 @@ from gymnasium import spaces
 from src.environment.action_mask import ActionMasker
 from src.environment.action_space import DiscreteActionSpace
 from src.environment.observation import BaseObservationEncoder, ObservationV1
-from src.environment.reward import BaseRewardCalculator, DefaultRewardCalculator
+from src.environment.reward import BaseRewardCalculator, RewardFactory
 from src.game.action import Action, ActionType
 from src.game.board import Board
 from src.game.game import Game
@@ -29,7 +29,7 @@ class TicketToRideEnv(gym.Env):
         tickets_deck: list[DestinationTicket] | None = None,
         opponent: Any | None = None,
         observation_encoder: BaseObservationEncoder | None = None,
-        reward_calculator: BaseRewardCalculator | None = None,
+        reward_calculator: BaseRewardCalculator | str | int | None = None,
         num_players: int = 2,
         max_turns: int = 300,
         board_type: str | None = None,
@@ -60,7 +60,7 @@ class TicketToRideEnv(gym.Env):
             initial_tickets=self.initial_tickets,
             num_players=self.num_players,
         )
-        self.reward_calc = reward_calculator or DefaultRewardCalculator(board=self.board)
+        self.reward_calc = RewardFactory.create(reward_calculator, board=self.board)
         self.discrete_actions = DiscreteActionSpace(board=self.board)
         self.masker = ActionMasker(self.discrete_actions)
 
@@ -109,8 +109,14 @@ class TicketToRideEnv(gym.Env):
         if self.game.state.turn_number >= self.max_turns and not self.game.state.is_game_over:
             self.game._end_game()
 
-        # Calculate reward from the perspective of Player 0
+        # Calculate reward and component breakdown from the perspective of Player 0
         reward = self.reward_calc.calculate(
+            prev_state=prev_state,
+            action=domain_action,
+            next_state=self.game.state,
+            player_index=0,
+        )
+        reward_components = self.reward_calc.get_components(
             prev_state=prev_state,
             action=domain_action,
             next_state=self.game.state,
@@ -133,6 +139,7 @@ class TicketToRideEnv(gym.Env):
             "opponent_score": (
                 self.game.state.players[1].score if len(self.game.state.players) > 1 else 0
             ),
+            "reward_components": reward_components,
         }
 
         return obs, float(reward), terminated, truncated, info

@@ -6,13 +6,27 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class RewardConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    version: int | str = 1
+    route_points_weight: float = 1.0
+    ticket_completion_weight: float = 1.0
+    step_penalty: float = 0.0
+    win_bonus: float = 20.0
+    loss_penalty: float = 10.0
+    score_diff_weight: float = 0.5
+    ticket_failure_penalty_weight: float = 1.0
+
+
 class EnvironmentConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     board: str = "usa"
     players: int = 2
     observation_version: int = 1
-    reward_version: int = 1
+    reward_version: int | str = 1
+    reward_config: RewardConfig | None = None
 
 
 class AlgorithmConfig(BaseModel):

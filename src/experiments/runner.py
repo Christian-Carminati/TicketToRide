@@ -11,6 +11,7 @@ from src.agents.dqn_agent import DQNAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
+from src.environment.reward import RewardFactory, RewardWeights
 from src.experiments.config import ExperimentConfig
 from src.experiments.evaluator import MultiOpponentEvaluator
 from src.experiments.registry import ExperimentRecord, ExperimentRegistry
@@ -36,11 +37,20 @@ class ExperimentRunner:
         np.random.seed(self.config.seed)
 
         board, tickets = self._setup_board()
+        if self.config.environment.reward_config is not None:
+            rc_dict = self.config.environment.reward_config.model_dump()
+            v = rc_dict.pop("version", "custom")
+            weights = RewardWeights(**{k: val for k, val in rc_dict.items() if hasattr(RewardWeights, k)})
+            reward_calc = RewardFactory.create("custom", board=board, weights=weights)
+        else:
+            reward_calc = RewardFactory.create(self.config.environment.reward_version, board=board)
+
         env = TicketToRideEnv(
             board=board,
             tickets_deck=tickets,
             opponent=RandomAgent(seed=self.config.seed),
             num_players=self.config.environment.players,
+            reward_calculator=reward_calc,
         )
 
         evaluator = MultiOpponentEvaluator(
