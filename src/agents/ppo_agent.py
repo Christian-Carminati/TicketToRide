@@ -22,6 +22,7 @@ class PPOAgent(BaseAgent):
         self,
         name: str = "PPOAgent",
         model_path: str | None = None,
+        actor_critic: MaskedActorCritic | None = None,
         input_dim: int = 100,
         action_dim: int = 56,
         hidden_dim: int = 128,
@@ -34,10 +35,18 @@ class PPOAgent(BaseAgent):
         self.encoder = encoder
         self.discrete_actions = discrete_actions
         self.masker = ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
-        self.actor_critic = MaskedActorCritic(input_dim=input_dim, action_dim=action_dim, hidden_dim=hidden_dim).to(device)
+        if actor_critic is not None:
+            self.actor_critic = actor_critic.to(device)
+        else:
+            self.actor_critic = MaskedActorCritic(
+                input_dim=input_dim,
+                action_dim=action_dim,
+                hidden_dim=hidden_dim,
+            ).to(device)
         self.actor_critic.eval()
         if model_path is not None:
             self.load(model_path)
+
 
     def select_action(
         self,
