@@ -116,8 +116,11 @@ class TelemetryEventDTO(BaseModel):
     value_loss: float | None = None
     entropy: float | None = None
     approx_kl: float | None = None
+    clip_fraction: float | None = None
+    explained_var: float | None = None
     win_rate: float | None = None
     fps: float | None = None
+
 
 
 # --- Tournament & Leaderboard DTOs ---

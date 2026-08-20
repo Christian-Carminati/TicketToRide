@@ -182,6 +182,8 @@ class TrainerService:
                         value_loss=float(metrics.get("value_loss", 0.0)),
                         entropy=float(metrics.get("entropy", 0.0)),
                         approx_kl=float(metrics.get("approx_kl", 0.0)),
+                        clip_fraction=float(metrics.get("clip_fraction", 0.0)),
+                        explained_var=float(metrics.get("explained_var", 0.0)),
                         win_rate=min(max(0.5 + smooth_reward * 0.05, 0.0), 1.0),
                         fps=round(fps, 1),
                     )
