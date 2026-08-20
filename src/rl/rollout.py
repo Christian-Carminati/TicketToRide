@@ -128,6 +128,7 @@ class RolloutBuffer:
         t_obs = torch.from_numpy(self.obs_buf[:total_steps]).to(device=device)
         t_act = torch.from_numpy(self.actions_buf[:total_steps]).to(device=device)
         t_lp = torch.from_numpy(self.log_probs_buf[:total_steps]).to(device=device)
+        t_val = torch.from_numpy(self.values_buf[:total_steps]).to(device=device)
         t_adv = torch.from_numpy(advantages[:total_steps]).to(device=device)
         t_ret = torch.from_numpy(returns[:total_steps]).to(device=device)
         t_mask = torch.from_numpy(self.masks_buf[:total_steps]).to(device=device)
@@ -138,6 +139,7 @@ class RolloutBuffer:
                 "obs": t_obs[mb_idx],
                 "actions": t_act[mb_idx],
                 "old_log_probs": t_lp[mb_idx],
+                "values": t_val[mb_idx],
                 "advantages": t_adv[mb_idx],
                 "returns": t_ret[mb_idx],
                 "action_masks": t_mask[mb_idx],

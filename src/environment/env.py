@@ -32,13 +32,19 @@ class TicketToRideEnv(gym.Env):
         reward_calculator: BaseRewardCalculator | None = None,
         num_players: int = 2,
         max_turns: int = 300,
+        board_type: str | None = None,
     ) -> None:
         super().__init__()
-        if board is None:
-            self.board, self.initial_tickets = load_usa_board()
-        else:
+        if board is not None:
             self.board = board
             self.initial_tickets = tickets_deck or []
+        elif board_type == "mini":
+            from src.game.maps import create_synthetic_mini_board
+
+            self.board, self.initial_tickets = create_synthetic_mini_board()
+        else:
+            self.board, self.initial_tickets = load_usa_board()
+
 
         self.num_players = num_players
         self.max_turns = max_turns
