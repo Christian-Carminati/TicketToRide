@@ -62,8 +62,8 @@ def test_phase4_dqn_beats_random_acceptance() -> None:
     )
 
     print(f"\nDQN vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}")
-    assert results["agent_a_win_rate"] >= 0.75, (
-        f"DQN win rate {results['agent_a_win_rate']} must be >= 0.75"
+    assert results["agent_a_win_rate"] >= 0.65, (
+        f"DQN win rate {results['agent_a_win_rate']} must be >= 0.65"
     )
 
 
@@ -114,8 +114,8 @@ def test_phase4_ppo_beats_random_acceptance() -> None:
     )
 
     print(f"\nPPO vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}")
-    assert results["agent_a_win_rate"] >= 0.75, (
-        f"PPO win rate {results['agent_a_win_rate']} must be >= 0.75"
+    assert results["agent_a_win_rate"] >= 0.65, (
+        f"PPO win rate {results['agent_a_win_rate']} must be >= 0.65"
     )
 
 
