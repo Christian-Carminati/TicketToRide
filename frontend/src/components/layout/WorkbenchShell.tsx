@@ -5,7 +5,7 @@ import { ScrubberTransportBar } from './ScrubberTransportBar';
 import { BoardCanvas } from '../board';
 import { BrainInspectorPane } from '../brain';
 import { TelemetryTournamentDock } from '../dock';
-import { TrainingView, TournamentArenaView } from '../../views';
+import { TrainingView, TournamentArenaView, ReportsView } from '../../views';
 import { api } from '../../api';
 import { TelemetryEventDTO } from '../../api/types';
 import { useWebSocket } from '../../hooks';
@@ -204,8 +204,12 @@ export const WorkbenchShell: React.FC = () => {
           <TournamentArenaView />
         )}
 
+        {studioMode === 'reports' && (
+          <ReportsView />
+        )}
+
         {/* Collapsible Telemetry Dock (Available in Interactive, Replay, and Training views) */}
-        {studioMode !== 'tournament' && (
+        {studioMode !== 'tournament' && studioMode !== 'reports' && (
           <TelemetryTournamentDock />
         )}
       </div>

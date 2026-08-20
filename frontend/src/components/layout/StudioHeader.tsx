@@ -10,6 +10,7 @@ import {
   WifiOff,
   RotateCcw,
   Bot,
+  BookOpen,
 } from 'lucide-react';
 
 interface StudioHeaderProps {
@@ -25,6 +26,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = React.memo(({ onNewGame
     { id: 'training_live', label: 'Live Training', icon: <TrendingUp size={14} /> },
     { id: 'replay_scrub', label: 'Replay Studio', icon: <Film size={14} /> },
     { id: 'tournament', label: 'Tournament Arena', icon: <Trophy size={14} /> },
+    { id: 'reports', label: 'Research Reports', icon: <BookOpen size={14} /> },
   ];
 
   return (

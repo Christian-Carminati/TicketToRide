@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.brain_service import BrainService
 from src.api.game_service import GameService
 from src.api.replay_service import ReplayService
+from src.api.report_service import ReportService
 from src.api.schemas import (
     BrainInspectionDTO,
     BrainInspectRequest,
@@ -18,6 +19,8 @@ from src.api.schemas import (
     GameStateDTO,
     GameStepRequest,
     ReplayDetailDTO,
+    ReportDetailDTO,
+    ReportItemDTO,
     TournamentLeaderboardDTO,
     TournamentParticipantOptionDTO,
     TournamentRunRequest,
@@ -34,6 +37,7 @@ connection_manager = ConnectionManager()
 game_service = GameService()
 brain_service = BrainService()
 replay_service = ReplayService()
+report_service = ReportService()
 trainer_service = TrainerService(connection_manager=connection_manager)
 tournament_service = TournamentService()
 registry = ExperimentRegistry()
@@ -253,6 +257,28 @@ def delete_all_checkpoints() -> dict[str, Any]:
                 pass
 
     return {"success": True, "deleted_count": deleted_count}
+
+
+# --- Scientific Reports & Benchmarks Endpoints ---
+@app.get("/api/reports/list", response_model=list[ReportItemDTO])
+def list_reports() -> list[ReportItemDTO]:
+    return report_service.list_reports()
+
+
+@app.get("/api/reports/{filename}", response_model=ReportDetailDTO)
+def get_report(filename: str) -> ReportDetailDTO:
+    report = report_service.get_report(filename)
+    if not report:
+        raise HTTPException(status_code=404, detail=f"Report '{filename}' non trovato.")
+    return report
+
+
+@app.delete("/api/reports/{filename}")
+def delete_report(filename: str) -> dict[str, Any]:
+    success = report_service.delete_report(filename)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Report '{filename}' non trovato o non eliminabile.")
+    return {"success": True, "deleted_file": filename}
 
 
 # --- Brain Introspection Endpoint ---

@@ -200,3 +200,25 @@ export interface TournamentRunRequest {
   map_name?: 'usa' | 'mini';
   seed?: number;
 }
+
+export interface ReportItemDTO {
+  id: string;
+  name: string;
+  filename: string;
+  file_type: 'markdown' | 'json' | 'text';
+  size_kb: number;
+  modified_at: string;
+  phase?: string | null;
+}
+
+export interface ReportDetailDTO {
+  id: string;
+  name: string;
+  filename: string;
+  file_type: 'markdown' | 'json' | 'text';
+  raw_content: string;
+  json_data?: Record<string, any> | null;
+  size_kb: number;
+  modified_at: string;
+}
+

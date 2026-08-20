@@ -10,6 +10,8 @@ import {
   GameSessionCreateRequest,
   GameStateDTO,
   ReplayDetailDTO,
+  ReportDetailDTO,
+  ReportItemDTO,
   TournamentLeaderboardDTO,
   TournamentRunRequest,
   TrainingStartRequest,
@@ -119,6 +121,16 @@ export const api = {
 
   deleteAllCheckpoints: () =>
     fetchJSON<{ success: boolean; deleted_count: number }>('/api/checkpoints', {
+      method: 'DELETE',
+    }),
+
+  // Scientific Reports & Benchmarks
+  listReports: () => fetchJSON<ReportItemDTO[]>('/api/reports/list'),
+
+  getReport: (filename: string) => fetchJSON<ReportDetailDTO>(`/api/reports/${encodeURIComponent(filename)}`),
+
+  deleteReport: (filename: string) =>
+    fetchJSON<{ success: boolean; deleted_file: string }>(`/api/reports/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
     }),
 

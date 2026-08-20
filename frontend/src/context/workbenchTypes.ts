@@ -1,7 +1,7 @@
 import { GameStateDTO, BrainInspectionDTO, TelemetryEventDTO, ReplayDetailDTO } from '../api/types';
 
 export type ObservabilityMode = 'god' | 'player_0' | 'player_1';
-export type StudioMode = 'interactive' | 'training_live' | 'replay_scrub' | 'tournament';
+export type StudioMode = 'interactive' | 'training_live' | 'replay_scrub' | 'tournament' | 'reports';
 export type BottomDockTab = 'telemetry' | 'tournament' | 'logs';
 
 export interface HoveredActionMeta {

@@ -102,8 +102,25 @@ def test_brain_inspect_endpoint():
     assert len(data["action_probabilities"]) == 56
 
 
+def test_reports_endpoints():
+    res = client.get("/api/reports/list")
+    assert res.status_code == 200
+    reports = res.json()
+    assert isinstance(reports, list)
+
+    if reports:
+        first = reports[0]
+        fname = first["filename"]
+        detail_res = client.get(f"/api/reports/{fname}")
+        assert detail_res.status_code == 200
+        data = detail_res.json()
+        assert "raw_content" in data
+        assert data["filename"] == fname
+
+
 def test_websocket_telemetry_hub():
     with client.websocket_connect("/ws/telemetry") as websocket:
         websocket.send_text("ping")
         msg = websocket.receive_json()
         assert msg["type"] in ["ack", "training_started", "training_step", "training_finished"]
+

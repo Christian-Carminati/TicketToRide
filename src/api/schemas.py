@@ -209,7 +209,30 @@ class CheckpointDTO(BaseModel):
     total_timesteps: int | None = None
 
 
+# --- Scientific Reports & Benchmarks DTOs ---
+class ReportItemDTO(BaseModel):
+    id: str
+    name: str
+    filename: str
+    file_type: str  # "markdown", "json", "text"
+    size_kb: float
+    modified_at: str
+    phase: str | None = None
+
+
+class ReportDetailDTO(BaseModel):
+    id: str
+    name: str
+    filename: str
+    file_type: str
+    raw_content: str
+    json_data: dict[str, Any] | None = None
+    size_kb: float
+    modified_at: str
+
+
 # Aliases for backward compatibility
 GameStateResponse = GameStateDTO
 ActionRequest = ActionDTO
 TrainingTelemetry = TelemetryEventDTO
+
