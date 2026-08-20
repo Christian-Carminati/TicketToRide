@@ -145,3 +145,123 @@ class RolloutBuffer:
 
     def __len__(self) -> int:
         return self.size
+
+
+class VectorRolloutBuffer:
+    """Multidimensional On-policy trajectory storage for single or vectorized environments."""
+
+    def __init__(
+        self,
+        num_steps: int,
+        num_envs: int,
+        obs_dim: int,
+        action_dim: int,
+    ) -> None:
+        self.num_steps = num_steps
+        self.num_envs = num_envs
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+
+        self.obs_buf = np.zeros((num_steps, num_envs, obs_dim), dtype=np.float32)
+        self.actions_buf = np.zeros((num_steps, num_envs), dtype=np.int64)
+        self.rewards_buf = np.zeros((num_steps, num_envs), dtype=np.float32)
+        self.values_buf = np.zeros((num_steps, num_envs), dtype=np.float32)
+        self.log_probs_buf = np.zeros((num_steps, num_envs), dtype=np.float32)
+        self.dones_buf = np.zeros((num_steps, num_envs), dtype=bool)
+        self.masks_buf = np.zeros((num_steps, num_envs, action_dim), dtype=bool)
+
+        self.step = 0
+
+    def clear(self) -> None:
+        self.step = 0
+
+    def is_full(self) -> bool:
+        return self.step >= self.num_steps
+
+    def add(
+        self,
+        obs: np.ndarray,
+        action: np.ndarray | int | list[int],
+        reward: np.ndarray | float | list[float],
+        value: np.ndarray | float | list[float],
+        log_prob: np.ndarray | float | list[float],
+        done: np.ndarray | bool | list[bool],
+        action_mask: np.ndarray,
+    ) -> None:
+        """Add a step transition across all environments."""
+        if self.step >= self.num_steps:
+            raise IndexError("VectorRolloutBuffer is full. Call clear() before adding more steps.")
+
+        self.obs_buf[self.step] = np.asarray(obs, dtype=np.float32)
+        self.actions_buf[self.step] = np.asarray(action, dtype=np.int64)
+        self.rewards_buf[self.step] = np.asarray(reward, dtype=np.float32)
+        self.values_buf[self.step] = np.asarray(value, dtype=np.float32)
+        self.log_probs_buf[self.step] = np.asarray(log_prob, dtype=np.float32)
+        self.dones_buf[self.step] = np.asarray(done, dtype=bool)
+        self.masks_buf[self.step] = np.asarray(action_mask, dtype=bool)
+
+        self.step += 1
+
+    def compute_returns_and_advantages(
+        self,
+        next_values: np.ndarray,
+        gamma: float = 0.99,
+        gae_lambda: float = 0.95,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute vectorized GAE advantages and returns for current rollout."""
+        from src.rl.advantage import compute_gae_vectorized
+
+        return compute_gae_vectorized(
+            rewards=self.rewards_buf[: self.step],
+            values=self.values_buf[: self.step],
+            dones=self.dones_buf[: self.step],
+            next_values=np.asarray(next_values, dtype=np.float32),
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+        )
+
+    def generate_minibatches(
+        self,
+        batch_size: int,
+        advantages: np.ndarray,
+        returns: np.ndarray,
+        device: str = "cpu",
+    ) -> Iterator[dict[str, torch.Tensor]]:
+        """Yield flattened, randomized minibatches for multi-epoch PPO updates."""
+        total_samples = self.step * self.num_envs
+        if total_samples == 0:
+            return
+
+        b_obs = self.obs_buf[: self.step].reshape(-1, self.obs_dim)
+        b_actions = self.actions_buf[: self.step].reshape(-1)
+        b_log_probs = self.log_probs_buf[: self.step].reshape(-1)
+        b_values = self.values_buf[: self.step].reshape(-1)
+        b_masks = self.masks_buf[: self.step].reshape(-1, self.action_dim)
+        b_advantages = advantages.reshape(-1)
+        b_returns = returns.reshape(-1)
+
+        indices = np.random.permutation(total_samples)
+
+        t_obs = torch.from_numpy(b_obs).to(device=device)
+        t_actions = torch.from_numpy(b_actions).to(device=device)
+        t_log_probs = torch.from_numpy(b_log_probs).to(device=device)
+        t_values = torch.from_numpy(b_values).to(device=device)
+        t_masks = torch.from_numpy(b_masks).to(device=device)
+        t_advantages = torch.from_numpy(b_advantages).to(device=device)
+        t_returns = torch.from_numpy(b_returns).to(device=device)
+
+        for start in range(0, total_samples, batch_size):
+            mb_idx = indices[start : start + batch_size]
+            yield {
+                "obs": t_obs[mb_idx],
+                "actions": t_actions[mb_idx],
+                "old_log_probs": t_log_probs[mb_idx],
+                "values": t_values[mb_idx],
+                "advantages": t_advantages[mb_idx],
+                "returns": t_returns[mb_idx],
+                "action_masks": t_masks[mb_idx],
+            }
+
+    def __len__(self) -> int:
+        return self.step * self.num_envs
+

@@ -39,3 +39,47 @@ def compute_gae(
 
     returns = advantages + v_arr
     return advantages, returns
+
+
+def compute_gae_vectorized(
+    rewards: np.ndarray,
+    values: np.ndarray,
+    dones: np.ndarray,
+    next_values: np.ndarray,
+    gamma: float = 0.99,
+    gae_lambda: float = 0.95,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute Generalized Advantage Estimation (GAE) across vectorized environments.
+
+    Args:
+        rewards: Shape (num_steps, num_envs)
+        values: Shape (num_steps, num_envs)
+        dones: Shape (num_steps, num_envs)
+        next_values: Shape (num_envs,)
+        gamma: Discount factor
+        gae_lambda: GAE smoothing parameter
+
+    Returns:
+        advantages: Shape (num_steps, num_envs)
+        returns: Shape (num_steps, num_envs)
+    """
+    num_steps, num_envs = rewards.shape
+    advantages = np.zeros_like(rewards, dtype=np.float32)
+    last_gae = np.zeros(num_envs, dtype=np.float32)
+    gamma_lambda = gamma * gae_lambda
+
+    for t in reversed(range(num_steps)):
+        if t == num_steps - 1:
+            next_non_terminal = 1.0 - dones[t].astype(np.float32)
+            next_val = next_values
+        else:
+            next_non_terminal = 1.0 - dones[t].astype(np.float32)
+            next_val = values[t + 1]
+
+        delta = rewards[t] + gamma * next_val * next_non_terminal - values[t]
+        last_gae = delta + gamma_lambda * next_non_terminal * last_gae
+        advantages[t] = last_gae
+
+    returns = advantages + values
+    return advantages, returns
+
