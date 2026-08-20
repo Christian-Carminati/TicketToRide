@@ -29,7 +29,7 @@ class MaskedPPOTrainer:
         self.initial_lr: float = self.config.get("lr", 3e-4)
         self.lr: float = self.initial_lr
         self.anneal_lr: bool = self.config.get("anneal_lr", False)
-        self.clip_vloss: bool = self.config.get("clip_vloss", True)
+        self.clip_vloss: bool = self.config.get("clip_vloss", False)
         self.vf_clip_eps: float = self.config.get("vf_clip_eps", 0.2)
         self.target_kl: float | None = self.config.get("target_kl", None)
         self.norm_adv: bool = self.config.get("norm_adv", True)
@@ -178,9 +178,9 @@ class MaskedPPOTrainer:
                     v_clipped = old_v + torch.clamp(new_val_flat - old_v, -self.vf_clip_eps, self.vf_clip_eps)
                     v_loss_clipped = (v_clipped - mb["returns"]) ** 2
                     v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-                    value_loss = 0.5 * v_loss_max.mean()
+                    value_loss = v_loss_max.mean()
                 else:
-                    value_loss = 0.5 * F.mse_loss(new_val_flat, mb["returns"])
+                    value_loss = F.mse_loss(new_val_flat, mb["returns"])
 
                 # Entropy Bonus
                 entropy_loss = -entropy.mean()
