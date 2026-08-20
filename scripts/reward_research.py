@@ -17,9 +17,9 @@ def main() -> None:
     parser.add_argument(
         "--board",
         type=str,
-        default="mini",
-        choices=["mini", "usa"],
-        help="Board map to run study on (default: mini)",
+        default="usa",
+        choices=["usa", "mini"],
+        help="Board map to run study on (default: usa)",
     )
     parser.add_argument(
         "--timesteps",

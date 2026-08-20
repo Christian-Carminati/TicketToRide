@@ -13,7 +13,7 @@ from src.evaluation.benchmark import PPOBenchmarkRunner
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run PPO Benchmark and Ablation Study.")
-    parser.add_argument("--board", choices=["mini", "usa"], default="mini", help="Board type (mini or usa)")
+    parser.add_argument("--board", choices=["usa", "mini"], default="usa", help="Board type (usa or mini)")
     parser.add_argument("--games", type=int, default=30, help="Games per opponent in evaluation")
     parser.add_argument("--steps", type=int, default=2000, help="Total training timesteps for primary PPO agent")
     parser.add_argument("--ablation", action="store_true", default=True, help="Run CleanRL ablation study")

@@ -20,7 +20,7 @@ class PPOBenchmarkRunner:
 
     def __init__(
         self,
-        board_type: str = "mini",
+        board_type: str = "usa",
         games_per_opponent: int = 50,
         total_training_steps: int = 2000,
         training_steps: int | None = None,

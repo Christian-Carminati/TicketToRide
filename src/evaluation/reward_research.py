@@ -19,7 +19,7 @@ class RewardResearchRunner:
 
     def __init__(
         self,
-        board_type: str = "mini",
+        board_type: str = "usa",
         reward_versions: list[str] | None = None,
         training_steps: int = 4000,
         eval_games: int = 20,
