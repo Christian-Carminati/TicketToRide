@@ -54,25 +54,55 @@ class MaskedQNetwork(nn.Module):
             return int(torch.argmax(masked_q).item())
 
 
-class MaskedActorCritic(nn.Module):
-    """Discrete Actor-Critic architecture with Action Masking for PPO."""
+def layer_init(layer: nn.Linear, std: float = float(np.sqrt(2)), bias_const: float = 0.0) -> nn.Linear:
+    """Initialize linear layer weights using orthogonal initialization and constant bias."""
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
 
-    def __init__(self, input_dim: int, action_dim: int, hidden_dim: int = 128) -> None:
+
+class MaskedActorCritic(nn.Module):
+    """Discrete Actor-Critic architecture with Action Masking and Orthogonal Initialization for PPO."""
+
+    def __init__(
+        self,
+        input_dim: int,
+        action_dim: int,
+        hidden_dim: int = 128,
+        orthogonal_init: bool = True,
+    ) -> None:
         super().__init__()
-        self.actor = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, action_dim),
-        )
-        self.critic = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, 1),
-        )
+        if orthogonal_init:
+            self.actor = nn.Sequential(
+                layer_init(nn.Linear(input_dim, hidden_dim), float(np.sqrt(2))),
+                nn.Tanh(),
+                layer_init(nn.Linear(hidden_dim, hidden_dim), float(np.sqrt(2))),
+                nn.Tanh(),
+                layer_init(nn.Linear(hidden_dim, action_dim), 0.01),
+            )
+            self.critic = nn.Sequential(
+                layer_init(nn.Linear(input_dim, hidden_dim), float(np.sqrt(2))),
+                nn.Tanh(),
+                layer_init(nn.Linear(hidden_dim, hidden_dim), float(np.sqrt(2))),
+                nn.Tanh(),
+                layer_init(nn.Linear(hidden_dim, 1), 1.0),
+            )
+        else:
+            self.actor = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.Tanh(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.Tanh(),
+                nn.Linear(hidden_dim, action_dim),
+            )
+            self.critic = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.Tanh(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.Tanh(),
+                nn.Linear(hidden_dim, 1),
+            )
+
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         logits = self.actor(x)
