@@ -1,33 +1,122 @@
-# Design Specification: Phase 8 — Partial Observability & Recurrent PPO (LSTM)
+# Specifica di Design & Lezione Didattica: Fase 8 — Parziale Osservabilità & Recurrent PPO (LSTM)
 
-**Document Version:** 1.0.0  
-**Date:** 2026-08-20  
-**Phase:** 8 (Partial Observability & Recurrent PPO)  
-**Status:** Approved for Implementation  
-
----
-
-## 1. Executive Summary & Goals
-
-In Ticket to Ride, complete game information is not directly accessible to players (Partially Observable Markov Decision Process — **POMDP**). While public information is visible (face-up card pool, board routes claimed, train counts, public score track), key private information remains hidden:
-- Opponent hand card colors
-- Opponent destination tickets
-- Remaining draw deck sequence
-
-A standard stateless MLP policy observes only an instantaneous snapshot $s_t$ without temporal memory. Conversely, a recurrent neural network (**LSTM**) maintains an internal hidden state $(h_t, c_t)$ across turns, allowing the agent to remember opponent card draw selections (e.g. which face-up colors were drawn in past turns), route claiming patterns, and tempo.
-
-### Primary Deliverables
-1. **Strict POMDP Information Hiding Verification**: Invariant testing guaranteeing that `ObservationV1` leaks zero hidden information (opponent cards/tickets, hidden deck order).
-2. **Recurrent Actor-Critic Architecture (`RecurrentMaskedActorCritic`)**: Shared linear feature encoder + PyTorch `nn.LSTM` layer + Masked Actor (policy) & Critic (value) linear heads with CleanRL-standard orthogonal initialization.
-3. **Recurrent Rollout Buffer (`RecurrentRolloutBuffer`)**: Multi-step trajectory buffer storing transitions, masks, dones, and hidden states, supporting sequence-chunk mini-batch generation for truncated Backpropagation Through Time (BPTT).
-4. **Masked Recurrent PPO Trainer (`MaskedRecurrentPPOTrainer`)**: Full PPO training loop with GAE computation, clipped surrogate policy loss, value loss clipping, entropy bonus, KL early stopping, learning rate annealing, and hidden state resetting across episodic boundaries.
-5. **Recurrent PPO Agent (`RecurrentPPOAgent`)**: High-level agent implementing `BaseAgent`, maintaining internal hidden state during inference across game turns, compatible with `Evaluator`, `Tournament`, and CLI.
-6. **POMDP Benchmark Runner & Scientific Comparison (`POMDPBenchmarkRunner`)**: Automated benchmark comparing MLP PPO vs LSTM PPO vs scripted baselines (Random, Greedy, Strategic), exporting metrics to JSON and Markdown (`experiments/results/phase8_report.md`).
-7. **Phase 8 Acceptance Test Suite (`tests/rl/test_phase8_acceptance.py`)**: End-to-end verification of all acceptance criteria.
+**Versione Documento:** 1.0.0  
+**Data:** 2026-08-20  
+**Fase:** 8 (Partial Observability & Recurrent PPO)  
+**Stato:** Approvato per l'Implementazione  
+**Lingua:** Italiano  
 
 ---
 
-## 2. Architecture & Data Flow
+# 1. Lezione Teorica: Parziale Osservabilità e Memoria nel Reinforcement Learning
+
+## 1.1 Fondamenti dei POMDP (Partially Observable Markov Decision Processes)
+
+Nei classici problemi di Reinforcement Learning formulati come **MDP** (Markov Decision Process), l'agente osserva in ogni istante lo stato completo e reale del mondo $s_t \in \mathcal{S}$. In un MDP vale la proprietà fondamentale di Markov:
+
+$$\mathbb{P}(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0) = \mathbb{P}(s_{t+1} \mid s_t, a_t)$$
+
+Ovvero: *il futuro è condizionatamente indipendente dal passato, dato il presente*.
+
+Tuttavia, nella maggioranza dei giochi strategici reali (come Ticket to Ride) e nei problemi di robotica e finanza, lo stato reale $s_t$ non è accessibile per intero. Il sistema è un **POMDP**, formalmente definito dalla 7-tupla:
+
+$$\langle \mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \Omega, \mathcal{O}, \gamma \rangle$$
+
+dove:
+- $\mathcal{S}$ è lo spazio degli stati veri (*True State*): include le carte segrete in mano a ogni giocatore, i biglietti destinazione segreti e l'ordine esatto delle carte nel mazzo coperto;
+- $\mathcal{A}$ è lo spazio delle azioni legali;
+- $\mathcal{T}(s' \mid s, a)$ è la funzione di transizione tra stati veri;
+- $\mathcal{R}(s, a)$ è la funzione scalare di ricompensa;
+- $\Omega$ è lo spazio delle osservazioni (*Observation Space*);
+- $\mathcal{O}(o \mid s', a)$ è la funzione di emissione dell'osservazione: proietta lo stato vero $s'$ nell'osservazione visibile $o \in \Omega$ dal punto di vista del giocatore corrente;
+- $\gamma \in [0, 1)$ è il fattore di sconto temporale.
+
+### Perché la singola osservazione $o_t$ rompe la proprietà di Markov?
+Quando passiamo dallo stato vero $s_t$ all'osservazione parziale $o_t$, perdiamo la proprietà di Markov:
+
+$$\mathbb{P}(s_{t+1} \mid o_t, a_t) \neq \mathbb{P}(s_{t+1} \mid o_t, a_t, o_{t-1}, a_{t-1}, \dots, o_0)$$
+
+**Esempio didattico in Ticket to Ride:**
+Immaginiamo che al turno $t$, l'osservazione $o_t$ mostri che l'avversario possiede 6 carte in mano.
+- Un agente feed-forward stateless (MLP) vede solo il vettore istantaneo $o_t$: sa che l'avversario ha 6 carte, ma non ha alcuna idea di quali colori siano.
+- Un agente con memoria (ricorrente) ha osservato la sequenza temporale $\mathcal{H}_t = (o_0, a_0, o_1, a_1, \dots, o_t)$. Se nei tre turni precedenti l'avversario ha pescato 4 carte rosse e 2 locomotive scoperte dal tavolo, l'agente ricorrente sa che l'avversario sta quasi certamente preparando una tratta rossa lunga o contesa (es. New York - Boston o Helena - Duluth).
+
+Per prendere decisioni ottimali in un POMDP, la politica deve basarsi non sulla singola osservazione $o_t$, ma sull'intera storia $\mathcal{H}_t$, formando un **Belief State** $\mathbb{P}(s_t \mid \mathcal{H}_t)$.
+
+---
+
+## 1.2 Reti Neurali Ricorrenti (LSTM) come Approssimatori del Belief State
+
+Poiché la lunghezza della storia $\mathcal{H}_t$ cresce linearmente con il numero di turni (rendendo impraticabile la concatenazione di tutti i vettori passati), utilizziamo una rete neurale ricorrente **LSTM** (Long Short-Term Memory).
+
+L'LSTM comprime la storia passata in un vettore latente compatto $(h_t, c_t)$ aggiornato ricorsivamente ad ogni passo:
+
+$$(h_t, c_t) = \text{LSTM}(e(o_t), (h_{t-1}, c_{t-1}))$$
+
+dove:
+- $e(o_t) = \text{Tanh}(W_e o_t + b_e)$ è l'embedding dell'osservazione estratto da un encoder lineare;
+- $h_t \in \mathbb{R}^{d_{lstm}}$ è lo **hidden state**, che funge da rappresentazione latente del belief state e viene passato alle teste Actor e Critic;
+- $c_t \in \mathbb{R}^{d_{lstm}}$ è il **cell state**, che funge da nastro di memoria a lungo termine per preservare informazioni su orizzonti estesi.
+
+```text
+                  o_t (Osservazione Corrente)
+                              │
+                              ▼
+                   Linear Feature Encoder
+                              │
+                              ▼
+   (h_{t-1}, c_{t-1}) ──► ┌──────────────┐
+                 │        │  Cella LSTM  │ ──► (h_t, c_t)
+                 │        └──────┬───────┘
+                 │               │
+                 │               ▼
+                 │        h_t (Belief State)
+                 │               │
+                 │        ┌──────┴──────┐
+                 │        ▼             ▼
+                 │   Actor Head    Critic Head
+                 │  (Logits + Mask)   V(h_t)
+                 │        │
+                 ▼        ▼
+          (1 - done)   π(a_t | h_t)
+```
+
+---
+
+## 1.3 Inizializzazione Ortogonale e Stabilità Numerica (Principi CleanRL)
+
+Nelle reti ricorrenti in RL, l'accumulo dei gradienti nel tempo può portare rapidamente a fenomeni di *gradient explosion* o *gradient vanishing*. Per garantire massima stabilità durante l'addestramento:
+
+1. **Inizializzazione Ortogonale dei Pesi**:
+   - Per i layer lineari dell'encoder: `nn.init.orthogonal_(layer.weight, gain=sqrt(2))` e `bias = 0.0`;
+   - Per i pesi ricorrenti della cella LSTM: `nn.init.orthogonal_(lstm.weight_ih_l0)` e `nn.init.orthogonal_(lstm.weight_hh_l0)`;
+   - Per la testa Actor: `nn.init.orthogonal_(actor.weight, gain=0.01)` per iniziare con una distribuzione d'azione quasi uniforme;
+   - Per la testa Critic: `nn.init.orthogonal_(critic.weight, gain=1.0)`.
+
+2. **Action Masking Numerico con Distribuzione Categorica**:
+   I logit non validi vengono forzati a un valore estremamente negativo (es. $-10^8$) prima della softmax:
+   $$\text{logits}_{\text{masked}}[i] = \begin{cases} \text{logits}[i] & \text{se } \text{mask}[i] = \text{True} \\ -10^8 & \text{se } \text{mask}[i] = \text{False} \end{cases}$$
+   $$\pi(a_i \mid h_t) = \frac{\exp(\text{logits}_{\text{masked}}[i])}{\sum_{j \in \text{valid}} \exp(\text{logits}_{\text{masked}}[j])}$$
+   Questo garantisce che la probabilità per le azioni illegali sia rigorosamente zero e che il gradiente scorra esclusivamente attraverso le azioni legali.
+
+---
+
+## 1.4 Truncated BPTT e Gestione dei Confini Episodici
+
+L'ottimizzazione di PPO con politiche ricorrenti differisce dalle politiche MLP in due punti fondamentali:
+
+1. **Reset Episodico dello Stato Nascosto**:
+   Durante il rollout e l'ottimizzazione, quando un episodio finisce (`done == True`), la memoria dell'episodio concluso non deve riversarsi nella nuova partita:
+   $$h_t \leftarrow (1 - \text{done}_t) \cdot h_t, \quad c_t \leftarrow (1 - \text{done}_t) \cdot c_t$$
+
+2. **Chunking dei Minibatch Sequenziali (Truncated BPTT)**:
+   In PPO standard (MLP), le transizioni nel buffer vengono mescolate e campionate in minibatch in modo completamente casuale.
+   In Recurrent PPO, **mescolare singoli step distruggerebbe la sequenzialità temporale dell'LSTM**.
+   Il `RecurrentRolloutBuffer` memorizza quindi lo stato $(h_t, c_t)$ presente prima di ogni transizione e genera minibatch composti da **chunk di sequenze contigue** di lunghezza $T_{seq}$ (es. 8 o 16 timestep), fornendo alla cella LSTM lo stato iniziale $(h_0, c_0)$ registrato all'inizio di ciascun chunk.
+
+---
+
+# 2. Architettura & Flusso dei Dati
 
 ```
                                   ┌────────────────────────┐
@@ -37,9 +126,9 @@ A standard stateless MLP policy observes only an instantaneous snapshot $s_t$ wi
                                               ▼
                            ┌──────────────────────────────────────┐
                            │ ObservationV1 (POMDP Anti-Leakage)   │
-                           │ - No opponent hand colors            │
-                           │ - No opponent tickets                │
-                           │ - No hidden deck sequence            │
+                           │ - Zero leak carte mano avversari     │
+                           │ - Zero leak biglietti avversari      │
+                           │ - Zero leak mazzo coperto            │
                            └──────────────────┬───────────────────┘
                                               │
                                               ▼
@@ -53,152 +142,170 @@ A standard stateless MLP policy observes only an instantaneous snapshot $s_t$ wi
                          ▼                                         ▼
            ┌───────────────────────────┐             ┌───────────────────────────┐
            │ MaskedRecurrentPPOTrainer │             │    RecurrentPPOAgent      │
-           │ - RecurrentRolloutBuffer  │             │ - Persistent (h, c) state │
-           │ - Truncated BPTT / Chunks │             │ - Tournament / Evaluator  │
-           │ - GAE & Clipped Loss      │             │ - Save / Load Checkpoint  │
+           │ - RecurrentRolloutBuffer  │             │ - Stato (h, c) persistente│
+           │ - Truncated BPTT Chunks   │             │ - Tournament / Evaluator  │
+           │ - GAE & Clipped Loss      │             │ - Salvataggio Checkpoint  │
            └───────────────────────────┘             └───────────────────────────┘
                                               │
                                               ▼
                               ┌───────────────────────────────┐
                               │    POMDPBenchmarkRunner       │
                               │  MLP PPO vs LSTM PPO vs Bots  │
-                              │  JSON & Markdown Report       │
+                              │  Report JSON & Markdown       │
                               └───────────────────────────────┘
 ```
 
 ---
 
-## 3. Detailed Component Specifications
+# 3. Specifiche Dettagliate dei Componenti
 
-### 3.1 Strict POMDP Information Hiding Verification
-- **Module:** `tests/environment/test_pomdp_anti_leakage.py`
-- **Invariants:**
-  1. **Opponent Hand Invariance**: Modifying opponent card color distribution while preserving total card count produces an identical observation vector for player 0.
-  2. **Opponent Ticket Invariance**: Adding, removing, or swapping opponent destination tickets produces an identical observation vector for player 0.
-  3. **Deck Permutation Invariance**: Shuffling the unseen train card deck or destination ticket deck produces an identical observation vector for player 0.
-  4. **Visible Card Sensitivity**: Modifying face-up visible cards changes only the visible card slice in the observation vector.
+### 3.1 Verifica Formale di Anti-Leakage POMDP
+- **File:** `tests/environment/test_pomdp_anti_leakage.py`
+- **Invarianti da verificare formalmente:**
+  1. **Invarianza Carte Coperte Avversario**: Modificando i colori delle carte in mano all'avversario mantenendo inalterato il totale, il vettore generato da `ObservationV1` per il Giocatore 0 rimane rigorosamente identico bit a bit.
+  2. **Invarianza Biglietti Nascosti Avversario**: Aggiungendo, eliminando o scambiando i destination tickets in mano all'avversario, il vettore di osservazione del Giocatore 0 non subisce alcuna alterazione.
+  3. **Invarianza Ordine Mazzo Nascosto**: Permutando/mescolando le carte del mazzo di pesca coperto, l'osservazione del Giocatore 0 rimane identica (viene osservata solo la lunghezza totale del mazzo).
+  4. **Sensibilità alle Informazioni Pubbliche**: La modifica di una carta scoperta sul tavolo produce una variazione corretta e circoscritta nello slice delle 5 carte visibili.
 
-### 3.2 Recurrent Neural Network (`RecurrentMaskedActorCritic`)
-- **Module:** `src/rl/lstm_ppo.py`
-- **Specification:**
-  - `input_dim`: Observation vector dimension (e.g. 100 for mini board, 323 for USA board).
-  - `action_dim`: Discrete action space dimension (e.g. 56 for mini, 160 for USA).
-  - `hidden_dim`: Linear encoder hidden dimension (default: 128).
-  - `lstm_hidden_dim`: LSTM recurrent cell dimension (default: 128).
-- **Sub-modules:**
+---
+
+### 3.2 Architettura Neurale Ricorrente (`RecurrentMaskedActorCritic`)
+- **File:** `src/rl/lstm_ppo.py`
+- **Specifiche Tecniche:**
+  - `input_dim`: Dimensione del vettore di osservazione (calcolata dinamicamente su mappa USA standard, es. 323).
+  - `action_dim`: Dimensione dello spazio delle azioni discrete (es. 160).
+  - `hidden_dim`: Dimensione del layer di embedding lineare (default: 128).
+  - `lstm_hidden_dim`: Dimensione della memoria ricorrente LSTM (default: 128).
+- **Sottoreticolati:**
   - `encoder`: `nn.Sequential(layer_init(nn.Linear(input_dim, hidden_dim), sqrt(2)), nn.Tanh())`
-  - `lstm`: `nn.LSTM(hidden_dim, lstm_hidden_dim, batch_first=True)` with orthogonal initialization on `weight_ih_l0` and `weight_hh_l0`, biases initialized to 0.0.
+  - `lstm`: `nn.LSTM(hidden_dim, lstm_hidden_dim, batch_first=True)` con inizializzazione ortogonale dei pesi `weight_ih_l0` e `weight_hh_l0` e bias inizializzati a zero.
   - `actor`: `layer_init(nn.Linear(lstm_hidden_dim, action_dim), 0.01)`
   - `critic`: `layer_init(nn.Linear(lstm_hidden_dim, 1), 1.0)`
-- **Key Methods:**
+- **Metodi Principali:**
   - `forward(obs_seq, hidden_state)`:
-    - Input: `obs_seq` `(batch_size, seq_len, input_dim)`, `hidden_state` `(h, c)` of shape `(1, batch_size, lstm_hidden_dim)`.
+    - Input: tensore osservazioni `(batch_size, seq_len, input_dim)` e stato nascosto `hidden_state = (h, c)` con forma `(1, batch_size, lstm_hidden_dim)`.
     - Output: `logits (batch_size, seq_len, action_dim)`, `values (batch_size, seq_len, 1)`, `new_hidden`.
   - `get_action_and_value(obs, hidden_state, action_mask=None, action=None, deterministic=False)`:
-    - Supports both single step `(batch_size=1, seq_len=1)` during inference/rollouts and batch sequence during training.
-    - Masking: applies `-1e8` to invalid action logits before `Categorical` distribution calculation.
-    - Returns `(action, log_prob, entropy, value, new_hidden)`.
-
-### 3.3 Recurrent Rollout Buffer (`RecurrentRolloutBuffer`)
-- **Module:** `src/rl/rollout.py` (and re-exported in `src/rl/lstm_ppo.py`)
-- **Capacity:** $N$ rollout steps (e.g. 512).
-- **Stored Buffers:**
-  - `obs_buf`: `(N, obs_dim)` float32
-  - `actions_buf`: `(N,)` int64
-  - `rewards_buf`: `(N,)` float32
-  - `values_buf`: `(N,)` float32
-  - `log_probs_buf`: `(N,)` float32
-  - `dones_buf`: `(N,)` bool
-  - `masks_buf`: `(N, action_dim)` bool
-  - `h_buf`: `(N, lstm_hidden_dim)` float32 (hidden state $h_t$ before transition $t$)
-  - `c_buf`: `(N, lstm_hidden_dim)` float32 (cell state $c_t$ before transition $t$)
-- **Mini-batch Generation (`generate_recurrent_minibatches(seq_len=8, batch_size=32, advantages, returns, device="cpu")`):**
-  - Chunks $N$ steps into contiguous sequences of length `seq_len` (with padding/masking if needed).
-  - Supplies the initial $(h_0, c_0)$ for each sequence chunk.
-  - Yields dictionaries containing `obs`, `actions`, `old_log_probs`, `values`, `advantages`, `returns`, `action_masks`, `dones`, `initial_h`, `initial_c`.
-
-### 3.4 Masked Recurrent PPO Trainer (`MaskedRecurrentPPOTrainer`)
-- **Module:** `src/rl/lstm_ppo.py`
-- **Features:**
-  - On-policy rollout collection with step-by-step hidden state tracking.
-  - Hidden state reset on episode termination: `(1.0 - done) * hidden`.
-  - Generalized Advantage Estimation (GAE) via `compute_gae`.
-  - Sequence-level PPO optimization over multiple epochs with mini-batches of sequence chunks.
-  - Surrogate clipped objective, clipped/unclipped value loss, entropy bonus, KL divergence tracking with early stopping (`target_kl`).
-  - Linear learning rate annealing.
-  - Model checkpoint saving and loading (`save(path)`, `load(path)`).
-
-### 3.5 Recurrent PPO Agent (`RecurrentPPOAgent`)
-- **Module:** `src/agents/recurrent_ppo_agent.py`
-- **Features:**
-  - Inherits from `BaseAgent(name="RecurrentPPOAgent")`.
-  - Encapsulates `RecurrentMaskedActorCritic`, `BaseObservationEncoder`, `DiscreteActionSpace`, and `ActionMasker`.
-  - Maintains `current_hidden: tuple[torch.Tensor, torch.Tensor]` initialized to zeros.
-  - `reset()`: resets `current_hidden` to zeros at start of a new game.
-  - `act(state, valid_actions, board)`: encodes observation, computes mask, runs step forward pass updating `current_hidden`, decodes discrete action to domain `Action`.
-  - `save(path)` / `load(path)`: full model state dictionary serialization.
-
-### 3.6 Scientific Benchmark Runner (`POMDPBenchmarkRunner`)
-- **Module:** `src/evaluation/pomdp_benchmark.py`
-- **Features:**
-  - Trains both `MaskedPPOTrainer` (MLP baseline) and `MaskedRecurrentPPOTrainer` (LSTM recurrent policy) under identical environment seeds and step budgets.
-  - Evaluates both trained models head-to-head (alternating first player) and against `RandomAgent`, `GreedyAgent`, and `StrategicAgent`.
-  - Evaluates metrics:
-    - Head-to-Head Win Rate and Score Differential (LSTM vs MLP)
-    - Win Rates vs Baselines
-    - Average Scores & Score Differentials
-    - Destination Ticket Completion Rate
-    - Route Claiming Efficiency
-    - Average Turns per Game
-    - Training loss curves and sample efficiency
-  - Exports structured JSON report and GitHub Flavored Markdown report (`experiments/results/phase8_report.md`).
+    - Esegue il forward pass unificato per inferenza (`batch_size=1, seq_len=1`) o per mini-batch di sequenze di training.
+    - Applica l'action masking sostituendo con $-10^8$ i logit non validi.
+    - Calcola la distribuzione `Categorical(logits=masked_logits)`.
+    - Restituisce `(action, log_prob, entropy, value, new_hidden)`.
 
 ---
 
-## 4. Testing & Acceptance Criteria
-
-### Acceptance Criterion 1: Strict POMDP Information Hiding
-- Invariant tests pass, verifying that hidden opponent cards, opponent tickets, and deck order do not affect encoded observation vectors.
-
-### Acceptance Criterion 2: Recurrent Architecture & Action Masking
-- `RecurrentMaskedActorCritic` correctly handles single-step and batched sequence forward passes.
-- Action masking strictly assigns infinitesimal probability (-1e8 logits) to illegal actions.
-- Hidden states are correctly tracked and updated.
-
-### Acceptance Criterion 3: Recurrent Rollout & Mini-batching
-- `RecurrentRolloutBuffer` correctly chunks trajectories into sequences with corresponding initial $(h_0, c_0)$ states.
-
-### Acceptance Criterion 4: Deterministic Reproducibility
-- Two `MaskedRecurrentPPOTrainer` instances initialized with the same random seed produce bitwise/numerically identical losses and parameter weights.
-
-### Acceptance Criterion 5: Training Convergence & Outperforming Random
-- `RecurrentPPOAgent` trained on synthetic mini board achieves $\ge 65\%$ win rate against `RandomAgent`.
-- Checkpoints save and load correctly, preserving evaluation performance.
-
-### Acceptance Criterion 6: Scientific Benchmark & Comparison Report
-- `POMDPBenchmarkRunner` runs automated comparison between MLP PPO and LSTM PPO, generating valid JSON and Markdown reports.
+### 3.3 Buffer di Rollout Ricorrente (`RecurrentRolloutBuffer`)
+- **File:** `src/rl/rollout.py` (e re-export in `src/rl/lstm_ppo.py`)
+- **Buffer Allocati:**
+  - `obs_buf`: `(capacity, obs_dim)` float32
+  - `actions_buf`: `(capacity,)` int64
+  - `rewards_buf`: `(capacity,)` float32
+  - `values_buf`: `(capacity,)` float32
+  - `log_probs_buf`: `(capacity,)` float32
+  - `dones_buf`: `(capacity,)` bool
+  - `masks_buf`: `(capacity, action_dim)` bool
+  - `h_buf`: `(capacity, lstm_hidden_dim)` float32 (stato $h$ prima del timestep $t$)
+  - `c_buf`: `(capacity, lstm_hidden_dim)` float32 (stato $c$ prima del timestep $t$)
+- **Generatore di Minibatch Ricorrenti (`generate_recurrent_minibatches`):**
+  - Suddivide la traiettoria da $N$ step in sequenze contigue di lunghezza $T_{seq}$ (es. 8 o 16 step).
+  - Estrae lo stato iniziale $(h_0, c_0)$ registrato all'inizio di ciascuna sequenza.
+  - Emette dizionari contenenti:
+    - `obs`: tensore `(batch_size, seq_len, obs_dim)`
+    - `actions`: tensore `(batch_size, seq_len)`
+    - `old_log_probs`: tensore `(batch_size, seq_len)`
+    - `values`: tensore `(batch_size, seq_len)`
+    - `advantages`: tensore `(batch_size, seq_len)` (normalizzati su intero rollout)
+    - `returns`: tensore `(batch_size, seq_len)`
+    - `action_masks`: tensore `(batch_size, seq_len, action_dim)`
+    - `dones`: tensore `(batch_size, seq_len)`
+    - `initial_h`: tensore `(1, batch_size, lstm_hidden_dim)`
+    - `initial_c`: tensore `(1, batch_size, lstm_hidden_dim)`
 
 ---
 
-## 5. File Structure Changes
+### 3.4 Trainer Recurrent PPO (`MaskedRecurrentPPOTrainer`)
+- **File:** `src/rl/lstm_ppo.py`
+- **Caratteristiche di Ottimizzazione:**
+  - Raccolta traiettorie con tracciamento dello stato nascosto ad ogni step e azzeramento a termine episodio: `hidden = (1.0 - done) * hidden`.
+  - Calcolo Generalized Advantage Estimation (GAE) tramite `compute_gae`.
+  - Ottimizzazione multi-epoch con minibatch di sequenze temporali.
+  - Surrogate Clipped Objective di PPO:
+    $$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t \right) \right]$$
+  - Value Loss con clipping opzionale $L^{VF}(\theta)$ ed Entropy Bonus $S[\pi_\theta]$.
+  - Gradient clipping a norma massima 0.5.
+  - Early stopping su Target KL (`target_kl`) e linear learning rate annealing.
+  - Metodi `save(path)` e `load(path)` per il checkpointing dei modelli.
+
+---
+
+### 3.5 Agente Recurrent PPO (`RecurrentPPOAgent`)
+- **File:** `src/agents/recurrent_ppo_agent.py`
+- **Specifiche:**
+  - Eredita da `BaseAgent(name="RecurrentPPOAgent")`.
+  - Mantiene internamente `self.current_hidden: tuple[torch.Tensor, torch.Tensor]` inizializzato a zeri.
+  - `reset()`: azzera `self.current_hidden` all'inizio di una nuova partita.
+  - `select_action(observation, action_mask, deterministic=True)`: esegue un singolo step di forward pass aggiornando `self.current_hidden` e restituendo l'azione discreta scelta.
+  - `act(state, valid_actions, board)`: codifica lo stato in osservazione con `ObservationV1`, calcola la maschera d'azione, invoca `select_action` e converte l'indice nell'oggetto di dominio `Action`.
+  - Compatibilità diretta con `Evaluator` e `Tournament`.
+
+---
+
+### 3.6 Runner di Benchmark Scientifico (`POMDPBenchmarkRunner`)
+- **File:** `src/evaluation/pomdp_benchmark.py`
+- **Protocollo Sperimentale:**
+  - Addestra con lo stesso seed sia `MaskedPPOTrainer` (MLP stateless baseline) sia `MaskedRecurrentPPOTrainer` (LSTM recurrent policy).
+  - Valuta entrambi i modelli in scontri diretti testa a testa (alternando il primo giocatore) e contro i baseline deterministici (`RandomAgent`, `GreedyAgent`, `StrategicAgent`).
+  - Calcola e confronta le metriche comportamentali e di performance:
+    - **Win Rate** e **Score Differential** testa a testa (LSTM vs MLP);
+    - **Win Rate** contro i baseline;
+    - **Tasso di Completamento Biglietti Destinazione**;
+    - **Efficienza di Reclamo Tratte**;
+    - **Numero Medio di Turni per Partita**;
+    - **Curve di Apprendimento & Stabilità delle Perdite**.
+  - Genera il report strutturato JSON e il report Markdown accademico/didattico in `experiments/results/phase8_report.md`.
+
+---
+
+# 4. Criteri di Accettazione & Test Suite (Fase 8)
+
+### Criterio 1: Verifica Anti-Leakage POMDP
+I test di invarianza formale certificano che carte coperte, biglietti avversari e ordine del mazzo non hanno alcun impatto sul vettore di osservazione.
+
+### Criterio 2: Validazione dell'Architettura Ricorrente
+`RecurrentMaskedActorCritic` gestisce correttamente step singoli e sequenze batch, e l'Action Masking impone rigorosamente probabilità zero per le azioni illegali.
+
+### Criterio 3: Buffer di Rollout e Minibatch di Sequenze
+`RecurrentRolloutBuffer` assembla sequenze contigue con gli stati $(h_0, c_0)$ associati senza corruzione di forma o memoria.
+
+### Criterio 4: Riproducibilità Deterministica
+Due istanze di `MaskedRecurrentPPOTrainer` inizializzate con lo stesso seed producono metriche di perdita e pesi neurali numericamente identici.
+
+### Criterio 5: Convergenza e Superiorità sul Random Baseline
+L'agente `RecurrentPPOAgent` addestrato supera il baseline casuale con una percentuale di vittoria $\ge 65\%$.
+
+### Criterio 6: Generazione del Benchmark Comparativo MLP vs LSTM
+`POMDPBenchmarkRunner` esegue lo studio comparativo automatico e genera correttamente i report JSON e Markdown con tutte le metriche strutturate.
+
+---
+
+# 5. File Creati e Modificati
 
 ```
 src/
 ├── agents/
-│   ├── recurrent_ppo_agent.py          # NEW: RecurrentPPOAgent implementation
-│   └── __init__.py                     # Expose RecurrentPPOAgent
+│   ├── recurrent_ppo_agent.py          # Implementazione di RecurrentPPOAgent
+│   └── __init__.py                     # Export di RecurrentPPOAgent
 ├── rl/
-│   ├── lstm_ppo.py                     # EXPAND: RecurrentMaskedActorCritic & MaskedRecurrentPPOTrainer
-│   ├── rollout.py                      # EXPAND: RecurrentRolloutBuffer with sequence minibatches
-│   └── __init__.py                     # Expose recurrent classes
+│   ├── lstm_ppo.py                     # RecurrentMaskedActorCritic & MaskedRecurrentPPOTrainer
+│   ├── rollout.py                      # RecurrentRolloutBuffer con minibatch di sequenze
+│   └── __init__.py                     # Export classi ricorrenti
 └── evaluation/
-    ├── pomdp_benchmark.py              # NEW: POMDPBenchmarkRunner (MLP vs LSTM study)
-    └── __init__.py                     # Expose POMDPBenchmarkRunner
+    ├── pomdp_benchmark.py              # POMDPBenchmarkRunner (studio MLP vs LSTM)
+    └── __init__.py                     # Export POMDPBenchmarkRunner
 
 tests/
 ├── environment/
-│   └── test_pomdp_anti_leakage.py      # NEW: Strict POMDP information hiding tests
+│   └── test_pomdp_anti_leakage.py      # Test formali di invarianza anti-leakage
 └── rl/
-    ├── test_recurrent_ppo.py           # NEW: Unit tests for recurrent network, buffer & trainer
-    └── test_phase8_acceptance.py       # NEW: Complete Phase 8 Acceptance Test Suite
+    ├── test_recurrent_ppo.py           # Test unitari per rete ricorrente, buffer e trainer
+    └── test_phase8_acceptance.py       # Suite completa di test di accettazione Fase 8
 ```

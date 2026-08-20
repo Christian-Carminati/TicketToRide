@@ -580,45 +580,63 @@ This is important because experiments need to know which representation was used
 
 ---
 
-# 13. Partial Observability
+# 13. Partial Observability & POMDP Theory (Lezione Didattica)
 
-The agent must NOT receive hidden information.
+## 13.1 Teoria dei POMDP
 
-The environment must distinguish:
+Nei problemi reali e nei giochi da tavolo strategici come Ticket to Ride, l'ambiente non è un semplice MDP (Markov Decision Process), ma un **POMDP** (Partially Observable Markov Decision Process), formalizzato dalla 7-tupla:
+
+$$\langle \mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \Omega, \mathcal{O}, \gamma \rangle$$
+
+dove:
+- $\mathcal{S}$ è lo spazio degli stati veri (*True State*), non accessibile per intero all'agente;
+- $\mathcal{A}$ è lo spazio delle azioni legali;
+- $\mathcal{T}(s' \mid s, a)$ è la funzione di transizione di stato;
+- $\mathcal{R}(s, a)$ è la funzione di reward;
+- $\Omega$ è lo spazio delle osservazioni (*Observation Space*);
+- $\mathcal{O}(o \mid s', a)$ è la funzione di emissione dell'osservazione (quali informazioni pubbliche vengono rivelate);
+- $\gamma \in [0, 1)$ è il fattore di sconto.
+
+### Perché la proprietà di Markov si rompe con singole osservazioni?
+In un MDP standard:
+$$\mathbb{P}(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0) = \mathbb{P}(s_{t+1} \mid s_t, a_t)$$
+
+In un POMDP, la singola osservazione istantanea $o_t$ **non è Markoviana**:
+$$\mathbb{P}(s_{t+1} \mid o_t, a_t) \neq \mathbb{P}(s_{t+1} \mid o_t, a_t, o_{t-1}, a_{t-1}, \dots, o_0)$$
+
+Esempio pratico in Ticket to Ride:
+Se l'osservazione corrente mostra solo che l'avversario ha 6 carte in mano, una rete feed-forward (MLP) non può sapere se quelle 6 carte sono 6 locomotive/rosse pescate dai display scoperti nei turni passati (segnalando un tentativo di prendere una tratta critica) o carte casuali coperte.
+La storia delle osservazioni e delle azioni passate $\mathcal{H}_t = (o_0, a_0, o_1, a_1, \dots, o_t)$ contiene l'informazione necessaria per formare un **Belief State** $\mathbb{P}(s_t \mid \mathcal{H}_t)$.
+
+---
+
+## 13.2 Separazione tra True State e Agent Observation
+
+L'ambiente deve garantire una separazione architetturale impenetrabile:
 
 ```text
-TRUE STATE
+                    TRUE GAME STATE (Game Core)
+                                │
+                 ┌──────────────┴──────────────┐
+                 │                             │
+          Visible / Public              Hidden / Private
+          - Tabellone tratte            - Carte in mano avversari
+          - 5 carte scoperte            - Biglietti avversari
+          - Punti e treni pubblici      - Ordine mazzo coperto
+          - Conteggio carte             │
+                 │                             │
+                 ▼                             ▼
+          Agent Observation              STRICTLY HIDDEN
+                 │                      (Zero Leakage)
+                 ▼
+            Agent Policy
 ```
 
-from:
-
-```text
-AGENT OBSERVATION
-```
-
-Conceptually:
-
-```text
-                    TRUE STATE
-                         │
-               ┌─────────┴─────────┐
-               │                   │
-          visible info        hidden info
-               │
-               ▼
-          observation
-               │
-               ▼
-             agent
-```
-
-Never leak:
-
-* opponent hidden cards
-* opponent hidden tickets
-* hidden deck order unless observable
-
-This should be explicitly tested.
+### Regole Inviolabili di Anti-Leakage (POMDP Invariants):
+1. **Nessun colore delle carte in mano all'avversario**: l'agente vede solo il conteggio totale scalato.
+2. **Nessun destination ticket dell'avversario**: l'agente vede solo i propri biglietti e lo stato di completamento dei propri obiettivi.
+3. **Nessun ordine futuro del mazzo coperto**: l'agente vede solo la dimensione del mazzo residuo.
+4. **Tutte le proprietà devono essere verificate da test di invarianza formali** (`test_pomdp_anti_leakage.py`).
 
 ---
 
@@ -704,29 +722,76 @@ PPO becomes the primary baseline.
 
 ---
 
-## Stage 3 — Recurrent PPO
+## Stage 3 — Recurrent PPO & Memory in RL (Lezione Didattica)
 
-Introduce:
+### 15.3.1 Architettura Ricorrente (LSTM) per Reinforcement Learning
 
-```text
-Observation
-      ↓
-LSTM
-      ↓
-Policy
-```
+Nelle politiche stateless (MLP feed-forward), l'azione al tempo $t$ dipende unicamente dall'osservazione istantanea:
+$$\pi_\theta(a_t \mid o_t)$$
 
-Purpose:
-
-handle partial observability.
-
-Compare:
+In ambienti POMDP, per approssimare la distribuzione su tutta la storia $\mathcal{H}_t$, usiamo un'architettura **ricorrente** (LSTM - Long Short-Term Memory):
 
 ```text
-MLP PPO
-vs
-LSTM PPO
+                  o_t (Observation)
+                       │
+                       ▼
+              Linear Feature Encoder
+                       │
+                       ▼
+   (h_{t-1}, c_{t-1}) ──► ┌──────────────┐
+                 │        │  LSTM Cell   │ ──► (h_t, c_t)
+                 │        └──────┬───────┘
+                 │               │
+                 │               ▼
+                 │       ┌───────────────┐
+                 │       │ Shared Latent │
+                 │       └───────┬───────┘
+                 │               ├─────────────────────────┐
+                 │               ▼                         ▼
+                 │      Masked Actor Head          Critic Head
+                 │     (Action Logits - 1e8)         V(h_t)
+                 │               │
+                 ▼               ▼
+          (1 - done)      π(a_t | h_t, o_t)
 ```
+
+Lo stato interno dell'LSTM evolve secondo:
+$$(h_t, c_t) = \text{LSTM}(e(o_t), (h_{t-1}, c_{t-1}))$$
+dove $h_t \in \mathbb{R}^{d_{lstm}}$ è lo hidden state (usato come rappresentazione latente del belief state) e $c_t \in \mathbb{R}^{d_{lstm}}$ è il cell state (memoria a lungo termine).
+
+---
+
+### 15.3.2 Truncated BPTT e Gestione dei Reset Episodici
+
+L'addestramento di policy ricorrenti in PPO richiede **Truncated Backpropagation Through Time (BPTT)**:
+1. **Rollout Collection**: Durante la raccolta delle traiettorie nell'ambiente, l'agente propaga $(h_t, c_t)$ passo dopo passo.
+2. **Episodic Boundary Masking**: Quando un episodio termina (`done = True`), lo stato nascosto viene azzerato per il passo successivo:
+   $$h_{t} \leftarrow (1 - \text{done}_t) \cdot h_t, \quad c_{t} \leftarrow (1 - \text{done}_t) \cdot c_t$$
+   Questo impedisce che la memoria di una partita precedente contamini la nuova partita.
+3. **Sequence Chunking nei Minibatch**: Il buffer di rollout non campiona transizioni isolate e casuali (che distruggerebbero la sequenzialità temporale), ma **chunk di sequenze contigue** di lunghezza $T_{seq}$ (es. $T_{seq} = 8$ o $16$) partendo dallo stato nascosto registrato all'inizio del chunk $(h_0, c_0)$.
+
+---
+
+### 15.3.3 Action Masking con Politiche Ricorrenti
+
+Nei giochi con vincoli rigidi sulle regole (es. non si possono reclamare tratte già occupate o senza carte sufficienti), l'Action Masking è applicato direttamente sui logit emessi dalla testa Actor:
+$$\text{logits}_{\text{masked}}[i] = \begin{cases} \text{logits}[i] & \text{se } \text{mask}[i] = 1 \\ -\infty \text{ (o } -10^8) & \text{se } \text{mask}[i] = 0 \end{cases}$$
+$$\pi(a_i \mid h_t) = \text{Softmax}(\text{logits}_{\text{masked}})[i]$$
+
+La memoria dell'LSTM traccia non solo le azioni intraprese, ma anche l'evoluzione dei pattern di gioco dell'avversario.
+
+---
+
+### 15.3.4 Confronto Scientifico: MLP vs LSTM
+
+La domanda scientifica fondamentale della Fase 8 è:
+> **"L'introduzione della memoria ricorrente (LSTM) conferisce un vantaggio misurabile rispetto a una politica stateless (MLP) in presenza di parziale osservabilità?"**
+
+Metriche di comparazione:
+- **Win Rate testa a testa** (alternando il primo giocatore);
+- **Score differential**;
+- **Completamento Destination Tickets**;
+- **Efficienza nel blocco avversario e claim tratte**.
 
 ---
 
@@ -915,21 +980,25 @@ Example:
 ```text
 Level 1
 2 players
-small map
-few routes
+subset destination tickets
+dense reward shaping
 
 Level 2
 2 players
-medium map
+full destination tickets
+intermediate reward shaping
 
 Level 3
-3 players
+2 players
+sparse outcome reward
 
 Level 4
-4 players
+3 players
+competitive multi-agent
 
 Level 5
-full environment
+4-5 players
+full competitive tournament environment
 ```
 
 The curriculum must be configurable.
@@ -1511,17 +1580,23 @@ Experiments can compare reward functions automatically.
 
 ---
 
-## Phase 8 — Partial Observability
+## Phase 8 — Partial Observability & Recurrent PPO (LSTM)
 
 Deliver:
 
-* strict information hiding
-* recurrent observation
-* LSTM PPO
+* **Strict POMDP Information Hiding**: Invariant tests verifying zero leakage of hidden opponent cards, opponent destination tickets, and hidden deck ordering.
+* **Recurrent Architecture**: `RecurrentMaskedActorCritic` with feature encoder, `nn.LSTM` memory layer, and masked actor & critic heads.
+* **Recurrent Rollout & Buffer**: `RecurrentRolloutBuffer` supporting sequence-chunk mini-batches and persistent hidden state tracking.
+* **Recurrent PPO Trainer**: `MaskedRecurrentPPOTrainer` with GAE, clipped surrogate objective, value loss clipping, entropy bonus, and episodic boundary reset `(1 - done) * hidden`.
+* **Recurrent PPO Agent**: `RecurrentPPOAgent` with turn-by-turn internal state management, compatible with Tournament and Evaluator.
+* **Scientific Benchmark**: `POMDPBenchmarkRunner` comparing MLP PPO vs LSTM PPO vs Baselines.
 
 Acceptance:
 
-Compare MLP vs LSTM on partially observable environments.
+* Formal anti-leakage tests pass (`test_pomdp_anti_leakage.py`).
+* Deterministic training reproducibility verified.
+* Recurrent PPO agent reliably outperforms random baseline ($\ge 65\%$ win rate).
+* Scientific benchmark generates structured JSON and Markdown reports comparing MLP vs LSTM.
 
 ---
 
