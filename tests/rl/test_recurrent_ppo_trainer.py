@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from src.environment.env import TicketToRideEnv
-from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer, RecurrentMaskedActorCritic, RecurrentPPOTrainer
+from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer, RecurrentPPOTrainer
 from src.rl import MaskedRecurrentPPOTrainer as ExportedTrainer, RecurrentPPOTrainer as ExportedAliasTrainer
 
 

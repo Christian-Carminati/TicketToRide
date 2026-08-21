@@ -1,13 +1,11 @@
 """Recurrent Actor-Critic network architecture and PPO trainer for POMDPs."""
 
 from collections.abc import Callable
-import math
 from typing import Any
 import numpy as np
 import torch
 from torch import nn, optim
 from torch.distributions import Categorical
-import torch.nn.functional as F
 
 from src.environment.env import TicketToRideEnv
 from src.rl.advantage import compute_gae

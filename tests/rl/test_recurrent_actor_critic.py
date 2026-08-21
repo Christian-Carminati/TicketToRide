@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from src.rl.lstm_ppo import RecurrentMaskedActorCritic
