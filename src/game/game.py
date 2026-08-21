@@ -346,3 +346,18 @@ class Game:
                     visible_cards.append(train_deck.pop())
 
         return visible_cards, train_deck, discard_pile
+
+    def clone(self, rng_seed: int | None = None) -> "Game":
+        """Fast in-memory clone of Game engine for tree search simulation."""
+        cloned_board = self.board.clone()
+        cloned_game = Game.__new__(Game)
+        cloned_game.board = cloned_board
+        cloned_game.initial_tickets = list(self.initial_tickets)
+        cloned_game.num_players = self.num_players
+        cloned_game.rules = self.rules
+
+        seed_val = rng_seed if rng_seed is not None else self.rng.randint(0, 1_000_000_000)
+        cloned_game.rng = SeededRNG(seed_val)
+        cloned_game.state = self.state.clone()
+        return cloned_game
+

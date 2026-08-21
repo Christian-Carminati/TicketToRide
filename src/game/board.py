@@ -78,3 +78,20 @@ class Board:
         for r in routes:
             adj.add(r.city_b if r.city_a == name else r.city_a)
         return sorted(adj)
+
+    def clone(self) -> "Board":
+        """Fast in-memory clone of Board with deeply copied routes while reusing immutable City objects."""
+        cloned_routes = [
+            Route(
+                id=r.id,
+                city_a=r.city_a,
+                city_b=r.city_b,
+                length=r.length,
+                color=r.color,
+                double_route_pair_id=r.double_route_pair_id,
+                claimed_by=r.claimed_by,
+            )
+            for r in self.routes
+        ]
+        return Board(cities=dict(self.cities), routes=cloned_routes)
+

@@ -162,3 +162,17 @@ class Player:
             claimed_route_ids=data.get("claimed_route_ids", []),
             pending_tickets=pending_tickets,
         )
+
+    def clone(self) -> "Player":
+        """Fast in-memory clone of Player state."""
+        return Player(
+            id=self.id,
+            name=self.name,
+            trains_remaining=self.trains_remaining,
+            score=self.score,
+            cards=self.cards.copy(),
+            tickets=list(self.tickets),
+            claimed_route_ids=list(self.claimed_route_ids),
+            pending_tickets=list(self.pending_tickets),
+        )
+

@@ -111,3 +111,22 @@ class GameState:
     @classmethod
     def from_json(cls, json_str: str) -> "GameState":
         return cls.from_dict(json.loads(json_str))
+
+    def clone(self) -> "GameState":
+        """Fast in-memory clone of GameState."""
+        return GameState(
+            players=[p.clone() for p in self.players],
+            current_player_index=self.current_player_index,
+            turn_state=self.turn_state,
+            visible_cards=[TrainCard(color=c.color) for c in self.visible_cards],
+            train_deck=[TrainCard(color=c.color) for c in self.train_deck],
+            discard_pile=[TrainCard(color=c.color) for c in self.discard_pile],
+            ticket_deck=list(self.ticket_deck),
+            turn_number=self.turn_number,
+            is_last_round=self.is_last_round,
+            final_turn_player_id=self.final_turn_player_id,
+            is_game_over=self.is_game_over,
+            winner_id=self.winner_id,
+            num_players=self.num_players,
+        )
+
