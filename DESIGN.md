@@ -1667,6 +1667,8 @@ Optional:
 * curriculum learning
 * distributed training
 
+**Status:** Completed (Full TDD implementation, PolicyValueNetwork with Action Masking, AlphaZero PUCT Neural MCTS Engine with Dirichlet Noise, AlphaZeroTrainer & Self-Play Buffer, Bayesian Opponent Modeling & Detour Engine, Belief-Weighted Determinization, Curriculum Learning Manager, NeuralMCTSAgent, OpponentAwareMCTSAgent, Benchmark CLI & Acceptance Suite).
+
 ---
 
 # 36. Definition of Done
