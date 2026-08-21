@@ -24,9 +24,6 @@ class TrainCard:
         return self.color == CardColor.LOCOMOTIVE
 
 
-Card = TrainCard
-
-
 def create_standard_train_deck() -> list[TrainCard]:
     """Create a standard 110-card Ticket to Ride train deck.
 

@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from src.environment.observation import ObservationV1
-from src.game.card import Card, CardColor
+from src.game.card import CardColor, TrainCard as Card
 from src.game.game import Game
 from src.game.maps import load_usa_board
 from src.game.ticket import DestinationTicket
