@@ -16,8 +16,10 @@ import torch.nn as nn
 from src.agents.base_agent import BaseAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
-from src.rl.lstm_ppo import RecurrentMaskedActorCritic
+from src.environment.env import TicketToRideEnv
+from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer, RecurrentMaskedActorCritic
 from src.rl.networks import MaskedActorCritic
+from src.rl.ppo import MaskedPPOTrainer
 
 
 @dataclass
@@ -309,4 +311,232 @@ class SelfPlayOpponentSampler:
 
         chosen_name = self.rng.choices(names, weights=probs, k=1)[0]
         return pool.create_agent(chosen_name, board=board, tickets=tickets, deterministic=deterministic)
+
+
+class SelfPlayPPOTrainer(MaskedPPOTrainer):
+    """Self-Play PPO Trainer updating opponent per episode and saving policy snapshots."""
+
+    def __init__(
+        self,
+        env: TicketToRideEnv,
+        config: dict[str, Any] | None = None,
+        pool: PolicyPool | None = None,
+        sampler: SelfPlayOpponentSampler | None = None,
+        seed: int = 42,
+    ) -> None:
+        super().__init__(env=env, config=config)
+        self.seed = seed
+        self.pool = pool or PolicyPool(max_size=self.config.get("pool_max_size", 50))
+        self.sampler = sampler or SelfPlayOpponentSampler(
+            strategy=self.config.get("sampling_strategy", "latest_biased"),
+            baseline_mix_rate=self.config.get("baseline_mix_rate", 0.15),
+            pfsp_exponent=self.config.get("pfsp_exponent", 1.0),
+            seed=seed,
+        )
+        self.snapshot_interval: int = self.config.get("snapshot_interval", 5000)
+        self.last_snapshot_step: int = 0
+
+        # Snapshot generation 0 (initial policy)
+        self.pool.add_policy(self.actor_critic, step=0, name="gen_000_initial")
+
+    def _switch_opponent_for_new_episode(self) -> None:
+        """Sample and assign next opponent to the environment."""
+        new_opp = self.sampler.sample_opponent(
+            pool=self.pool,
+            board=self.env.board,
+            tickets=self.env.initial_tickets,
+            deterministic=True,
+        )
+        self.env.opponent = new_opp
+
+    def collect_rollout(self) -> dict[str, float]:
+        self.rollout_buffer.clear()
+        episode_rewards: list[float] = []
+        current_ep_reward = 0.0
+
+        for _ in range(self.rollout_steps):
+            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
+            mask_tensor = torch.from_numpy(self.current_info["action_mask"]).unsqueeze(0).to(device=self.device)
+
+            with torch.no_grad():
+                action, log_prob, _, value = self.actor_critic.get_action_and_value(
+                    obs_tensor, action_mask=mask_tensor
+                )
+
+            act_item = int(action.item())
+            next_obs, reward, terminated, truncated, next_info = self.env.step(act_item)
+            done = terminated or truncated
+
+            self.rollout_buffer.add(
+                obs=self.current_obs,
+                action=act_item,
+                reward=reward,
+                value=float(value.item()),
+                log_prob=float(log_prob.item()),
+                done=done,
+                action_mask=self.current_info["action_mask"],
+            )
+
+            current_ep_reward += reward
+            self.total_timesteps += 1
+
+            if done:
+                episode_rewards.append(current_ep_reward)
+                # Record result for PFSP
+                trainee_won = (next_info.get("winner_id") == 0)
+                opp_name = getattr(self.env.opponent, "name", "Opponent")
+                self.sampler.record_match(opp_name, trainee_won=trainee_won)
+
+                current_ep_reward = 0.0
+                # Matchmaking switch for the next episode
+                self._switch_opponent_for_new_episode()
+                self.current_obs, self.current_info = self.env.reset()
+            else:
+                self.current_obs = next_obs
+                self.current_info = next_info
+
+            # Check snapshot interval
+            if self.total_timesteps - self.last_snapshot_step >= self.snapshot_interval:
+                gen_idx = self.pool.size
+                self.pool.add_policy(
+                    self.actor_critic,
+                    step=self.total_timesteps,
+                    name=f"gen_{gen_idx:03d}_step_{self.total_timesteps}",
+                )
+                self.last_snapshot_step = self.total_timesteps
+
+        mean_reward = float(np.mean(episode_rewards)) if episode_rewards else 0.0
+        return {"mean_rollout_reward": mean_reward, "episodes": float(len(episode_rewards))}
+
+
+class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
+    """Self-Play Recurrent PPO Trainer with LSTM memory and dynamic matchmaking."""
+
+    def __init__(
+        self,
+        env: TicketToRideEnv,
+        config: dict[str, Any] | None = None,
+        pool: PolicyPool | None = None,
+        sampler: SelfPlayOpponentSampler | None = None,
+        seed: int = 42,
+    ) -> None:
+        super().__init__(env=env, config=config, seed=seed)
+        self.pool = pool or PolicyPool(max_size=self.config.get("pool_max_size", 50))
+        self.sampler = sampler or SelfPlayOpponentSampler(
+            strategy=self.config.get("sampling_strategy", "latest_biased"),
+            baseline_mix_rate=self.config.get("baseline_mix_rate", 0.15),
+            pfsp_exponent=self.config.get("pfsp_exponent", 1.0),
+            seed=seed,
+        )
+        self.snapshot_interval: int = self.config.get("snapshot_interval", 5000)
+        self.last_snapshot_step: int = 0
+
+        # Snapshot initial policy
+        self.pool.add_policy(self.actor_critic, step=0, name="gen_000_initial")
+
+    def _switch_opponent_for_new_episode(self) -> None:
+        new_opp = self.sampler.sample_opponent(
+            pool=self.pool,
+            board=self.env.board,
+            tickets=self.env.initial_tickets,
+            deterministic=True,
+        )
+        self.env.opponent = new_opp
+
+    def collect_rollout(self) -> dict[str, float]:
+        self.rollout_buffer.clear()
+        episode_rewards: list[float] = []
+        current_ep_reward = 0.0
+
+        for _ in range(self.rollout_steps):
+            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
+            mask_np = self.current_info.get("action_mask")
+            if mask_np is None:
+                mask_np = np.ones(self.env.action_space.n, dtype=bool)
+            mask_tensor = torch.from_numpy(mask_np).unsqueeze(0).to(device=self.device)
+
+            h_step = self.current_hidden[0][0, 0].cpu().numpy().copy()
+            c_step = self.current_hidden[1][0, 0].cpu().numpy().copy()
+
+            with torch.no_grad():
+                action_tensor, log_prob_tensor, _, val_tensor, next_hidden = (
+                    self.actor_critic.get_action_and_value(
+                        obs_tensor,
+                        self.current_hidden,
+                        action_mask=mask_tensor,
+                    )
+                )
+
+            action = int(action_tensor.item())
+            log_prob = float(log_prob_tensor.item())
+            val = float(val_tensor.item())
+
+            next_obs, reward, terminated, truncated, next_info = self.env.step(action)
+            done = terminated or truncated
+            current_ep_reward += reward
+
+            self.rollout_buffer.add(
+                obs=self.current_obs,
+                action=action,
+                reward=reward,
+                value=val,
+                log_prob=log_prob,
+                done=done,
+                action_mask=mask_np,
+                h=h_step,
+                c=c_step,
+            )
+
+            self.total_timesteps += 1
+
+            if done:
+                episode_rewards.append(current_ep_reward)
+                trainee_won = (next_info.get("winner_id") == 0)
+                opp_name = getattr(self.env.opponent, "name", "Opponent")
+                self.sampler.record_match(opp_name, trainee_won=trainee_won)
+
+                current_ep_reward = 0.0
+                self._switch_opponent_for_new_episode()
+                self.current_obs, self.current_info = self.env.reset()
+                self.current_hidden = self.actor_critic.get_initial_hidden(batch_size=1, device=self.device)
+            else:
+                self.current_obs = next_obs
+                self.current_info = next_info
+                self.current_hidden = next_hidden
+
+            if self.total_timesteps - self.last_snapshot_step >= self.snapshot_interval:
+                gen_idx = self.pool.size
+                self.pool.add_policy(
+                    self.actor_critic,
+                    step=self.total_timesteps,
+                    name=f"gen_{gen_idx:03d}_step_{self.total_timesteps}",
+                )
+                self.last_snapshot_step = self.total_timesteps
+
+        with torch.no_grad():
+            last_obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
+            last_val_tensor, _ = self.actor_critic.get_value(last_obs_tensor, self.current_hidden)
+            last_value = float(last_val_tensor.item())
+
+        rewards = np.array(self.rollout_buffer.rewards_buf[:self.rollout_buffer.size], dtype=np.float32)
+        values = np.array(self.rollout_buffer.values_buf[:self.rollout_buffer.size], dtype=np.float32)
+        dones = np.array(self.rollout_buffer.dones_buf[:self.rollout_buffer.size], dtype=bool)
+
+        from src.rl.advantage import compute_gae
+
+        advantages, returns = compute_gae(
+            rewards=rewards,
+            values=values,
+            dones=dones,
+            next_value=last_value,
+            gamma=self.gamma,
+            gae_lambda=self.gae_lambda,
+        )
+        self.rollout_buffer.set_advantages_and_returns(advantages, returns)
+
+        return {
+            "mean_reward": float(np.mean(episode_rewards)) if episode_rewards else 0.0,
+            "episodes_completed": len(episode_rewards),
+        }
+
 

@@ -12,7 +12,13 @@ from src.rl.networks import ActorCriticMLP, QNetworkMLP
 from src.rl.ppo import PPOTrainer
 from src.rl.replay_buffer import ReplayBuffer
 from src.rl.rollout import RecurrentRolloutBuffer, RolloutBuffer
-from src.rl.self_play import PolicyPool, PolicySnapshot, SelfPlayOpponentSampler
+from src.rl.self_play import (
+    PolicyPool,
+    PolicySnapshot,
+    SelfPlayOpponentSampler,
+    SelfPlayPPOTrainer,
+    SelfPlayRecurrentPPOTrainer,
+)
 
 __all__ = [
     "ActorCriticMLP",
@@ -22,6 +28,8 @@ __all__ = [
     "PolicyPool",
     "PolicySnapshot",
     "SelfPlayOpponentSampler",
+    "SelfPlayPPOTrainer",
+    "SelfPlayRecurrentPPOTrainer",
     "QNetworkMLP",
     "RecurrentMaskedActorCritic",
     "RecurrentPPOActorCritic",

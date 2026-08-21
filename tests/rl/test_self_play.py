@@ -117,3 +117,54 @@ def test_sampler_pfsp_adaptation():
     # gen_1 should have significantly higher sampling probability
     assert weights["gen_1"] > weights["gen_0"]
 
+
+def test_selfplay_ppo_trainer_snapshots_and_opponent_switching():
+    from src.environment.env import TicketToRideEnv
+    from src.rl.self_play import SelfPlayPPOTrainer
+
+    env = TicketToRideEnv(seed=42)
+    trainer = SelfPlayPPOTrainer(
+        env=env,
+        config={
+            "rollout_steps": 64,
+            "minibatch_size": 16,
+            "num_epochs": 2,
+            "snapshot_interval": 64,
+            "baseline_mix_rate": 0.0,
+            "hidden_dim": 32,
+        },
+        seed=42,
+    )
+    # Initial pool starts with gen_0
+    assert trainer.pool.size == 1
+
+    trainer.train(total_timesteps=128)
+    # Should have added at least one more snapshot
+    assert trainer.pool.size >= 2
+    assert trainer.total_timesteps >= 128
+
+
+def test_selfplay_recurrent_ppo_trainer():
+    from src.environment.env import TicketToRideEnv
+    from src.rl.self_play import SelfPlayRecurrentPPOTrainer
+
+    env = TicketToRideEnv(seed=42)
+    trainer = SelfPlayRecurrentPPOTrainer(
+        env=env,
+        config={
+            "rollout_steps": 64,
+            "seq_len": 8,
+            "minibatch_chunks": 2,
+            "num_epochs": 2,
+            "snapshot_interval": 64,
+            "baseline_mix_rate": 0.0,
+            "hidden_dim": 32,
+            "lstm_hidden_dim": 32,
+        },
+        seed=42,
+    )
+    assert trainer.pool.size == 1
+    trainer.train(total_timesteps=128)
+    assert trainer.pool.size >= 2
+
+
