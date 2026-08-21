@@ -1,7 +1,7 @@
 """Monte Carlo Tree Search (MCTS) core implementation.
 
 Includes MCTSNode, MCTSConfig, UCT action selection, heuristic rollout policies,
-and continuous leaf evaluation.
+continuous leaf evaluation, and the complete MCTSSearchEngine.
 """
 
 from dataclasses import dataclass, field
@@ -18,6 +18,7 @@ from src.game.game import Game
 from src.game.graph import check_ticket_completed
 from src.game.random import SeededRNG
 from src.game.state import GameState
+from src.rl.mcts_determinization import determinize_game
 
 
 class RolloutPolicyType(str, Enum):
@@ -230,3 +231,84 @@ def simulate_rollout(
         depth += 1
 
     return evaluate_leaf_state(sim_game, root_player_id=root_player_id, weights=weights)
+
+
+class MCTSSearchEngine:
+    """Monte Carlo Tree Search engine orchestrating selection, expansion, simulation, and backprop."""
+
+    def __init__(self, config: MCTSConfig | None = None) -> None:
+        self.config = config or MCTSConfig()
+        self.rng = SeededRNG(self.config.seed)
+
+    def search(self, game: Game, root_player_id: str) -> Action:
+        """Execute MCTS search from the current game state and return the most visited action."""
+        valid_actions = game.valid_actions()
+        if not valid_actions:
+            raise ValueError("Cannot search from state with no valid actions.")
+        if len(valid_actions) == 1:
+            return valid_actions[0]
+
+        root = MCTSNode(
+            state=game.state,
+            parent=None,
+            action=None,
+            player_id=root_player_id,
+            untried_actions=list(valid_actions),
+        )
+
+        for _ in range(self.config.num_simulations):
+            # 1. Determinization: Sample plausible world consistent with public observations
+            if self.config.use_determinization:
+                sim_game = determinize_game(game, root_player_id=root_player_id, rng=self.rng)
+            else:
+                sim_game = game.clone(rng_seed=self.rng.randint(0, 1_000_000_000))
+
+            # 2. Selection: Descend tree via UCT
+            node = root
+            while node.is_fully_expanded() and not node.is_terminal():
+                action, next_node = node.select_best_child(self.config.c_puct)
+                sim_game.step(action)
+                node = next_node
+
+            # 3. Expansion: If node is not terminal and has untried actions, expand one
+            if not node.is_terminal() and not node.is_fully_expanded():
+                untried_act = node.untried_actions[
+                    self.rng.randint(0, len(node.untried_actions) - 1)
+                ]
+                sim_game.step(untried_act)
+                next_player_id = (
+                    sim_game.state.current_player.id
+                    if sim_game.state.current_player
+                    else root_player_id
+                )
+                node = node.expand(
+                    action=untried_act,
+                    next_state=sim_game.state,
+                    next_player_id=next_player_id,
+                    untried_actions=sim_game.valid_actions(),
+                )
+
+            # 4. Simulation (Rollout)
+            reward = simulate_rollout(
+                game=sim_game,
+                root_player_id=root_player_id,
+                max_depth=self.config.max_rollout_depth,
+                policy_type=self.config.rollout_policy,
+                rng=self.rng,
+                weights=self.config.heuristic_weights,
+            )
+
+            # 5. Backpropagation: Update path from leaf back to root
+            curr: MCTSNode | None = node
+            while curr is not None:
+                # Value is positive if current node acting player matches root player, else negative
+                node_reward = reward if curr.player_id == root_player_id else -reward
+                curr.update(node_reward)
+                curr = curr.parent
+
+        # Decision Rule: Robust Child (most visited action)
+        if not root.children:
+            return valid_actions[0]
+
+        best_act = max(root.children.items(), key=lambda item: item[1].visits)[0]
+        return best_act
