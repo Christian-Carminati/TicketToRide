@@ -72,3 +72,26 @@ def test_procedural_map_valid_attributes():
         assert t.city_b in city_names
         assert t.city_a != t.city_b
         assert t.points >= 2
+
+
+def test_procedural_map_dataset_split():
+    from src.game.procedural import MapSplit, ProceduralMapDataset
+
+    gen = ProceduralMapGenerator()
+    dataset = ProceduralMapDataset(gen)
+
+    split = dataset.create_split(
+        train_seeds=[1, 2, 3],
+        val_seeds=[10, 11],
+        test_seeds=[100, 101, 102, 103],
+    )
+
+    assert isinstance(split, MapSplit)
+    assert len(split.train_maps) == 3
+    assert len(split.val_maps) == 2
+    assert len(split.test_maps) == 4
+
+    # Verify boards are unique and populated
+    train_city_counts = [len(b.cities) for b, t in split.train_maps]
+    assert all(count == 8 for count in train_city_counts)
+

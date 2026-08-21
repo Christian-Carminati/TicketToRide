@@ -221,3 +221,36 @@ class ProceduralMapGenerator:
             tickets.append(DestinationTicket(id=t_id, city_a=c_a, city_b=c_b, points=points))
 
         return tickets
+
+
+@dataclass
+class MapSplit:
+    """Train / Validation / Test partitions for procedural maps."""
+
+    train_maps: list[tuple[Board, list[DestinationTicket]]]
+    val_maps: list[tuple[Board, list[DestinationTicket]]]
+    test_maps: list[tuple[Board, list[DestinationTicket]]]
+
+
+class ProceduralMapDataset:
+    """Manages collections and splits of procedural maps."""
+
+    def __init__(self, generator: ProceduralMapGenerator | None = None) -> None:
+        self.generator = generator or ProceduralMapGenerator()
+
+    def create_split(
+        self,
+        train_seeds: list[int] | range,
+        val_seeds: list[int] | range,
+        test_seeds: list[int] | range,
+    ) -> MapSplit:
+        train_maps = [self.generator.generate(s) for s in train_seeds]
+        val_maps = [self.generator.generate(s) for s in val_seeds]
+        test_maps = [self.generator.generate(s) for s in test_seeds]
+
+        return MapSplit(
+            train_maps=train_maps,
+            val_maps=val_maps,
+            test_maps=test_maps,
+        )
+
