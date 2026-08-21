@@ -214,3 +214,99 @@ class PolicyPool:
                 metadata=ckpt.get("metadata", {}),
             )
             self._snapshots.append(snapshot)
+
+
+class SelfPlayOpponentSampler:
+    """Dynamic matchmaking sampler supporting Uniform, Latest-biased, PFSP, and Baseline Mix-in."""
+
+    def __init__(
+        self,
+        strategy: str = "latest_biased",
+        baseline_mix_rate: float = 0.15,
+        pfsp_exponent: float = 1.0,
+        baseline_agents: list[BaseAgent] | None = None,
+        seed: int = 42,
+    ) -> None:
+        self.strategy = strategy.lower()
+        self.baseline_mix_rate = max(0.0, min(1.0, baseline_mix_rate))
+        self.pfsp_exponent = pfsp_exponent
+        self.rng = random.Random(seed)
+        self.match_records: dict[str, dict[str, int]] = {}
+        if baseline_agents is not None:
+            self.baseline_agents = baseline_agents
+        else:
+            from src.agents.greedy_agent import GreedyAgent
+            from src.agents.heuristic_agent import StrategicAgent
+            from src.agents.random_agent import RandomAgent
+
+            self.baseline_agents = [
+                RandomAgent(name="RandomBot", seed=seed),
+                GreedyAgent(name="GreedyBot"),
+                StrategicAgent(name="StrategicBot"),
+            ]
+
+    def record_match(self, opponent_name: str, trainee_won: bool) -> None:
+        if opponent_name not in self.match_records:
+            self.match_records[opponent_name] = {"trainee_wins": 0, "total_games": 0}
+        self.match_records[opponent_name]["total_games"] += 1
+        if trainee_won:
+            self.match_records[opponent_name]["trainee_wins"] += 1
+
+    def get_opponent_weights(self, pool: PolicyPool) -> dict[str, float]:
+        if pool.size == 0:
+            return {}
+        names = [s.name for s in pool.snapshots]
+        n = len(names)
+
+        if self.strategy == "uniform" or n == 1:
+            return {name: 1.0 / n for name in names}
+
+        if self.strategy == "latest_biased":
+            p_latest = 0.5
+            p_hist = (1.0 - p_latest) / (n - 1) if n > 1 else 0.0
+            weights = {name: p_hist for name in names}
+            weights[names[-1]] = p_latest if n > 1 else 1.0
+            return weights
+
+        if self.strategy == "pfsp":
+            raw_weights = []
+            for name in names:
+                rec = self.match_records.get(name, {"trainee_wins": 0, "total_games": 0})
+                if rec["total_games"] == 0:
+                    win_rate = 0.5
+                else:
+                    win_rate = rec["trainee_wins"] / rec["total_games"]
+                loss_rate = 1.0 - win_rate
+                score = (loss_rate ** self.pfsp_exponent) + 0.05
+                raw_weights.append(score)
+            total = sum(raw_weights)
+            return {name: raw_weights[i] / total for i, name in enumerate(names)}
+
+        # Fallback to uniform
+        return {name: 1.0 / n for name in names}
+
+    def sample_opponent(
+        self,
+        pool: PolicyPool,
+        board: Any = None,
+        tickets: Any = None,
+        deterministic: bool = True,
+    ) -> BaseAgent:
+        # 1. Check if baseline mix-in triggers
+        if self.baseline_agents and self.rng.random() < self.baseline_mix_rate:
+            return self.rng.choice(self.baseline_agents)
+
+        # 2. Fallback to random bot if pool is empty
+        if pool.size == 0:
+            from src.agents.random_agent import RandomAgent
+
+            return self.baseline_agents[0] if self.baseline_agents else RandomAgent()
+
+        # 3. Sample historical policy from pool
+        weights_dict = self.get_opponent_weights(pool)
+        names = list(weights_dict.keys())
+        probs = [weights_dict[name] for name in names]
+
+        chosen_name = self.rng.choices(names, weights=probs, k=1)[0]
+        return pool.create_agent(chosen_name, board=board, tickets=tickets, deterministic=deterministic)
+
