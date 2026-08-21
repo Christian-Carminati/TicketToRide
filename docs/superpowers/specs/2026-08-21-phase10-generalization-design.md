@@ -1,30 +1,30 @@
-# Design Specification: Phase 10 — Generalization & Procedural Maps
+# Specifica di Design: Fase 10 — Generalizzazione e Mappe Procedurali
 
-**Date:** 2026-08-21  
-**Phase:** 10 (Generalization, Procedural Environments, Official Europe Board, Cross-Map Evaluation)  
-**Status:** Approved by User  
-
----
-
-## 1. Executive Summary & Goals
-
-Phase 10 addresses the core scientific question of TicketToRide RL Lab:
-> **"Did the RL agent learn general strategic abstractions for Ticket to Ride, or did it merely overfit and memorize the standard USA map topology?"**
-
-To answer this question systematically, Phase 10 introduces:
-1. **Deterministic Procedural Map Generator (`ProceduralMapGenerator`):** Graph-theoretic procedural generation of playable, connected boards with balanced colors, lengths, and destination tickets with point values derived from shortest-path graph distances.
-2. **Official Europe Board (`load_europe_board`):** Implementation of the classic Ticket to Ride Europe board (cities, routes, color assignments, double routes, and European destination tickets).
-3. **Map Split & Dataset Infrastructure (`MapSplit`, `ProceduralMapDataset`):** Formal partitioning into Train, Validation, and Test (unseen) map distributions.
-4. **Multi-Map Training Environment (`MultiMapTicketToRideEnv`):** Gymnasium-compatible environment that samples topologies across resets, enabling multi-environment RL training.
-5. **Generalization Evaluation Framework (`GeneralizationEvaluator`, `GeneralizationBenchmarkRunner`):** Mathematical formulation of Generalization Gap ($\Delta_{\text{gen}}$), Relative Retention Rate ($R_{\text{ret}}$), Cross-Map Win Rate retention, and Ticket Completion Efficiency.
-6. **CLI & Acceptance Suite:** Dedicated script `scripts/benchmark_generalization.py` and comprehensive test coverage (`test_procedural_maps.py`, `test_europe_board.py`, `test_multi_map_env.py`, `test_generalization.py`, `test_phase10_acceptance.py`).
+**Data:** 2026-08-21  
+**Fase:** 10 (Generalizzazione, Ambienti Procedurali, Mappa Ufficiale Europa, Valutazione Cross-Mappa)  
+**Stato:** Approvato dall'Utente  
 
 ---
 
-## 2. Mathematical Formalization & Metrics
+## 1. Obiettivi e Visione Scientifica
+
+La Fase 10 risponde alla domanda scientifica cardine di TicketToRide RL Lab:
+> **"L'agente di Reinforcement Learning ha appreso principi strategici generali e astratti di Ticket to Ride, oppure si è limitato a sovradattarsi (overfitting) memorizzando la topologia specifica della mappa USA standard?"**
+
+Per rispondere a questa domanda con rigore metodologico, la Fase 10 introduce:
+1. **Generatore Deterministico di Mappe Procedurali (`ProceduralMapGenerator`):** Generazione procedurale basata sulla teoria dei grafi di mappe giocabili, garantite al 100% connesse, con bilanciamento cromatico, lunghezze coerenti e Biglietti di Destinazione calcolati sui cammini minimi.
+2. **Mappa Ufficiale Europa (`load_europe_board`):** Ricostruzione fedele del tabellone ufficiale di Ticket to Ride Europa (città europee con coordinate, tratte ufficiali con colori e doppie tratte, deck dei biglietti di destinazione classici e lunghi).
+3. **Infrastruttura di Dataset e Split (`MapSplit`, `ProceduralMapDataset`):** Partizionamento formale in distribuzioni di mappe di Addestramento (Train), Validazione (Val) e Test (Unseen / mai viste).
+4. **Ambiente di Addestramento Multi-Mappa (`MultiMapTicketToRideEnv`):** Ambiente compatibile con Gymnasium che campiona topologie diverse a ogni reset, consentendo l'addestramento dell'agente RL su variabilità topologica.
+5. **Framework di Valutazione della Generalizzazione (`GeneralizationEvaluator`, `GeneralizationBenchmarkRunner`):** Formalizzazione matematica del Generalization Gap ($\Delta_{\text{gen}}$), del Relative Retention Rate ($R_{\text{ret}}$), del mantenimento del Win Rate e dell'efficienza nel completamento dei biglietti su topologie inedite.
+6. **CLI e Suite di Accettazione:** Script dedicato `scripts/benchmark_generalization.py` e suite completa di test TDD (`test_procedural_maps.py`, `test_europe_board.py`, `test_multi_map_env.py`, `test_generalization.py`, `test_phase10_acceptance.py`).
+
+---
+
+## 2. Formalizzazione Matematica e Metriche
 
 ### 2.1 Generalization Gap ($\Delta_{\text{gen}}$)
-For an agent evaluated over a set of training maps $\mathcal{M}_{\text{train}}$ and a set of unseen test maps $\mathcal{M}_{\text{test}}$:
+Dato un agente valutato su un insieme di mappe di addestramento $\mathcal{M}_{\text{train}}$ e su un insieme di mappe di test mai viste $\mathcal{M}_{\text{test}}$:
 
 $$\overline{S}_{\text{train}} = \frac{1}{|\mathcal{M}_{\text{train}}|} \sum_{m \in \mathcal{M}_{\text{train}}} \mathbb{E}[\text{Score}(m)]$$
 
@@ -32,36 +32,89 @@ $$\overline{S}_{\text{test}} = \frac{1}{|\mathcal{M}_{\text{test}}|} \sum_{m' \i
 
 $$\Delta_{\text{gen}} = \overline{S}_{\text{train}} - \overline{S}_{\text{test}}$$
 
-A lower generalization gap indicates that policy performance does not degrade when encountering novel topologies.
+Un Generalization Gap prossimo a zero (o negativo) indica che l'agente generalizza efficacemente la propria capacità decisionale senza soffrire il cambio di mappa.
 
 ### 2.2 Relative Performance Retention ($R_{\text{ret}}$)
 $$R_{\text{ret}} = \frac{\overline{S}_{\text{test}}}{\max(1.0, \overline{S}_{\text{train}})} \times 100\%$$
 
-### 2.3 Cross-Map Win Rate & Ticket Completion Rate
-- **Cross-Map Win Rate ($WR_{\text{test}}$):** Head-to-head win rate against baseline opponents (Random, Greedy, Strategic) across unseen test maps.
-- **Ticket Completion Rate ($TCR_{\text{test}}$):** Percentage of destination tickets successfully fulfilled on novel graph layouts.
+Rappresenta la percentuale di punteggio preservata dall'agente quando opera su topologie inedite rispetto al suo benchmark su mappe note.
+
+### 2.3 Win Rate Cross-Mappa e Completamento Biglietti
+- **Win Rate su Mappe Inedite ($WR_{\text{test}}$):** Tasso di vittoria testa a testa contro gli avversari di riferimento (Random, Greedy, Strategic) sulle mappe di test.
+- **Ticket Completion Rate ($TCR_{\text{test}}$):** Percentuale di Destination Tickets completati con successo su grafi non noti a priori.
 
 ---
 
-## 3. Architecture & Component Design
+## 3. Architettura e Componenti Software
 
-### 3.1 Procedural Map Generation (`src/game/procedural.py`)
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          MAP INFRASTRUCTURE                                 │
+│                                                                             │
+│  ┌─────────────────────────┐  ┌───────────────────────┐  ┌────────────────┐ │
+│  │ ProceduralMapGenerator  │  │  load_europe_board()  │  │ load_usa_board │ │
+│  │ (MST + Delaunay Edges)  │  │   (Official Europe)   │  │ (Official USA) │ │
+│  └────────────┬────────────┘  └───────────┬───────────┘  └───────┬────────┘ │
+│               │                           │                      │          │
+│               ▼                           │                      │          │
+│  ┌─────────────────────────┐              │                      │          │
+│  │   ProceduralMapDataset  │              │                      │          │
+│  │  (Train / Val / Test)   │              │                      │          │
+│  └────────────┬────────────┘              │                      │          │
+└───────────────┼───────────────────────────┼──────────────────────┼──────────┘
+                │                           │                      │
+                ▼                           ▼                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     GYMNASIUM / RL ENVIRONMENT                              │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                       MultiMapTicketToRideEnv                         │  │
+│  │  - Resets with dynamic sampling over MapSplit                         │  │
+│  │  - Canonical topology mapping for stable Observation & Action shapes  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EVALUATION & BENCHMARK SUITE                             │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                       GeneralizationEvaluator                         │  │
+│  │  - Computes cross-map Head-to-Head & Generalization Gap               │  │
+│  └───────────────────────────────────┬───────────────────────────────────┘  │
+│                                      │                                      │
+│                                      ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                    GeneralizationBenchmarkRunner                      │  │
+│  │  - Single-Map PPO vs Multi-Map PPO vs StrategicAgent vs GreedyAgent   │  │
+│  │  - USA <-> Europe Cross-Map Benchmarking                              │  │
+│  │  - Generates phase10_report.json & phase10_report.md                  │  │
+│  └───────────────────────────────────┬───────────────────────────────────┘  │
+│                                      │                                      │
+│                                      ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                  scripts/benchmark_generalization.py                  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-#### Algorithm
-1. **City Sampling:**
-   - Sample $N$ cities with coordinates $(x, y) \in [0.05, 0.95]^2$.
-   - Enforce minimum pairwise Euclidean distance $d_{\min} = 0.15$ using rejection sampling.
-2. **Topology & Connectivity:**
-   - Compute the Minimum Spanning Tree (MST) on the complete Euclidean distance graph to guarantee 100% graph connectivity (no disconnected cities or subgraphs).
-   - Add $k$ nearest-neighbor edges to reach the desired target route count $R$, ensuring redundant pathways and strategic alternative routes.
-3. **Route Construction:**
-   - Assign route length $L \in \{1, 2, 3, 4, 5, 6\}$ based on normalized Euclidean distances.
-   - Assign colors in a balanced cyclic or sampled manner across the 8 standard colors (`PURPLE`, `WHITE`, `BLUE`, `YELLOW`, `ORANGE`, `BLACK`, `RED`, `GREEN`) and gray (`None`).
-   - Add double routes for top-density pairs if specified.
-4. **Destination Ticket Generation:**
-   - Compute all-pairs shortest paths using BFS/Dijkstra on the generated board graph.
-   - Sample $T$ city pairs $(u, v)$ with graph distance $d(u, v) \ge 2$.
-   - Assign ticket point values proportional to the shortest path train length:
+### 3.1 Generazione Mappe Procedurali (`src/game/procedural.py`)
+
+#### Algoritmo Dettagliato
+1. **Campionamento Città Spaziali:**
+   - Campiona $N$ città con coordinate $(x, y) \in [0.05, 0.95]^2$.
+   - Applica un rejection sampling per garantire una distanza minima euclidea $d_{\min} = 0.15$ tra tutte le coppie di città, impedendo addensamenti innaturali o sovrapposizioni grafiche.
+2. **Topologia e Garanzia di Connettività:**
+   - Costruisce il grafo completo delle distanze euclidee e ne calcola il **Minimum Spanning Tree (MST)**: questo assicura matematicamente che l'intero grafo sia connesso in un'unica componente (nessuna città isolata o irraggiungibile).
+   - Aggiunge ulteriori $k$ archi tra vicini prossimi (k-nearest neighbors) fino al raggiungimento del target $R$ di tratte desiderato, creando percorsi alternativi e anelli strategici.
+3. **Assegnazione Attributi Tratte:**
+   - **Lunghezza:** Quantizzata da $1$ a $6$ in funzione della distanza euclidea normalizzata tra le città collegate.
+   - **Colori:** Assegnati in modo bilanciato ed equo tra gli 8 colori standard (`PURPLE`, `WHITE`, `BLUE`, `YELLOW`, `ORANGE`, `BLACK`, `RED`, `GREEN`) e tratte neutre/grigie (`None`).
+   - **Doppie Tratte:** Generate tra le coppie di città a più alta densità se specificato dalla configurazione.
+4. **Generazione Biglietti di Destinazione:**
+   - Calcola i cammini minimi (tramite BFS / Dijkstra pesato) tra tutte le coppie di vertici.
+   - Seleziona $T$ coppie con distanza di grafo $d(u, v) \ge 2$.
+   - Calcola il valore in punti proporzionale alla lunghezza del percorso minimo:
      $$\text{points}(u, v) = \max(2, \min(22, \lfloor d_{\text{path}}(u, v) \times 1.2 \rfloor))$$
 
 ```python
@@ -77,16 +130,17 @@ class ProceduralMapGenerator:
     def generate(self, seed: int) -> tuple[Board, list[DestinationTicket]]: ...
 ```
 
-### 3.2 Official Europe Board (`src/game/maps.py`)
+### 3.2 Mappa Ufficiale Europa (`src/game/maps.py`)
 
-Implementation of `load_europe_board() -> tuple[Board, list[DestinationTicket]]`:
-- **Cities (47 cities):** Amsterdam, Athina, Barcelona, Berlin, Brest, Brindisi, Bruxelles, Bucuresti, Budapest, Cadiz, Constantinopla, Danzig, Dieppe, Edinburgh, Erzurum, Essen, Frankfurt, Kobenhavn, Kyiv, Lisboa, London, Madrid, Marseille, Moskva, Munchen, Palermo, Paris, Petrograd, Riga, Roma, Rostov, Sarajevo, Sevastopol, Smolensk, Smyrna, Sofia, Stockholm, Venezia, Wien, Wilno, Zagreb, Zurich, etc.
-- **Routes (100+ routes):** Authentic lengths, standard colors, and double routes.
-- **Tickets (46 tickets):** Long tickets (e.g. Brest-Petrograd 20, Cadiz-Stockholm 21, Edinburgh-Athina 21, Kobenhavn-Erzurum 21) and standard regular tickets.
+Funzione `load_europe_board() -> tuple[Board, list[DestinationTicket]]`:
+- **47 Città Europee:** Amsterdam, Athina, Barcelona, Berlin, Brest, Brindisi, Bruxelles, Bucuresti, Budapest, Cadiz, Constantinopla, Danzig, Dieppe, Edinburgh, Erzurum, Essen, Frankfurt, Kobenhavn, Kyiv, Lisboa, London, Madrid, Marseille, Moskva, Munchen, Palermo, Paris, Petrograd, Riga, Roma, Rostov, Sarajevo, Sevastopol, Smolensk, Smyrna, Sofia, Stockholm, Venezia, Wien, Wilno, Zagreb, Zurich, ecc. con coordinate spaziali $(x, y)$ normalizzate.
+- **Rete Ufficiale delle Tratte:** Oltre 100 tratte fedeli al regolamento con relative colorazioni e doppie tratte.
+- **Deck dei Biglietti Europei:** 46 biglietti ufficiali, inclusi i Biglietti Lunghi (Long Tickets come Brest-Petrograd 20, Cadiz-Stockholm 21, Edinburgh-Athina 21, Kobenhavn-Erzurum 21) e i Biglietti Standard.
 
-### 3.3 Dataset Partitioning (`src/game/procedural.py`)
+### 3.3 Partizionamento del Dataset (`src/game/procedural.py`)
 
 ```python
+@dataclass
 class MapSplit:
     train_maps: list[tuple[Board, list[DestinationTicket]]]
     val_maps: list[tuple[Board, list[DestinationTicket]]]
@@ -97,44 +151,44 @@ class ProceduralMapDataset:
     def create_split(self, train_seeds: list[int], val_seeds: list[int], test_seeds: list[int]) -> MapSplit: ...
 ```
 
-### 3.4 Multi-Map Gymnasium Environment (`src/environment/multi_map_env.py`)
+### 3.4 Ambiente di Addestramento Multi-Mappa (`src/environment/multi_map_env.py`)
 
-`MultiMapTicketToRideEnv` encapsulates training across multiple procedural maps:
-- Inherits from `gym.Env` (or wraps `TicketToRideEnv`).
-- On `reset(seed=...)`, selects a map from the assigned map dataset (round-robin or random sampling).
-- Standard canonical topology wrapper guarantees uniform observation vector shape and discrete action space dimension across all procedural maps sharing the same `ProceduralMapConfig`.
+`MultiMapTicketToRideEnv` permette di addestrare policy RL su insiemi di mappe:
+- Estende o incapsula `TicketToRideEnv`.
+- A ogni invocazione di `reset(seed=...)`: seleziona una mappa dallo split di training (campionamento casuale o sequenziale) e reinizializza il motore di gioco e i relativi encoder/masker.
+- La rappresentazione canonica assicura che le dimensioni dello spazio delle osservazioni e dello spazio delle azioni rimangano stabili e compatibili con i tensori PyTorch di `MaskedActorCritic` e `RecurrentMaskedActorCritic`.
 
-### 3.5 Generalization Evaluator & Benchmark Runner (`src/evaluation/generalization.py`)
+### 3.5 Framework di Valutazione e Benchmark (`src/evaluation/generalization.py`)
 
 #### `GeneralizationEvaluator`
-- Evaluates any agent on a target map list or `MapSplit`.
-- Runs $N$ games per map with alternating seat positions (P0 vs P1).
-- Returns aggregated metrics across train, val, and test splits.
+- Esegue la valutazione di uno o più agenti su insiemi arbitrari di mappe (`MapSplit` o coppie di mappe come USA vs Europa).
+- Esegue $N$ partite per mappa alternando il primo giocatore per eliminare ogni bias di posizione.
+- Calcola metriche aggregate per ogni split: punteggio medio, scarto di punteggio, tasso di vittoria, completamento biglietti e turni medi.
 
 #### `GeneralizationBenchmarkRunner`
-- Automates the full experimental study:
-  1. Generates standard Train / Val / Test map splits.
-  2. Evaluates zero-shot baseline heuristics (`StrategicAgent`, `GreedyAgent`, `RandomAgent`).
-  3. Trains single-map RL agent (`PPO_SingleMap`) vs multi-map RL agent (`PPO_MultiMap`).
-  4. Runs cross-map evaluation on unseen test maps and official boards (USA $\leftrightarrow$ Europe).
-  5. Computes Generalization Gap, Retention Rate, and cross-map win rates.
-  6. Exports structured JSON (`phase10_report.json`) and Markdown (`phase10_report.md`).
+- Orchestra lo studio sperimentale completo della Fase 10:
+  1. Genera lo split procedurale standard Train / Val / Test.
+  2. Valuta le euristiche zero-shot (`StrategicAgent`, `GreedyAgent`, `RandomAgent`).
+  3. Addestra e confronta l'agente RL a singola mappa (`PPO_SingleMap`) vs l'agente RL multi-mappa (`PPO_MultiMap`).
+  4. Valuta le prestazioni su mappe di test inedite e il trasferimento cross-mappa (USA $\leftrightarrow$ Europa).
+  5. Calcola Generalization Gap, Retention Rate ed Elo rating generalizzato.
+  6. Genera e salva automaticamente i report `experiments/results/phase10_report.json` e `experiments/results/phase10_report.md`.
 
 ---
 
-## 4. Acceptance Criteria & Test Plan
+## 4. Piano di Test TDD e Criteri di Accettazione
 
-1. **Procedural Maps Unit Tests (`tests/game/test_procedural_maps.py`):**
-   - Seed determinism: same seed produces identical boards, routes, and tickets.
-   - Graph connectivity: BFS traversal visits 100% of cities on all generated maps.
-   - Valid routes & tickets: lengths between 1 and 6, valid colors, tickets reference existing cities with positive points.
-2. **Europe Board Unit Tests (`tests/game/test_europe_board.py`):**
-   - Board loads cleanly with valid cities, routes, and destination tickets.
-   - Playable with Game Core engine.
-3. **Multi-Map Environment Tests (`tests/environment/test_multi_map_env.py`):**
-   - Resets across diverse maps without errors.
-   - Valid action masking and bounded observation vectors.
-4. **Generalization Evaluation Tests (`tests/evaluation/test_generalization.py`):**
-   - Accurate computation of Generalization Gap and Retention Rates.
-5. **Acceptance Suite (`tests/evaluation/test_phase10_acceptance.py`):**
-   - End-to-end execution of the generalization benchmark suite verifying all deliverables.
+1. **Test Unitari Mappe Procedurali (`tests/game/test_procedural_maps.py`):**
+   - Determinismo: a parità di seed, la funzione restituisce esattamente la stessa mappa, le stesse tratte e gli stessi biglietti.
+   - Connettività: visita BFS/DFS tocca il 100% delle città in tutte le mappe generate.
+   - Validità tratte e biglietti: lunghezze $1 \le L \le 6$, colori validi, biglietti con città esistenti e punti strettamente positivi.
+2. **Test Unitari Mappa Europa (`tests/game/test_europe_board.py`):**
+   - Caricamento corretto di città, tratte e biglietti.
+   - Giocabilità completa e assenza di riferimenti a città inesistenti.
+3. **Test Ambiente Multi-Mappa (`tests/environment/test_multi_map_env.py`):**
+   - Reset fluido attraverso mappe diverse.
+   - Maschere d'azione valide e osservazioni bounded in $[0, 1]$.
+4. **Test Valutatore di Generalizzazione (`tests/evaluation/test_generalization.py`):**
+   - Calcolo esatto di Generalization Gap, Retention Rate e metriche statistiche.
+5. **Suite di Accettazione Fase 10 (`tests/evaluation/test_phase10_acceptance.py`):**
+   - Esecuzione end-to-end dello studio di generalizzazione e validazione di tutti i deliverable richiesti in `DESIGN.md`.
