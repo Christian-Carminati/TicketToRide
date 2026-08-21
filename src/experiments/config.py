@@ -71,6 +71,17 @@ class TrainingConfig(BaseModel):
     checkpoint_dir: str = "experiments/checkpoints"
 
 
+class SelfPlayConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = False
+    pool_max_size: int = 50
+    snapshot_interval: int = 5000
+    strategy: str = "latest_biased"
+    baseline_mix_rate: float = 0.15
+    pfsp_exponent: float = 1.0
+
+
 class EvaluationConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -87,6 +98,7 @@ class ExperimentConfig(BaseModel):
     algorithm: AlgorithmConfig = Field(default_factory=AlgorithmConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
+    self_play: SelfPlayConfig = Field(default_factory=SelfPlayConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
 
     @classmethod

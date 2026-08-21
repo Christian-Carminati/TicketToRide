@@ -15,9 +15,10 @@ from src.environment.reward import RewardFactory, RewardWeights
 from src.experiments.config import ExperimentConfig
 from src.experiments.evaluator import MultiOpponentEvaluator
 from src.experiments.registry import ExperimentRecord, ExperimentRegistry
-from src.game.maps import create_synthetic_mini_board, load_usa_board
 from src.rl.dqn import MaskedDQNTrainer
+from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer
 from src.rl.ppo import MaskedPPOTrainer
+from src.rl.self_play import SelfPlayPPOTrainer, SelfPlayRecurrentPPOTrainer
 
 
 class ExperimentRunner:
@@ -128,8 +129,16 @@ class ExperimentRunner:
                 "num_epochs": self.config.training.num_epochs,
                 "minibatch_size": self.config.training.batch_size,
                 "max_grad_norm": self.config.algorithm.max_grad_norm,
+                "snapshot_interval": self.config.self_play.snapshot_interval,
+                "sampling_strategy": self.config.self_play.strategy,
+                "baseline_mix_rate": self.config.self_play.baseline_mix_rate,
+                "pfsp_exponent": self.config.self_play.pfsp_exponent,
+                "pool_max_size": self.config.self_play.pool_max_size,
             }
-            trainer = MaskedPPOTrainer(env=env, config=ppo_config)
+            if self.config.self_play.enabled:
+                trainer = SelfPlayPPOTrainer(env=env, config=ppo_config, seed=self.config.seed)
+            else:
+                trainer = MaskedPPOTrainer(env=env, config=ppo_config)
 
             def eval_cb_ppo(step: int, tr: MaskedPPOTrainer) -> None:
                 nonlocal best_win_rate, final_metrics
