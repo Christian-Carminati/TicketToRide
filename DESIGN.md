@@ -1639,13 +1639,20 @@ Report generalization metrics.
 
 Deliver:
 
-* MCTS
-* heuristic rollout
-* evaluation
+* **Fast State Cloning**: In-memory `Game.clone()`, `GameState.clone()`, `Player.clone()`, and `Board.clone()` achieving >= 5000 clones/sec for high-throughput tree search without JSON serialization bottleneck.
+* **POMDP Determinization Engine**: `determinize_game()` in `src/rl/mcts_determinization.py` generating plausible world states consistent with public observations, preserving POMDP anti-leakage invariants.
+* **Monte Carlo Tree Search Engine**: `MCTSNode` and `MCTSSearchEngine` in `src/rl/mcts.py` implementing the complete 4-phase search loop (Selection via root-relative UCT, Prioritized Action Expansion, Simulation with depth-limited cutoff, Root-perspective Backpropagation).
+* **Configurable Heuristic Rollouts & Leaf Evaluator**: Pluggable rollout policies (`RANDOM`, `GREEDY`, `STRATEGIC`) and continuous multi-feature leaf evaluation function ($V_{\text{heuristic}} \in [-1, 1]$) combining score differential, graph ticket completion progress, route length differential, and longest continuous path.
+* **MCTS Agent Interface**: `MCTSAgent` in `src/agents/mcts_agent.py` supporting both native Game Core (`act()`) and Gymnasium (`select_action()`), with full tournament and evaluator compatibility.
+* **Evaluation & Benchmark Suite**: `MCTSBenchmarkRunner` in `src/evaluation/mcts_benchmark.py` and CLI runner `scripts/benchmark_mcts.py` generating Markdown and JSON scientific reports (`phase11_report.md`, `phase11_report.json`).
+* **Comprehensive Acceptance Test Suite**: `tests/rl/test_phase11_acceptance.py` verifying MCTS outperforming random ($\ge 80\%$), beating greedy ($\ge 60\%$), and competitive with strategic ($\ge 50\%$).
 
 Acceptance:
 
 MCTS becomes a valid opponent.
+
+**Status:** Completed (Full TDD implementation, Fast State Cloning, POMDP Determinization, MCTS Search Engine, Prioritized Expansion, Heuristic Leaf Evaluator, MCTSAgent, Benchmark Runner, CLI & Acceptance Suite).
+
 
 ---
 
