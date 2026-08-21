@@ -11,7 +11,12 @@ from typing import Any
 
 import numpy as np
 
+from src.agents.greedy_agent import GreedyAgent
+from src.agents.strategic_agent import StrategicHeuristicAgent
 from src.game.action import Action
+from src.game.game import Game
+from src.game.graph import check_ticket_completed
+from src.game.random import SeededRNG
 from src.game.state import GameState
 
 
@@ -125,3 +130,103 @@ class MCTSNode:
         """Backpropagate simulation reward, updating visit count and cumulative value."""
         self.visits += 1
         self.total_value += reward
+
+
+def evaluate_leaf_state(
+    game: Game,
+    root_player_id: str,
+    weights: tuple[float, float, float, float] = (0.50, 0.30, 0.15, 0.05),
+) -> float:
+    """Evaluate leaf state using a normalized continuous multi-feature score in [-1.0, 1.0].
+
+    Features:
+        1. Delta Score: tanh((score_root - score_opp) / 30.0)
+        2. Delta Tickets: (tickets_done_root - tickets_done_opp) / total_tickets
+        3. Delta Route Length: (route_len_root - route_len_opp) / 45.0
+        4. Delta Trains Remaining: (trains_root - trains_opp) / 45.0
+    """
+    state = game.state
+    if state.is_game_over:
+        root_p = next((p for p in state.players if p.id == root_player_id), state.players[0])
+        opp_p = next((p for p in state.players if p.id != root_player_id), state.players[-1])
+        if root_p.score > opp_p.score:
+            return 1.0
+        elif root_p.score < opp_p.score:
+            return -1.0
+        return 0.0
+
+    w_score, w_tickets, w_routes, w_trains = weights
+    root_p = next((p for p in state.players if p.id == root_player_id), state.players[0])
+    opp_p = next((p for p in state.players if p.id != root_player_id), state.players[-1])
+
+    # 1. Score Differential
+    delta_score = math.tanh((root_p.score - opp_p.score) / 30.0)
+
+    # 2. Ticket Completion Differential
+    root_routes = [
+        game.board.get_route(rid)
+        for rid in root_p.claimed_route_ids
+        if game.board.get_route(rid) is not None
+    ]
+    opp_routes = [
+        game.board.get_route(rid)
+        for rid in opp_p.claimed_route_ids
+        if game.board.get_route(rid) is not None
+    ]
+
+    root_tickets_done = sum(1 for t in root_p.tickets if check_ticket_completed(root_routes, t))
+    opp_tickets_done = sum(1 for t in opp_p.tickets if check_ticket_completed(opp_routes, t))
+    total_tickets = max(1, len(root_p.tickets) + len(opp_p.tickets))
+    delta_tickets = (root_tickets_done - opp_tickets_done) / total_tickets
+
+    # 3. Route Length Differential
+    root_len = sum(r.length for r in root_routes)
+    opp_len = sum(r.length for r in opp_routes)
+    delta_routes = (root_len - opp_len) / 45.0
+
+    # 4. Trains Remaining Differential (preserving trains gives endgame flexibility)
+    delta_trains = (root_p.trains_remaining - opp_p.trains_remaining) / 45.0
+
+    val = (
+        w_score * delta_score
+        + w_tickets * delta_tickets
+        + w_routes * delta_routes
+        + w_trains * delta_trains
+    )
+    return max(-1.0, min(1.0, val))
+
+
+def simulate_rollout(
+    game: Game,
+    root_player_id: str,
+    max_depth: int,
+    policy_type: RolloutPolicyType,
+    rng: SeededRNG,
+    weights: tuple[float, float, float, float] = (0.50, 0.30, 0.15, 0.05),
+) -> float:
+    """Execute a simulated rollout from the leaf state up to max_depth using chosen policy."""
+    sim_game = game.clone(rng_seed=rng.randint(0, 1_000_000_000))
+    greedy_agent = GreedyAgent() if policy_type == RolloutPolicyType.GREEDY else None
+    strategic_agent = (
+        StrategicHeuristicAgent() if policy_type == RolloutPolicyType.STRATEGIC else None
+    )
+
+    depth = 0
+    while not sim_game.state.is_game_over and depth < max_depth:
+        valid_actions = sim_game.valid_actions()
+        if not valid_actions:
+            break
+
+        if policy_type == RolloutPolicyType.RANDOM:
+            action = valid_actions[rng.randint(0, len(valid_actions) - 1)]
+        elif policy_type == RolloutPolicyType.GREEDY and greedy_agent:
+            action = greedy_agent.act(sim_game.state, valid_actions, sim_game.board)
+        elif policy_type == RolloutPolicyType.STRATEGIC and strategic_agent:
+            action = strategic_agent.act(sim_game.state, valid_actions, sim_game.board)
+        else:
+            action = valid_actions[0]
+
+        sim_game.step(action)
+        depth += 1
+
+    return evaluate_leaf_state(sim_game, root_player_id=root_player_id, weights=weights)
