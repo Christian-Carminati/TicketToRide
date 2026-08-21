@@ -7,6 +7,7 @@ from src.evaluation.evaluator import EvaluationResult, Evaluator
 from src.evaluation.metrics import EvaluationMetrics
 from src.evaluation.pomdp_benchmark import POMDPBenchmarkRunner
 from src.evaluation.reward_research import RewardResearchRunner
+from src.evaluation.self_play_benchmark import SelfPlayBenchmarkRunner
 from src.evaluation.tournament import Tournament
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "RewardResearchRunner",
     "PPOBenchmarkRunner",
     "POMDPBenchmarkRunner",
+    "SelfPlayBenchmarkRunner",
 ]
