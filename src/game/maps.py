@@ -272,3 +272,239 @@ def create_synthetic_mini_board() -> tuple[Board, list[DestinationTicket]]:
     ]
 
     return board, tickets
+
+
+# Europe Cities: Name -> (X, Y)
+EUROPE_CITIES: dict[str, tuple[float, float]] = {
+    "Amsterdam": (0.35, 0.65),
+    "Angora": (0.85, 0.20),
+    "Athina": (0.75, 0.15),
+    "Barcelona": (0.18, 0.32),
+    "Berlin": (0.50, 0.68),
+    "Brest": (0.15, 0.60),
+    "Brindisi": (0.62, 0.25),
+    "Bruxelles": (0.32, 0.60),
+    "Bucuresti": (0.78, 0.35),
+    "Budapest": (0.62, 0.45),
+    "Cadiz": (0.05, 0.15),
+    "Constantinople": (0.82, 0.25),
+    "Danzig": (0.58, 0.72),
+    "Dieppe": (0.25, 0.62),
+    "Edinburgh": (0.22, 0.85),
+    "Erzurum": (0.95, 0.25),
+    "Essen": (0.40, 0.64),
+    "Frankfurt": (0.42, 0.58),
+    "Kharkov": (0.90, 0.60),
+    "Kobenhavn": (0.48, 0.80),
+    "Kyiv": (0.78, 0.58),
+    "Lisboa": (0.02, 0.22),
+    "London": (0.24, 0.70),
+    "Madrid": (0.10, 0.28),
+    "Marseille": (0.32, 0.40),
+    "Moskva": (0.88, 0.75),
+    "Munchen": (0.46, 0.50),
+    "Palermo": (0.55, 0.15),
+    "Paris": (0.28, 0.54),
+    "Petrograd": (0.82, 0.88),
+    "Riga": (0.68, 0.78),
+    "Roma": (0.48, 0.30),
+    "Rostov": (0.95, 0.50),
+    "Sarajevo": (0.60, 0.35),
+    "Sevastopol": (0.88, 0.42),
+    "Smolensk": (0.82, 0.70),
+    "Smyrna": (0.80, 0.15),
+    "Sofia": (0.70, 0.30),
+    "Stockholm": (0.58, 0.88),
+    "Venezia": (0.48, 0.42),
+    "Warszawa": (0.65, 0.65),
+    "Wien": (0.55, 0.50),
+    "Wilno": (0.72, 0.70),
+    "Zagreb": (0.54, 0.40),
+    "Zurich": (0.38, 0.48),
+}
+
+# Raw Europe Routes: (CityA, CityB, Length, ColorCode)
+EUROPE_RAW_ROUTES: list[tuple[str, str, int, str]] = [
+    ("Edinburgh", "London", 4, "K"),
+    ("Edinburgh", "London", 4, "O"),
+    ("London", "Dieppe", 2, "X"),
+    ("London", "Dieppe", 2, "X"),
+    ("London", "Amsterdam", 2, "X"),
+    ("Brest", "Dieppe", 2, "X"),
+    ("Brest", "Paris", 3, "K"),
+    ("Brest", "Madrid", 4, "P"),
+    ("Dieppe", "Paris", 1, "P"),
+    ("Dieppe", "Bruxelles", 2, "G"),
+    ("Amsterdam", "Bruxelles", 1, "X"),
+    ("Amsterdam", "Essen", 3, "Y"),
+    ("Amsterdam", "Frankfurt", 2, "W"),
+    ("Bruxelles", "Paris", 2, "Y"),
+    ("Bruxelles", "Paris", 2, "R"),
+    ("Bruxelles", "Frankfurt", 2, "B"),
+    ("Paris", "Frankfurt", 3, "W"),
+    ("Paris", "Frankfurt", 3, "O"),
+    ("Paris", "Zurich", 3, "X"),
+    ("Paris", "Marseille", 4, "X"),
+    ("Marseille", "Zurich", 2, "P"),
+    ("Marseille", "Roma", 4, "X"),
+    ("Marseille", "Barcelona", 4, "X"),
+    ("Lisboa", "Madrid", 3, "P"),
+    ("Lisboa", "Cadiz", 2, "B"),
+    ("Cadiz", "Madrid", 3, "O"),
+    ("Madrid", "Barcelona", 2, "Y"),
+    ("Frankfurt", "Essen", 2, "G"),
+    ("Frankfurt", "Berlin", 3, "K"),
+    ("Frankfurt", "Berlin", 3, "R"),
+    ("Frankfurt", "Munchen", 2, "P"),
+    ("Essen", "Berlin", 2, "B"),
+    ("Essen", "Kobenhavn", 3, "X"),
+    ("Essen", "Kobenhavn", 3, "X"),
+    ("Kobenhavn", "Stockholm", 3, "Y"),
+    ("Kobenhavn", "Stockholm", 3, "W"),
+    ("Stockholm", "Petrograd", 8, "X"),
+    ("Berlin", "Danzig", 4, "X"),
+    ("Berlin", "Warszawa", 4, "P"),
+    ("Berlin", "Warszawa", 4, "Y"),
+    ("Berlin", "Wien", 3, "G"),
+    ("Munchen", "Zurich", 2, "Y"),
+    ("Munchen", "Wien", 3, "O"),
+    ("Munchen", "Venezia", 2, "B"),
+    ("Zurich", "Venezia", 2, "G"),
+    ("Venezia", "Roma", 2, "K"),
+    ("Venezia", "Zagreb", 2, "X"),
+    ("Roma", "Palermo", 4, "X"),
+    ("Roma", "Brindisi", 2, "W"),
+    ("Palermo", "Brindisi", 3, "X"),
+    ("Palermo", "Smyrna", 6, "X"),
+    ("Brindisi", "Athina", 4, "X"),
+    ("Zagreb", "Wien", 2, "X"),
+    ("Zagreb", "Budapest", 2, "O"),
+    ("Zagreb", "Sarajevo", 3, "R"),
+    ("Sarajevo", "Budapest", 3, "P"),
+    ("Sarajevo", "Athina", 4, "G"),
+    ("Sarajevo", "Sofia", 2, "X"),
+    ("Athina", "Sofia", 3, "P"),
+    ("Athina", "Smyrna", 2, "X"),
+    ("Sofia", "Bucuresti", 2, "X"),
+    ("Sofia", "Constantinople", 3, "B"),
+    ("Constantinople", "Smyrna", 2, "Y"),
+    ("Constantinople", "Bucuresti", 3, "Y"),
+    ("Constantinople", "Angora", 2, "X"),
+    ("Smyrna", "Angora", 3, "O"),
+    ("Angora", "Erzurum", 3, "K"),
+    ("Wien", "Budapest", 1, "R"),
+    ("Wien", "Budapest", 1, "W"),
+    ("Wien", "Warszawa", 4, "B"),
+    ("Budapest", "Bucuresti", 4, "X"),
+    ("Budapest", "Kyiv", 6, "X"),
+    ("Bucuresti", "Sevastopol", 4, "W"),
+    ("Bucuresti", "Kyiv", 4, "X"),
+    ("Danzig", "Warszawa", 2, "X"),
+    ("Danzig", "Riga", 3, "K"),
+    ("Warszawa", "Wilno", 3, "R"),
+    ("Warszawa", "Kyiv", 4, "X"),
+    ("Riga", "Petrograd", 4, "X"),
+    ("Riga", "Wilno", 4, "G"),
+    ("Riga", "Smolensk", 3, "X"),
+    ("Wilno", "Petrograd", 4, "B"),
+    ("Wilno", "Smolensk", 3, "Y"),
+    ("Wilno", "Kyiv", 2, "X"),
+    ("Kyiv", "Smolensk", 3, "R"),
+    ("Kyiv", "Kharkov", 4, "X"),
+    ("Smolensk", "Moskva", 2, "O"),
+    ("Petrograd", "Moskva", 4, "W"),
+    ("Moskva", "Kharkov", 4, "P"),
+    ("Kharkov", "Rostov", 2, "G"),
+    ("Rostov", "Sevastopol", 4, "X"),
+    ("Rostov", "Erzurum", 5, "X"),
+    ("Sevastopol", "Erzurum", 4, "X"),
+    ("Sevastopol", "Constantinople", 4, "X"),
+]
+
+# Raw Europe Destination Tickets: (CityA, CityB, Points)
+EUROPE_RAW_TICKETS: list[tuple[str, str, int]] = [
+    # Long tickets
+    ("Brest", "Petrograd", 20),
+    ("Cadiz", "Stockholm", 21),
+    ("Edinburgh", "Athina", 21),
+    ("Kobenhavn", "Erzurum", 21),
+    ("Lisboa", "Danzig", 20),
+    ("Palermo", "Moskva", 20),
+    # Regular tickets
+    ("Amsterdam", "Madrid", 12),
+    ("Amsterdam", "Roma", 8),
+    ("Athina", "Angora", 5),
+    ("Angora", "Kharkov", 10),
+    ("Barcelona", "Bruxelles", 8),
+    ("Barcelona", "Munchen", 8),
+    ("Berlin", "Bucuresti", 8),
+    ("Berlin", "Moskva", 12),
+    ("Berlin", "Roma", 9),
+    ("Brest", "Marseille", 7),
+    ("Brest", "Venezia", 8),
+    ("Bruxelles", "Danzig", 9),
+    ("Budapest", "Sofia", 5),
+    ("Dieppe", "Marseille", 8),
+    ("Edinburgh", "Paris", 7),
+    ("Essen", "Kyiv", 10),
+    ("Frankfurt", "Kobenhavn", 5),
+    ("Frankfurt", "Smolensk", 13),
+    ("London", "Wien", 10),
+    ("London", "Berlin", 7),
+    ("Madrid", "Dieppe", 8),
+    ("Marseille", "Essen", 8),
+    ("Paris", "Wien", 8),
+    ("Paris", "Zagreb", 7),
+    ("Petrograd", "Kyiv", 8),
+    ("Riga", "Bucuresti", 10),
+    ("Roma", "Smyrna", 8),
+    ("Rostov", "Erzurum", 5),
+    ("Sarajevo", "Sevastopol", 8),
+    ("Smolensk", "Rostov", 8),
+    ("Sofia", "Smyrna", 5),
+    ("Stockholm", "Wien", 11),
+    ("Venezia", "Constantinople", 10),
+    ("Warszawa", "Smolensk", 6),
+    ("Zagreb", "Brindisi", 6),
+    ("Zurich", "Brindisi", 6),
+    ("Zurich", "Budapest", 6),
+]
+
+
+def load_europe_board() -> tuple[Board, list[DestinationTicket]]:
+    """Load the official Ticket to Ride Europe board."""
+    board = Board()
+    for name, (x, y) in EUROPE_CITIES.items():
+        board.add_city(City(id=name.lower().replace(" ", "_"), name=name, x=x, y=y))
+
+    routes: list[Route] = []
+    seen_pairs: dict[tuple[str, str], list[int]] = {}
+
+    for idx, (c_a, c_b, length, color_code) in enumerate(EUROPE_RAW_ROUTES):
+        route_id = f"eur_r_{idx}_{c_a[:3].lower()}_{c_b[:3].lower()}"
+        color = COLOR_MAP[color_code]
+        r = Route(id=route_id, city_a=c_a, city_b=c_b, length=length, color=color)
+        routes.append(r)
+
+        pair_key = (min(c_a, c_b), max(c_a, c_b))
+        if pair_key not in seen_pairs:
+            seen_pairs[pair_key] = []
+        seen_pairs[pair_key].append(idx)
+
+    for indices in seen_pairs.values():
+        if len(indices) == 2:
+            r1 = routes[indices[0]]
+            r2 = routes[indices[1]]
+            r1.double_route_pair_id = r2.id
+            r2.double_route_pair_id = r1.id
+
+    board.routes = routes
+    board.rebuild_indexes()
+
+    tickets: list[DestinationTicket] = []
+    for idx, (c_a, c_b, points) in enumerate(EUROPE_RAW_TICKETS):
+        ticket_id = f"eur_t_{idx}_{c_a[:3].lower()}_{c_b[:3].lower()}"
+        tickets.append(DestinationTicket(id=ticket_id, city_a=c_a, city_b=c_b, points=points))
+
+    return board, tickets
+
