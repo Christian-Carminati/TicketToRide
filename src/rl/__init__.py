@@ -2,7 +2,12 @@
 
 from src.rl.advantage import compute_gae
 from src.rl.dqn import DQNTrainer
-from src.rl.lstm_ppo import RecurrentPPOActorCritic
+from src.rl.lstm_ppo import (
+    MaskedRecurrentPPOTrainer,
+    RecurrentMaskedActorCritic,
+    RecurrentPPOActorCritic,
+    RecurrentPPOTrainer,
+)
 from src.rl.networks import ActorCriticMLP, QNetworkMLP
 from src.rl.ppo import PPOTrainer
 from src.rl.replay_buffer import ReplayBuffer
@@ -12,13 +17,15 @@ from src.rl.self_play import PolicyPool
 __all__ = [
     "ActorCriticMLP",
     "DQNTrainer",
+    "MaskedRecurrentPPOTrainer",
     "PPOTrainer",
     "PolicyPool",
     "QNetworkMLP",
+    "RecurrentMaskedActorCritic",
     "RecurrentPPOActorCritic",
+    "RecurrentPPOTrainer",
     "RecurrentRolloutBuffer",
     "ReplayBuffer",
     "RolloutBuffer",
     "compute_gae",
 ]
-

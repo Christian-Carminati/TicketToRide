@@ -33,6 +33,7 @@ class TicketToRideEnv(gym.Env):
         num_players: int = 2,
         max_turns: int = 300,
         board_type: str | None = None,
+        seed: int | None = None,
     ) -> None:
         super().__init__()
         if board is not None:
@@ -45,15 +46,20 @@ class TicketToRideEnv(gym.Env):
         else:
             self.board, self.initial_tickets = load_usa_board()
 
-
         self.num_players = num_players
         self.max_turns = max_turns
-        self.opponent = opponent
+        if opponent is None:
+            from src.agents.random_agent import RandomAgent
+
+            self.opponent = RandomAgent(seed=seed if seed is not None else 42)
+        else:
+            self.opponent = opponent
 
         self.game = Game(
             board=self.board,
             tickets_deck=self.initial_tickets,
             num_players=self.num_players,
+            seed=seed if seed is not None else 42,
         )
         self.encoder = observation_encoder or ObservationV1(
             board=self.board,
