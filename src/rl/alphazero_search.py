@@ -163,7 +163,7 @@ class NeuralMCTSEngine:
                 
             # 2. Evaluation & Expansion
             if sim_game.state.is_game_over:
-                scores = sim_game.get_scores()
+                scores = {p.id: p.score for p in sim_game.state.players}
                 p0_score = scores.get(player_id, 0)
                 opp_ids = [pid for pid in scores if pid != player_id]
                 opp_score = scores.get(opp_ids[0], 0) if opp_ids else 0
