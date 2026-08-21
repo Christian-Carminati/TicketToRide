@@ -44,6 +44,17 @@ class PolicyPool:
 
     max_size: int = 50
     _snapshots: list[PolicySnapshot] = field(default_factory=list)
+    checkpoints: list[str] = field(default_factory=list)
+
+    def add_checkpoint(self, checkpoint_path: str) -> None:
+        if len(self.checkpoints) >= self.max_size:
+            self.checkpoints.pop(0)
+        self.checkpoints.append(checkpoint_path)
+
+    def sample_opponent(self) -> str | None:
+        if not self.checkpoints:
+            return None
+        return random.choice(self.checkpoints)
 
     @property
     def size(self) -> int:

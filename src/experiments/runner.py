@@ -15,6 +15,7 @@ from src.environment.reward import RewardFactory, RewardWeights
 from src.experiments.config import ExperimentConfig
 from src.experiments.evaluator import MultiOpponentEvaluator
 from src.experiments.registry import ExperimentRecord, ExperimentRegistry
+from src.game.maps import create_synthetic_mini_board, load_usa_board
 from src.rl.dqn import MaskedDQNTrainer
 from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer
 from src.rl.ppo import MaskedPPOTrainer
