@@ -6,6 +6,7 @@ from src.agents.greedy_agent import GreedyAgent
 from src.agents.heuristic_agent import HeuristicAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
+from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
 from src.agents.strategic_agent import StrategicAgent, StrategicHeuristicAgent
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "StrategicAgent",
     "DQNAgent",
     "PPOAgent",
+    "RecurrentPPOAgent",
 ]

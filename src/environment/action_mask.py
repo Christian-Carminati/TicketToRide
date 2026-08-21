@@ -1,10 +1,14 @@
 """Action masking implementation to ensure RL policies only sample legal actions."""
 
+from typing import TYPE_CHECKING
 import numpy as np
 
 from src.environment.action_space import TICKET_SUBSET_INDICES, DiscreteActionSpace
 from src.game.action import Action, ActionType
 from src.game.ticket import DestinationTicket
+
+if TYPE_CHECKING:
+    from src.game.state import GameState
 
 
 class ActionMasker:
@@ -46,6 +50,12 @@ class ActionMasker:
                     if slots in TICKET_SUBSET_INDICES:
                         subset_idx = TICKET_SUBSET_INDICES.index(slots)
                         mask[7 + subset_idx] = True
+                elif act.ticket_ids is not None:
+                    if all(str(tid).isdigit() for tid in act.ticket_ids):
+                        slots = tuple(sorted(int(tid) for tid in act.ticket_ids))
+                        if slots in TICKET_SUBSET_INDICES:
+                            subset_idx = TICKET_SUBSET_INDICES.index(slots)
+                            mask[7 + subset_idx] = True
             else:
                 act_id = self.action_space.to_id(act)
                 if act_id is not None:
@@ -56,3 +66,22 @@ class ActionMasker:
             mask[0] = True
 
         return mask
+
+
+def compute_action_mask(
+    valid_actions: list[Action],
+    action_space: DiscreteActionSpace,
+    pending_tickets: list[DestinationTicket] | None = None,
+    state: "GameState | None" = None,
+) -> np.ndarray:
+    """Compute boolean action mask for given valid actions and action space."""
+    if pending_tickets is None and state is not None and state.current_player:
+        pending_tickets = state.current_player.pending_tickets
+    masker = ActionMasker(action_space)
+    return masker.compute_mask(valid_actions, pending_tickets=pending_tickets)
+
+
+__all__ = [
+    "ActionMasker",
+    "compute_action_mask",
+]

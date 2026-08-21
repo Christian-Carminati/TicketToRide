@@ -4,6 +4,7 @@ from src.game.action import Action, ActionType
 from src.game.board import Board
 from src.game.card import CardColor
 from src.game.maps import load_usa_board
+from src.game.state import GameState
 
 STANDARD_CLAIM_COLORS = [
     CardColor.PURPLE,
@@ -124,3 +125,24 @@ class DiscreteActionSpace:
     def encode_action(self, action: Action) -> int:
         act_id = self.to_id(action)
         return 0 if act_id is None else act_id
+
+    def decode(self, action_id: int, state: GameState | None = None) -> Action:
+        """Decode integer action ID to domain Action, resolving pending tickets if state provided."""
+        action = self.to_action(action_id)
+        if state is not None and action.action_type == ActionType.KEEP_TICKETS:
+            player = state.current_player
+            if player and player.pending_tickets and action.ticket_ids:
+                slots = set(int(idx) for idx in action.ticket_ids if str(idx).isdigit())
+                chosen_ids = tuple(t.id for slot_i, t in enumerate(player.pending_tickets) if slot_i in slots)
+                return Action(action_type=ActionType.KEEP_TICKETS, ticket_ids=chosen_ids)
+        return action
+
+
+ActionSpaceV1 = DiscreteActionSpace
+
+__all__ = [
+    "ActionSpaceV1",
+    "DiscreteActionSpace",
+    "STANDARD_CLAIM_COLORS",
+    "TICKET_SUBSET_INDICES",
+]
