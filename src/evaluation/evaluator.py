@@ -8,6 +8,49 @@ from src.game.graph import check_ticket_completed
 from src.game.ticket import DestinationTicket
 
 
+class EvaluationResult(dict):
+    """Container for 2-player evaluation results supporting dict and attribute access."""
+
+    def __init__(
+        self,
+        agent_a_name: str,
+        agent_b_name: str,
+        metrics_a: EvaluationMetrics,
+        metrics_b: EvaluationMetrics,
+        num_games: int,
+    ) -> None:
+        super().__init__({agent_a_name: metrics_a, agent_b_name: metrics_b})
+        self.agent_a_name = agent_a_name
+        self.agent_b_name = agent_b_name
+        self.metrics_a = metrics_a
+        self.metrics_b = metrics_b
+        self.num_games = num_games
+
+    @property
+    def agent1_win_rate(self) -> float:
+        return float(self.metrics_a.win_rate)
+
+    @property
+    def agent2_win_rate(self) -> float:
+        return float(self.metrics_b.win_rate)
+
+    @property
+    def agent_a_win_rate(self) -> float:
+        return float(self.metrics_a.win_rate)
+
+    @property
+    def agent_b_win_rate(self) -> float:
+        return float(self.metrics_b.win_rate)
+
+    @property
+    def draw_rate(self) -> float:
+        return float(self.metrics_a.draws / max(1, self.num_games))
+
+    @property
+    def avg_score_diff(self) -> float:
+        return float(self.metrics_a.avg_score_diff)
+
+
 class Evaluator:
     """Evaluates two agents in head-to-head matches with alternating player positions."""
 
@@ -25,12 +68,19 @@ class Evaluator:
 
     def evaluate(
         self,
-        agent_a: BaseAgent,
-        agent_b: BaseAgent,
+        agent_a: BaseAgent | None = None,
+        agent_b: BaseAgent | None = None,
         num_games: int = 100,
         seed: int | None = None,
-    ) -> dict[str, EvaluationMetrics]:
+        agent1: BaseAgent | None = None,
+        agent2: BaseAgent | None = None,
+    ) -> EvaluationResult:
         """Run N deterministic head-to-head games between agent_a and agent_b."""
+        a = agent_a if agent_a is not None else agent1
+        b = agent_b if agent_b is not None else agent2
+        if a is None or b is None:
+            raise ValueError("Both agents must be provided to evaluate.")
+
         run_seed = self.seed if seed is None else seed
         metrics_a = EvaluationMetrics(total_games=num_games)
         metrics_b = EvaluationMetrics(total_games=num_games)
@@ -48,11 +98,11 @@ class Evaluator:
             # Alternate player seats: even games -> (A is player 0, B is player 1)
             #                       odd games -> (B is player 0, A is player 1)
             is_a_first = (game_idx % 2 == 0)
-            p0_agent = agent_a if is_a_first else agent_b
-            p1_agent = agent_b if is_a_first else agent_a
+            p0_agent = a if is_a_first else b
+            p1_agent = b if is_a_first else a
 
-            agent_a.reset(seed=game_seed)
-            agent_b.reset(seed=game_seed + 100000)
+            a.reset(seed=game_seed)
+            b.reset(seed=game_seed + 100000)
 
             game = Game(
                 board=self.board,
@@ -136,7 +186,7 @@ class Evaluator:
                 (tickets_completed_b / tickets_drawn_b) if tickets_drawn_b > 0 else 0.0
             )
 
-        return {agent_a.name: metrics_a, agent_b.name: metrics_b}
+        return EvaluationResult(a.name, b.name, metrics_a, metrics_b, num_games)
 
     def evaluate_head_to_head(
         self,
@@ -157,3 +207,7 @@ class Evaluator:
             "agent_b_mean_score": float(metrics_b.avg_score),
             "draw_rate": float(metrics_a.draws / max(1, num_games)),
         }
+
+
+__all__ = ["Evaluator", "EvaluationResult"]
+

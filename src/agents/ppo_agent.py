@@ -8,10 +8,11 @@ import torch
 from src.agents.base_agent import BaseAgent
 from src.environment.action_mask import ActionMasker
 from src.environment.action_space import DiscreteActionSpace
-from src.environment.observation import BaseObservationEncoder
+from src.environment.observation import BaseObservationEncoder, ObservationV1
 from src.game.action import Action, ActionType
 from src.game.board import Board
 from src.game.state import GameState
+from src.game.ticket import DestinationTicket
 from src.rl.networks import MaskedActorCritic
 
 
@@ -23,6 +24,9 @@ class PPOAgent(BaseAgent):
         name: str = "PPOAgent",
         model_path: str | None = None,
         actor_critic: MaskedActorCritic | None = None,
+        model: MaskedActorCritic | None = None,
+        board: Board | None = None,
+        tickets: list[DestinationTicket] | None = None,
         input_dim: int = 100,
         action_dim: int = 56,
         hidden_dim: int = 128,
@@ -32,11 +36,19 @@ class PPOAgent(BaseAgent):
     ) -> None:
         super().__init__(name=name)
         self.device = device
+        ac = actor_critic if actor_critic is not None else model
+        if board is not None:
+            self.board = board
+            self.tickets = tickets or []
+            if encoder is None:
+                encoder = ObservationV1(board=board, initial_tickets=self.tickets, num_players=2)
+            if discrete_actions is None:
+                discrete_actions = DiscreteActionSpace(board=board)
         self.encoder = encoder
         self.discrete_actions = discrete_actions
         self.masker = ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
-        if actor_critic is not None:
-            self.actor_critic = actor_critic.to(device)
+        if ac is not None:
+            self.actor_critic = ac.to(device)
         else:
             self.actor_critic = MaskedActorCritic(
                 input_dim=input_dim,

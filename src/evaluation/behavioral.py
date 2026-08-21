@@ -35,6 +35,7 @@ class BehavioralProfile:
     tickets_drawn_avg: float = 0.0
     ticket_penalty_avg: float = 0.0
     avg_game_turns: float = 0.0
+    avg_game_length_turns: float = 0.0
     cards_drawn_ratio: float = 0.0
 
     def to_dict(self) -> dict[str, float]:
@@ -50,9 +51,10 @@ class BehavioralEvaluator:
         tickets_deck: list[DestinationTicket] | None = None,
         max_turns: int = 400,
         seed: int = 42,
+        tickets: list[DestinationTicket] | None = None,
     ) -> None:
         self.board = board
-        self.tickets_deck = tickets_deck
+        self.tickets_deck = tickets_deck if tickets_deck is not None else tickets
         self.max_turns = max_turns
         self.seed = seed
 
@@ -193,6 +195,7 @@ class BehavioralEvaluator:
             )
             profile.ticket_penalty_avg = float(total_ticket_penalties / num_games)
             profile.avg_game_turns = float(total_turns / num_games)
+            profile.avg_game_length_turns = float(total_turns / num_games)
             profile.cards_drawn_ratio = float(
                 total_card_draw_moves / total_agent_moves if total_agent_moves > 0 else 0.0
             )

@@ -134,9 +134,18 @@ class RecurrentMaskedActorCritic(nn.Module):
 class MaskedRecurrentPPOTrainer:
     """Trainer for Recurrent PPO with LSTM memory and CleanRL standard optimizations."""
 
-    def __init__(self, env: TicketToRideEnv, config: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        env: TicketToRideEnv,
+        config: dict[str, Any] | None = None,
+        seed: int | None = None,
+    ) -> None:
         self.env = env
         self.config = config or {}
+        self.seed = seed if seed is not None else self.config.get("seed")
+        if self.seed is not None:
+            torch.manual_seed(self.seed)
+            np.random.seed(self.seed)
 
         self.gamma: float = self.config.get("gamma", 0.99)
         self.gae_lambda: float = self.config.get("gae_lambda", 0.95)
