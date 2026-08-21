@@ -9,6 +9,7 @@ from src.evaluation.generalization import (
     GeneralizationEvaluator,
     GeneralizationResult,
 )
+from src.evaluation.mcts_benchmark import MCTSBenchmarkRunner
 from src.evaluation.metrics import EvaluationMetrics
 from src.evaluation.pomdp_benchmark import POMDPBenchmarkRunner
 from src.evaluation.reward_research import RewardResearchRunner
@@ -30,5 +31,5 @@ __all__ = [
     "GeneralizationResult",
     "GeneralizationEvaluator",
     "GeneralizationBenchmarkRunner",
+    "MCTSBenchmarkRunner",
 ]
-
