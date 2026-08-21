@@ -1612,6 +1612,8 @@ Acceptance:
 
 Self-play agents can outperform scripted baselines.
 
+**Status:** Completed (Full TDD implementation, Historical Policy Pool, Opponent Samplers, SelfPlay PPO/Recurrent PPO trainers, Benchmark Runner, CLI & Acceptance Suite).
+
 ---
 
 ## Phase 10 — Generalization
