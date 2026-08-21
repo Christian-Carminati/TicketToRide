@@ -128,3 +128,15 @@ class RecurrentMaskedActorCritic(nn.Module):
 
 # Alias for backward compatibility
 RecurrentPPOActorCritic = RecurrentMaskedActorCritic
+
+# Re-export RecurrentRolloutBuffer
+from src.rl.rollout import RecurrentRolloutBuffer  # noqa: E402
+
+__all__ = [
+    "RecurrentMaskedActorCritic",
+    "RecurrentPPOActorCritic",
+    "RecurrentRolloutBuffer",
+    "layer_init",
+]
+
+

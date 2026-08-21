@@ -6,7 +6,7 @@ from src.rl.lstm_ppo import RecurrentPPOActorCritic
 from src.rl.networks import ActorCriticMLP, QNetworkMLP
 from src.rl.ppo import PPOTrainer
 from src.rl.replay_buffer import ReplayBuffer
-from src.rl.rollout import RolloutBuffer
+from src.rl.rollout import RecurrentRolloutBuffer, RolloutBuffer
 from src.rl.self_play import PolicyPool
 
 __all__ = [
@@ -16,7 +16,9 @@ __all__ = [
     "PolicyPool",
     "QNetworkMLP",
     "RecurrentPPOActorCritic",
+    "RecurrentRolloutBuffer",
     "ReplayBuffer",
     "RolloutBuffer",
     "compute_gae",
 ]
+
