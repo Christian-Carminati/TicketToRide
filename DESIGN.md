@@ -1620,13 +1620,18 @@ Self-play agents can outperform scripted baselines.
 
 Deliver:
 
-* procedural maps
-* train/test split
-* unseen map evaluation
+* **Procedural Map Generator**: `ProceduralMapGenerator` with MST-guaranteed 100% connectivity, balanced color distribution, and ticket point values proportional to shortest paths.
+* **Official Europe Board**: `load_europe_board()` implementing 47 European cities, 100+ authentic routes, and 46 official destination tickets.
+* **Map Dataset & Split Infrastructure**: `ProceduralMapDataset` and `MapSplit` managing train/val/test map partitions.
+* **Multi-Map Gymnasium Environment**: `MultiMapTicketToRideEnv` supporting dynamic topological resets and canonical space padding.
+* **Generalization Evaluation Suite**: `GeneralizationEvaluator` and `GeneralizationBenchmarkRunner` computing Generalization Gap ($\Delta_{\text{gen}}$), Relative Retention Rate ($R_{\text{ret}}$), and cross-map win rates.
+* **CLI & Acceptance Suite**: `scripts/benchmark_generalization.py` generating JSON & Markdown reports (`phase10_report.md`).
 
 Acceptance:
 
 Report generalization metrics.
+
+**Status:** Completed (Full TDD implementation, Procedural Map Generator, Official Europe Board, MultiMap Gymnasium Env, Generalization Evaluator, Benchmark Runner, CLI & Acceptance Suite).
 
 ---
 
