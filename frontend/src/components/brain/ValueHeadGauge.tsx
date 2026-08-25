@@ -125,7 +125,7 @@ export const ValueHeadGauge: React.FC<ValueHeadGaugeProps> = ({
             <text x="50" y="38" fontSize="5.5" fontFamily="'Cinzel Decorative', serif" textAnchor="middle" fill="#785A42">PSI</text>
 
             {/* Swinging Brass Needle */}
-            <g transform={`rotate(${angleDeg}, 50, 50)`} style={{ transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+            <g transform={`rotate(${angleDeg}, 50, 50)`} style={{ transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
               <polygon points="48,50 50,16 52,50" fill="#B91C1C" stroke="#23140C" strokeWidth="0.5" />
               <line x1="50" y1="50" x2="50" y2="18" stroke="#F6DC88" strokeWidth="0.8" />
             </g>

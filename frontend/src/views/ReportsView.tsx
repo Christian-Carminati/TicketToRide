@@ -332,9 +332,9 @@ export const ReportsView: React.FC = () => {
             key={idx}
             style={{
               background: '#FAF0DA',
-              borderLeft: '4px solid #C59B27',
-              padding: '0.5rem 0.85rem',
-              borderRadius: '0 6px 6px 0',
+              border: '1px solid #C59B27',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '6px',
               margin: '0.6rem 0',
               color: '#4A2F1D',
               fontSize: '0.85rem',
