@@ -20,16 +20,16 @@ export interface BoardRoute {
 }
 
 export const COLOR_HEX: Record<string, string> = {
-  PURPLE: '#9333EA',
-  WHITE: '#F3F4F6',
-  BLUE: '#2563EB',
-  YELLOW: '#EAB308',
-  ORANGE: '#EA580C',
-  BLACK: '#1E293B',
-  RED: '#DC2626',
-  GREEN: '#16A34A',
-  LOCOMOTIVE: '#F43F5E',
-  GRAY: '#64748B',
+  PURPLE: '#7E22CE',
+  WHITE: '#F5F0E6',
+  BLUE: '#1D4ED8',
+  YELLOW: '#D97706',
+  ORANGE: '#C2410C',
+  BLACK: '#1E1B18',
+  RED: '#B91C1C',
+  GREEN: '#15803D',
+  LOCOMOTIVE: '#E11D48',
+  GRAY: '#7D6A5A',
 };
 
 export const USA_CITIES: BoardCity[] = [
