@@ -24,7 +24,7 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
     const list = probabilities.map((prob, idx) => {
       const label = actionLabels[idx] || `Action ${idx}`;
 
-      // Extract routeId if present in label (e.g., "Claim Route r_0_bos_ny" or "Claim r_0_bos_ny")
+      // Extract routeId if present in label
       let routeId: string | undefined = undefined;
       const match = label.match(/r_\d+_[a-z]+_[a-z]+/i) || label.match(/route_([a-z0-9_]+)/i);
       if (match) {
@@ -53,12 +53,13 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
 
   return (
     <div
-      className="action-probabilities-chart"
+      className="action-probabilities-chart steampunk-panel"
       style={{
-        background: 'rgba(15, 23, 42, 0.85)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'linear-gradient(180deg, #FBF6ED 0%, #EFE1C7 100%)',
+        border: '2px solid #C59B27',
         borderRadius: '10px',
         padding: '0.85rem',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
       }}
     >
       <div
@@ -72,30 +73,51 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#F1F5F9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Policy Head: π(a|s)
+          <span
+            style={{
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              color: '#23140C',
+              fontFamily: "'Cinzel Decorative', Georgia, serif",
+              letterSpacing: '0.04em',
+            }}
+          >
+            Policy Actuators: π(a|s)
           </span>
-          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
-            ({items.length} actions)
+          <span style={{ fontSize: '0.72rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>
+            ({items.length} positions)
           </span>
         </div>
 
         {/* Filter Buttons */}
-        <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '6px', padding: '2px' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.2rem',
+            background: '#D8C3A0',
+            borderRadius: '6px',
+            padding: '2px',
+            border: '1px solid #A88D75',
+          }}
+        >
           {(['valid', 'top10', 'all'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setFilterMode(mode)}
               style={{
-                background: filterMode === mode ? '#3B82F6' : 'transparent',
-                color: filterMode === mode ? '#FFFFFF' : '#94A3B8',
-                border: 'none',
+                background: filterMode === mode
+                  ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+                  : 'transparent',
+                color: filterMode === mode ? '#23140C' : '#5A3822',
+                border: filterMode === mode ? '1px solid #6E4E04' : '1px solid transparent',
                 borderRadius: '4px',
-                padding: '0.15rem 0.45rem',
+                padding: '0.15rem 0.5rem',
                 fontSize: '0.7rem',
                 cursor: 'pointer',
-                fontWeight: filterMode === mode ? 700 : 500,
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: filterMode === mode ? 800 : 600,
                 textTransform: 'capitalize',
+                boxShadow: filterMode === mode ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
               }}
             >
               {mode}
@@ -134,38 +156,51 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                padding: '0.3rem 0.5rem',
+                padding: '0.3rem 0.55rem',
                 borderRadius: '6px',
                 background: item.isGreedy
-                  ? 'rgba(16, 185, 129, 0.15)'
+                  ? 'linear-gradient(180deg, #FAF3E6 0%, #F5E5C9 100%)'
                   : item.isValid
-                  ? 'rgba(30, 41, 59, 0.5)'
-                  : 'rgba(15, 23, 42, 0.4)',
+                  ? '#FAF5EB'
+                  : 'rgba(232, 219, 190, 0.4)',
                 border: item.isGreedy
-                  ? '1px solid #10B981'
-                  : '1px solid rgba(255,255,255,0.05)',
-                opacity: item.isValid ? 1 : 0.45,
+                  ? '1.5px solid #B8860B'
+                  : '1px solid rgba(184, 134, 11, 0.25)',
+                opacity: item.isValid ? 1 : 0.5,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                boxShadow: item.isGreedy ? '0 2px 6px rgba(184, 134, 11, 0.25)' : '0 1px 2px rgba(0,0,0,0.05)',
               }}
             >
               {/* Action Label */}
-              <div style={{ minWidth: '140px', fontSize: '0.75rem', color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <span style={{ fontSize: '0.7rem' }}>{item.isValid ? (item.isGreedy ? '⭐' : '✓') : '🔒'}</span>
-                <span style={{ fontWeight: item.isGreedy ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div
+                style={{
+                  minWidth: '140px',
+                  fontSize: '0.78rem',
+                  color: '#23140C',
+                  fontFamily: "'Crimson Pro', Georgia, serif",
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                }}
+              >
+                <span style={{ fontSize: '0.75rem' }}>{item.isValid ? (item.isGreedy ? '⭐' : '⚙️') : '🔒'}</span>
+                <span style={{ fontWeight: item.isGreedy ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.label}
                 </span>
               </div>
 
-              {/* Progress Probability Bar */}
+              {/* Progress Pneumatic Actuator Bar */}
               <div
                 style={{
                   flex: 1,
                   height: '10px',
-                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                  backgroundColor: '#D8C3A0',
                   borderRadius: '3px',
                   overflow: 'hidden',
                   position: 'relative',
+                  border: '1px solid rgba(74, 47, 29, 0.3)',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
                 }}
               >
                 <div
@@ -175,28 +210,28 @@ export const ActionProbabilitiesChart: React.FC<ActionProbabilitiesChartProps> =
                     transform: `scaleX(${item.prob})`,
                     transformOrigin: 'left',
                     background: item.isGreedy
-                      ? 'linear-gradient(to right, #10B981, #34D399)'
+                      ? 'linear-gradient(to right, #F6DC88, #C59B27, #8C6305)'
                       : item.isValid
-                      ? 'linear-gradient(to right, #3B82F6, #38BDF8)'
-                      : '#F43F5E',
-                    borderRadius: '3px',
+                      ? 'linear-gradient(to right, #CD7F32, #B85D38)'
+                      : '#991B1B',
+                    borderRadius: '2px',
                     transition: 'transform 0.2s ease',
                   }}
                 />
               </div>
 
-              {/* Numerical Value / Mask Badge */}
+              {/* Numerical Readout */}
               <div
                 style={{
-                  minWidth: '50px',
+                  minWidth: '55px',
                   textAlign: 'right',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  color: item.isGreedy ? '#34D399' : item.isValid ? '#38BDF8' : '#F43F5E',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  fontFamily: "'Courier Prime', 'JetBrains Mono', monospace",
+                  color: item.isGreedy ? '#9E6B00' : item.isValid ? '#23140C' : '#991B1B',
                 }}
               >
-                {item.isValid ? `${pct}%` : 'MASKED'}
+                {item.isValid ? `${pct}%` : 'LOCKED'}
               </div>
             </div>
           );
