@@ -38,57 +38,51 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
 
   return (
     <div
-      className="scrubber-transport-bar"
+      className="scrubber-transport-bar steampunk-panel"
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'rgba(15, 23, 42, 0.9)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '10px',
-        padding: '0.45rem 1rem',
+        padding: '0.5rem 1.25rem',
         gap: '1rem',
         flexWrap: 'wrap',
+        border: '2px solid #C59B27',
+        background: 'linear-gradient(180deg, #FBF6ED 0%, #EFE1C7 100%)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.7)',
       }}
     >
-      {/* Left: Turn & Step metadata */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      {/* Left: Turn & Step Chronometer Badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <div
           style={{
-            background: 'rgba(59, 130, 246, 0.15)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            background: 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)',
+            border: '1.5px solid #6E4E04',
             borderRadius: '6px',
-            padding: '0.2rem 0.5rem',
-            fontSize: '0.75rem',
-            color: '#38BDF8',
-            fontWeight: 700,
-            fontFamily: 'monospace',
+            padding: '0.25rem 0.65rem',
+            fontSize: '0.8rem',
+            color: '#23140C',
+            fontWeight: 800,
+            fontFamily: "'Cinzel Decorative', Georgia, serif",
+            letterSpacing: '0.05em',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.6)',
+            textShadow: '0 1px 0 rgba(255,255,255,0.4)',
           }}
         >
           TURN {currentTurn}
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-          Step: <strong style={{ color: '#F1F5F9', fontFamily: 'monospace' }}>{currentStepIndex + 1}</strong> / {Math.max(1, maxStepIndex + 1)}
+        <div style={{ fontSize: '0.82rem', color: '#4A2F1D', fontFamily: "'Crimson Pro', Georgia, serif" }}>
+          Step: <strong style={{ color: '#23140C', fontFamily: "'Courier Prime', monospace" }}>{currentStepIndex + 1}</strong> / {Math.max(1, maxStepIndex + 1)}
         </div>
       </div>
 
-      {/* Center: Transport Controls & Scrubber Slider */}
+      {/* Center: Machined Brass Playback Buttons & Throttle Slider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, maxWidth: '650px' }}>
-        {/* Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
           <button
             onClick={() => setStepIndex(0)}
             disabled={currentStepIndex === 0}
-            style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '4px',
-              color: currentStepIndex === 0 ? '#475569' : '#94A3B8',
-              padding: '0.25rem 0.4rem',
-              cursor: currentStepIndex === 0 ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="steampunk-btn"
+            style={{ padding: '0.3rem 0.5rem', display: 'flex', alignItems: 'center' }}
             title="First Step"
           >
             <SkipBack size={13} />
@@ -97,16 +91,8 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
           <button
             onClick={() => setStepIndex(Math.max(0, currentStepIndex - 1))}
             disabled={currentStepIndex === 0}
-            style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '4px',
-              color: currentStepIndex === 0 ? '#475569' : '#94A3B8',
-              padding: '0.25rem 0.4rem',
-              cursor: currentStepIndex === 0 ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="steampunk-btn"
+            style={{ padding: '0.3rem 0.5rem', display: 'flex', alignItems: 'center' }}
             title="Step Backward"
           >
             <ChevronLeft size={13} />
@@ -114,19 +100,18 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
 
           <button
             onClick={() => setIsPlaying(!isPlaying)}
+            className="steampunk-btn"
             style={{
-              background: isPlaying ? '#EF4444' : '#3B82F6',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#FFFFFF',
-              padding: '0.3rem 0.75rem',
-              cursor: 'pointer',
+              padding: '0.35rem 0.9rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              boxShadow: isPlaying ? '0 2px 8px rgba(239, 68, 68, 0.4)' : '0 2px 8px rgba(59, 130, 246, 0.4)',
+              gap: '0.35rem',
+              fontSize: '0.82rem',
+              background: isPlaying
+                ? 'linear-gradient(180deg, #F87171 0%, #DC2626 50%, #991B1B 100%)'
+                : 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)',
+              color: isPlaying ? '#FFFFFF' : '#23140C',
+              border: isPlaying ? '1px solid #7F1D1D' : '1px solid #6E4E04',
             }}
           >
             {isPlaying ? <Pause size={13} /> : <Play size={13} />}
@@ -136,16 +121,8 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
           <button
             onClick={() => setStepIndex(Math.min(maxStepIndex, currentStepIndex + 1))}
             disabled={currentStepIndex >= maxStepIndex}
-            style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '4px',
-              color: currentStepIndex >= maxStepIndex ? '#475569' : '#94A3B8',
-              padding: '0.25rem 0.4rem',
-              cursor: currentStepIndex >= maxStepIndex ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="steampunk-btn"
+            style={{ padding: '0.3rem 0.5rem', display: 'flex', alignItems: 'center' }}
             title="Step Forward"
           >
             <ChevronRight size={13} />
@@ -154,23 +131,15 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
           <button
             onClick={() => setStepIndex(maxStepIndex)}
             disabled={currentStepIndex >= maxStepIndex}
-            style={{
-              background: 'rgba(30, 41, 59, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '4px',
-              color: currentStepIndex >= maxStepIndex ? '#475569' : '#94A3B8',
-              padding: '0.25rem 0.4rem',
-              cursor: currentStepIndex >= maxStepIndex ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="steampunk-btn"
+            style={{ padding: '0.3rem 0.5rem', display: 'flex', alignItems: 'center' }}
             title="Last Step"
           >
             <SkipForward size={13} />
           </button>
         </div>
 
-        {/* Timeline Slider */}
+        {/* Brass Throttle Range Slider */}
         <input
           type="range"
           min={0}
@@ -179,52 +148,51 @@ export const ScrubberTransportBar: React.FC<ScrubberTransportBarProps> = React.m
           onChange={(e) => setStepIndex(Number(e.target.value))}
           style={{
             flex: 1,
-            accentColor: '#38BDF8',
+            accentColor: '#B8860B',
             cursor: 'pointer',
+            height: '8px',
           }}
         />
       </div>
 
-      {/* Right: Bot Step Trigger & Speed selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {/* Right: Steam Injection Bot Step & Tachometer Speed */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         {onBotStep && (
           <button
             onClick={onBotStep}
             disabled={isStepping || isPlaying}
+            className="steampunk-btn"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              gap: '0.35rem',
+              padding: '0.35rem 0.85rem',
+              background: 'linear-gradient(180deg, #86EFAC 0%, #16A34A 50%, #14532D 100%)',
               color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.3rem 0.75rem',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: isStepping || isPlaying ? 'not-allowed' : 'pointer',
-              opacity: isStepping || isPlaying ? 0.6 : 1,
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+              border: '1px solid #14532D',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
             }}
           >
-            <Zap size={13} />
-            <span>{isStepping ? 'Stepping...' : 'Bot Action'}</span>
+            <Zap size={13} color="#FEF08A" />
+            <span>{isStepping ? 'Injecting...' : 'Bot Step'}</span>
           </button>
         )}
 
-        {/* Speed Dropdown */}
+        {/* Speed Dial Dropdown */}
         <select
           value={playbackSpeed}
           onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
           style={{
-            background: 'rgba(30, 41, 59, 0.8)',
-            color: '#F1F5F9',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'linear-gradient(180deg, #FAF4E6 0%, #E8D7BC 100%)',
+            color: '#23140C',
+            border: '1.5px solid #8C6305',
             borderRadius: '6px',
-            padding: '0.25rem 0.5rem',
-            fontSize: '0.72rem',
-            fontWeight: 600,
+            padding: '0.3rem 0.6rem',
+            fontSize: '0.78rem',
+            fontFamily: "'Courier Prime', monospace",
+            fontWeight: 700,
             cursor: 'pointer',
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
           }}
         >
           <option value={0.25}>0.25x Speed</option>
