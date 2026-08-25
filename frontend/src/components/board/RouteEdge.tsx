@@ -62,6 +62,15 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
     <g
       className={`route-edge ${isClaimable ? 'claimable' : ''} ${isClaimed ? 'claimed' : ''} ${isHovered ? 'hover-linked' : ''}`}
       style={{ cursor: isClaimable || isClaimed ? 'pointer' : 'default' }}
+      tabIndex={isClaimable ? 0 : -1}
+      role="button"
+      aria-label={`${route.city_a} to ${route.city_b}, ${route.length} cars, ${route.color || 'Gray'}${isClaimed ? `, Claimed by ${claimedByPlayerName || 'Player'}` : isClaimable ? ', Claimable' : ''}`}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && isClaimable) {
+          e.preventDefault();
+          onClick?.(route);
+        }
+      }}
       onMouseEnter={() => onMouseEnter?.(route)}
       onMouseLeave={() => onMouseLeave?.(route)}
       onClick={() => onClick?.(route)}

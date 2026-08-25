@@ -23,7 +23,7 @@ export const ExperimentView: React.FC = () => {
       })
       .catch((err) => {
         console.error(err);
-        setActionMessage({ type: 'error', text: 'Impossibile caricare gli esperimenti.' });
+        setActionMessage({ type: 'error', text: 'Unable to load experiments catalog.' });
       })
       .finally(() => setIsLoading(false));
   };
@@ -36,11 +36,11 @@ export const ExperimentView: React.FC = () => {
     try {
       setIsLoading(true);
       await api.deleteExperiment(expId);
-      setActionMessage({ type: 'success', text: `Esperimento "${name}" eliminato con successo.` });
+      setActionMessage({ type: 'success', text: `Experiment "${name}" successfully deleted.` });
       fetchExperiments();
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: "Errore durante l'eliminazione dell'esperimento." });
+      setActionMessage({ type: 'error', text: 'Error deleting experiment record.' });
     } finally {
       setIsLoading(false);
     }
@@ -51,12 +51,12 @@ export const ExperimentView: React.FC = () => {
     try {
       setIsLoading(true);
       const res = await api.deleteAllExperiments();
-      setActionMessage({ type: 'success', text: `Tutti gli esperimenti (${res.deleted_count}) sono stati cancellati.` });
+      setActionMessage({ type: 'success', text: `All experiments (${res.deleted_count}) have been purged.` });
       setExperiments([]);
       setSelectedExp(null);
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: "Errore durante l'eliminazione di tutti gli esperimenti." });
+      setActionMessage({ type: 'error', text: 'Error purging all experiment records.' });
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +179,7 @@ export const ExperimentView: React.FC = () => {
       </div>
 
       {/* Grid: List on Left, Detail & JSON on Right */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)', gap: '1.25rem' }}>
+      <div className="experiment-main-split">
         {/* Experiment Table */}
         <div
           className="steampunk-panel"

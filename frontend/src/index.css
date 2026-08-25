@@ -177,3 +177,43 @@ h1, h2, h3, h4, h5, h6 {
 .route-edge.hover-linked {
   animation: steamGlow 1.4s infinite ease-in-out;
 }
+
+/* Responsive Workbench Grids */
+.workbench-main-split {
+  display: grid;
+  grid-template-columns: minmax(500px, 1.4fr) minmax(360px, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.game-view-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1rem;
+}
+
+.reports-main-split, .experiment-main-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .workbench-main-split {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 950px) {
+  .game-view-split, .reports-main-split, .experiment-main-split {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Accessibility Focus Ring */
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid #C59B27 !important;
+  outline-offset: 2px;
+}
+

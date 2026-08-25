@@ -52,7 +52,7 @@ export const TournamentArenaView: React.FC = () => {
           }}
         >
           <Trophy size={14} />
-          <span>Matrice Torneo & Elo</span>
+          <span>Tournament Matrix & Elo</span>
         </button>
 
         <button
@@ -77,7 +77,7 @@ export const TournamentArenaView: React.FC = () => {
           }}
         >
           <HardDrive size={14} />
-          <span>Archivio Checkpoint (.pt)</span>
+          <span>Checkpoint Archive (.pt)</span>
         </button>
 
         <button
@@ -102,7 +102,7 @@ export const TournamentArenaView: React.FC = () => {
           }}
         >
           <FlaskConical size={14} />
-          <span>Registro Esperimenti</span>
+          <span>Experiment Registry</span>
         </button>
       </div>
 

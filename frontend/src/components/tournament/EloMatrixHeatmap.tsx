@@ -64,12 +64,12 @@ export const EloMatrixHeatmap: React.FC = () => {
 
   const handleRunCustomTournament = async () => {
     if (selectedIds.length < 2) {
-      alert('Seleziona almeno 2 partecipanti per poter eseguire un torneo round-robin.');
+      alert('Please select at least 2 contestants to execute a round-robin tournament.');
       return;
     }
 
     setIsRunningLive(true);
-    setStatusMessage('Esecuzione torneo round-robin in corso...');
+    setStatusMessage('Executing round-robin tournament simulation...');
     try {
       const res = await api.runTournament({
         participant_ids: selectedIds,
@@ -81,11 +81,11 @@ export const EloMatrixHeatmap: React.FC = () => {
       setMatchups(res.matchups);
       setTotalGames(res.total_games);
       setUpdatedAt(res.updated_at);
-      setStatusMessage(`Torneo completato con successo (${res.total_games} partite).`);
+      setStatusMessage(`Tournament completed successfully (${res.total_games} total matches).`);
       setTimeout(() => setStatusMessage(null), 4000);
     } catch (err) {
       console.error('Tournament run error:', err);
-      setStatusMessage('Errore durante l\'esecuzione del torneo.');
+      setStatusMessage('Error executing tournament simulation.');
     } finally {
       setIsRunningLive(false);
     }
@@ -162,7 +162,7 @@ export const EloMatrixHeatmap: React.FC = () => {
               gap: '0.35rem',
               fontSize: '0.75rem',
             }}
-            title="Personalizza partecipanti e opzioni del torneo"
+            title="Configure contestants and tournament parameters"
           >
             <Settings size={13} />
             <span>Participants ({selectedIds.length}/{availableOptions.length})</span>
@@ -184,7 +184,7 @@ export const EloMatrixHeatmap: React.FC = () => {
               border: '1px solid #14532D',
               fontSize: '0.75rem',
             }}
-            title="Lancia il torneo tra tutti i partecipanti selezionati"
+            title="Launch round-robin tournament across selected contestants"
           >
             <Play size={13} />
             <span>{isRunningLive ? 'Simulating...' : 'Run Tournament'}</span>
@@ -195,7 +195,7 @@ export const EloMatrixHeatmap: React.FC = () => {
             disabled={isLoading}
             className="steampunk-btn"
             style={{ padding: '0.3rem 0.55rem' }}
-            title="Ricarica classifica"
+            title="Refresh leaderboard"
           >
             <RefreshCw size={13} />
           </button>

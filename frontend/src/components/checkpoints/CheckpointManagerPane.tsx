@@ -17,7 +17,7 @@ export const CheckpointManagerPane: React.FC = () => {
       })
       .catch((err) => {
         console.error(err);
-        setActionMessage({ type: 'error', text: 'Impossibile caricare l\'elenco dei checkpoint.' });
+        setActionMessage({ type: 'error', text: 'Unable to load checkpoint archive.' });
       })
       .finally(() => setIsLoading(false));
   };
@@ -30,11 +30,11 @@ export const CheckpointManagerPane: React.FC = () => {
     try {
       setIsLoading(true);
       await api.deleteCheckpoint(ckptId);
-      setActionMessage({ type: 'success', text: `Checkpoint "${name}" eliminato con successo.` });
+      setActionMessage({ type: 'success', text: `Checkpoint "${name}" successfully deleted.` });
       fetchCheckpoints();
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: 'Errore durante l\'eliminazione del checkpoint.' });
+      setActionMessage({ type: 'error', text: 'Error deleting checkpoint file.' });
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +45,11 @@ export const CheckpointManagerPane: React.FC = () => {
     try {
       setIsLoading(true);
       const res = await api.deleteAllCheckpoints();
-      setActionMessage({ type: 'success', text: `Tutti i file checkpoint (${res.deleted_count}) sono stati eliminati.` });
+      setActionMessage({ type: 'success', text: `All checkpoint files (${res.deleted_count}) have been deleted.` });
       setCheckpoints([]);
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: 'Errore durante la cancellazione massiva dei checkpoint.' });
+      setActionMessage({ type: 'error', text: 'Error purging all checkpoint files.' });
     } finally {
       setIsLoading(false);
     }

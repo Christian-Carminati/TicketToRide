@@ -18,9 +18,12 @@ export const WorkbenchShell: React.FC = () => {
     setBrainData,
     addTelemetryEvent,
     setConnected,
+    setStepIndex,
+    setIsPlaying,
+    setStudioMode,
   } = useWorkbench();
 
-  const { studioMode } = state;
+  const { studioMode, currentStepIndex, maxStepIndex, isPlaying } = state;
   const [isStepping, setIsStepping] = useState(false);
   const [selectedMap, setSelectedMap] = useState<'usa' | 'mini'>('usa');
   const isInitializingRef = useRef(false);
@@ -78,7 +81,7 @@ export const WorkbenchShell: React.FC = () => {
   }, [lastMessage, addTelemetryEvent]);
 
   // Step Bot
-  const handleBotStep = async () => {
+  const handleBotStep = useCallback(async () => {
     if (!state.gameState || isStepping) return;
     setIsStepping(true);
     try {
@@ -96,7 +99,44 @@ export const WorkbenchShell: React.FC = () => {
     } finally {
       setIsStepping(false);
     }
-  };
+  }, [state.gameState, isStepping, state.selectedAgentModel, setGameState, setBrainData]);
+
+  // Global Keyboard Shortcuts (Alex Power User & Accessibility)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Mode Selection (1-5)
+      if (e.key === '1') setStudioMode('interactive');
+      else if (e.key === '2') setStudioMode('training_live');
+      else if (e.key === '3') setStudioMode('replay_scrub');
+      else if (e.key === '4') setStudioMode('tournament');
+      else if (e.key === '5') setStudioMode('reports');
+
+      // Timeline Scrubber & Step Shortcuts
+      if (studioMode === 'interactive' || studioMode === 'replay_scrub') {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setStepIndex(Math.max(0, currentStepIndex - 1));
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          setStepIndex(Math.min(maxStepIndex, currentStepIndex + 1));
+        } else if (e.code === 'Space') {
+          e.preventDefault();
+          if (studioMode === 'interactive') {
+            handleBotStep();
+          } else {
+            setIsPlaying(!isPlaying);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [studioMode, currentStepIndex, maxStepIndex, isPlaying, setStudioMode, setStepIndex, setIsPlaying, handleBotStep]);
 
   // Claim Route Handler (Human interactive move)
   const handleRouteClick = async (route: BoardRoute) => {
@@ -161,14 +201,7 @@ export const WorkbenchShell: React.FC = () => {
 
         {/* Studio Mode Views */}
         {studioMode === 'interactive' && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(600px, 1.4fr) minmax(400px, 1fr)',
-              gap: '0.75rem',
-              alignItems: 'start',
-            }}
-          >
+          <div className="workbench-main-split">
             {/* Left: Vector Board Canvas & Inventory */}
             <BoardCanvas
               onRouteClick={handleRouteClick}
@@ -181,14 +214,7 @@ export const WorkbenchShell: React.FC = () => {
         )}
 
         {studioMode === 'replay_scrub' && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(600px, 1.4fr) minmax(400px, 1fr)',
-              gap: '0.75rem',
-              alignItems: 'start',
-            }}
-          >
+          <div className="workbench-main-split">
             <BoardCanvas onSelectMap={handleMapChange} />
             <BrainInspectorPane />
           </div>

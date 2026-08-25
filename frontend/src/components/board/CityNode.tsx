@@ -26,6 +26,15 @@ export const CityNode: React.FC<CityNodeProps> = ({
     <g
       className="city-node"
       style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+      tabIndex={0}
+      role="button"
+      aria-label={`City node: ${city.name}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.(city);
+        }
+      }}
       onMouseEnter={() => onMouseEnter?.(city)}
       onMouseLeave={() => onMouseLeave?.(city)}
       onClick={() => onClick?.(city)}

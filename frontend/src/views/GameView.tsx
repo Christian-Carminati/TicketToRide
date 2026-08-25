@@ -233,7 +233,7 @@ export const GameView: React.FC = () => {
             className="steampunk-btn"
             style={{ padding: '0.35rem 0.9rem', fontSize: '0.82rem' }}
           >
-            🎮 Nuova Partita
+            🎮 New Match
           </button>
         </div>
 
@@ -314,7 +314,7 @@ export const GameView: React.FC = () => {
       )}
 
       {/* Main Game Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1rem' }}>
+      <div className="game-view-split">
         {/* Left Column: Board & Decks */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <BoardSVG

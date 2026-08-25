@@ -40,7 +40,7 @@ export const ReportsView: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: 'Impossibile caricare la lista dei report.' });
+      setActionMessage({ type: 'error', text: 'Unable to load reports catalog.' });
     } finally {
       setIsLoading(false);
     }
@@ -59,17 +59,17 @@ export const ReportsView: React.FC = () => {
       })
       .catch((err) => {
         console.error(err);
-        setActionMessage({ type: 'error', text: `Errore durante il caricamento del report ${selectedFilename}.` });
+        setActionMessage({ type: 'error', text: `Error loading dispatch report ${selectedFilename}.` });
       })
       .finally(() => setIsDetailLoading(false));
   }, [selectedFilename]);
 
   const handleDelete = async (filename: string) => {
-    if (!window.confirm(`Eliminare il report "${filename}"?`)) return;
+    if (!window.confirm(`Delete dispatch report "${filename}"?`)) return;
     try {
       setIsLoading(true);
       await api.deleteReport(filename);
-      setActionMessage({ type: 'success', text: `Report "${filename}" eliminato.` });
+      setActionMessage({ type: 'success', text: `Dispatch report "${filename}" deleted.` });
       const nextList = reports.filter((r) => r.filename !== filename);
       setReports(nextList);
       if (selectedFilename === filename) {
@@ -77,7 +77,7 @@ export const ReportsView: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: `Impossibile eliminare "${filename}".` });
+      setActionMessage({ type: 'error', text: `Unable to delete "${filename}".` });
     } finally {
       setIsLoading(false);
     }
@@ -539,14 +539,7 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Main Split: Left Files Sidebar, Right Content Viewer */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(280px, 340px) minmax(0, 1fr)',
-          gap: '1.25rem',
-          alignItems: 'start',
-        }}
-      >
+      <div className="reports-main-split">
         {/* Left: Reports Catalog Sidebar */}
         <div
           className="steampunk-panel"
