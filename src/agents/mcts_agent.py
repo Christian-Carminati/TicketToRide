@@ -22,13 +22,18 @@ class MCTSAgent(BaseAgent):
         config: MCTSConfig | None = None,
         name: str = "MCTSAgent",
         num_simulations: int | None = None,
+        seed: int = 42,
+        board: Board | None = None,
+        tickets: list[Any] | None = None,
     ) -> None:
         super().__init__(name=name)
         if config is not None:
             self.config = config
         else:
             sim_count = num_simulations if num_simulations is not None else 100
-            self.config = MCTSConfig(num_simulations=sim_count)
+            self.config = MCTSConfig(num_simulations=sim_count, seed=seed)
+        self.board = board
+        self.tickets = tickets
         self.engine = MCTSSearchEngine(self.config)
 
     def act(
@@ -47,15 +52,26 @@ class MCTSAgent(BaseAgent):
         root_player_id = curr_p.id if curr_p else "player_0"
 
         # Reconstruct Game context for search engine
+        active_board = board if board is not None else (self.board if self.board is not None else Board())
+        active_tickets = self.tickets if self.tickets is not None else []
         game = Game.__new__(Game)
-        game.board = board if board is not None else Board()
-        game.initial_tickets = []
+        game.board = active_board
+        game.initial_tickets = list(active_tickets)
         game.num_players = state.num_players
         game.rules = GameRules()
         game.rng = SeededRNG(self.config.seed)
         game.state = state.clone()
 
-        return self.engine.search(game, root_player_id=root_player_id)
+        try:
+            action = self.engine.search(game, root_player_id=root_player_id)
+            if action in valid_actions:
+                return action
+            for a in valid_actions:
+                if a.action_type == action.action_type:
+                    return a
+            return valid_actions[0]
+        except Exception:
+            return valid_actions[0]
 
     def select_action(
         self,

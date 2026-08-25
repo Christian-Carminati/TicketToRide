@@ -45,9 +45,10 @@ class GameStateDTO(BaseModel):
 
 class GameSessionCreateRequest(BaseModel):
     map_name: str = "usa"
-    player_types: list[str] = ["human", "random"]  # "human", "random", "greedy", "strategic", "dqn", "ppo"
+    player_types: list[str] = ["human", "random"]  # "human", "random", "greedy", "strategic", "dqn", "ppo", "recurrent_ppo", "mcts", "alphazero", "bayesian_mcts"
     seed: int = 42
     model_checkpoint: str | None = None
+    player_checkpoints: list[str | None] | None = None
 
 
 class GameStepRequest(BaseModel):
@@ -55,7 +56,7 @@ class GameStepRequest(BaseModel):
     action: ActionDTO | None = None  # None for bot step
 
 
-# --- Neural Brain Inspection DTOs ---
+# --- Neural Brain & Search Inspection DTOs ---
 class LayerActivationDTO(BaseModel):
     layer_name: str
     shape: list[int]
@@ -66,10 +67,19 @@ class LayerActivationDTO(BaseModel):
     values: list[float]
 
 
+class BayesianBeliefDTO(BaseModel):
+    ticket_id: str
+    city_a: str
+    city_b: str
+    points: int
+    probability: float
+    threat_level: Literal["critical", "high", "moderate", "low"]
+
+
 class BrainInspectionDTO(BaseModel):
-    model_type: Literal["dqn", "ppo"]
+    model_type: str  # "dqn", "ppo", "recurrent_ppo", "mcts", "alphazero", "bayesian_mcts"
     estimated_value: float
-    action_probabilities: list[float]  # Policy distribution (PPO) or Q-values (DQN)
+    action_probabilities: list[float]  # Policy distribution (PPO/AlphaZero) or Q-values (DQN)
     action_mask: list[bool]
     action_labels: list[str]
     greedy_action_index: int
@@ -77,11 +87,20 @@ class BrainInspectionDTO(BaseModel):
     masked_logits_or_q: list[float]
     observation_vector: list[float]
     layer_activations: list[LayerActivationDTO] | None = None
+    
+    # Extended search & memory inspection (Lessons 8, 11, 12)
+    mcts_visits: list[int] | None = None
+    mcts_priors: list[float] | None = None
+    mcts_q_values: list[float] | None = None
+    mcts_total_simulations: int | None = None
+    bayesian_beliefs: list[BayesianBeliefDTO] | None = None
+    memory_filaments: list[float] | None = None
+    reward_decomposition: dict[str, float] | None = None
 
 
 class BrainInspectRequest(BaseModel):
     session_id: str | None = None
-    model_type: Literal["dqn", "ppo"] = "ppo"
+    model_type: str = "ppo"
     checkpoint_path: str | None = None
     observation: list[float] | None = None
     action_mask: list[bool] | None = None
@@ -90,9 +109,13 @@ class BrainInspectRequest(BaseModel):
 # --- Training Telemetry DTOs ---
 class TrainingStartRequest(BaseModel):
     config_name: str = "ppo_usa.yaml"
+    algorithm_type: str = "ppo"  # "ppo", "dqn", "recurrent_ppo", "self_play_ppo", "alphazero"
     override_timesteps: int | None = None
+    learning_rate: float | None = None
+    num_simulations: int = 30  # For AlphaZero / MCTS
     seed: int = 42
-    opponent_type: str = "random"  # "random", "greedy", "strategic"
+    opponent_type: str = "random"  # "random", "greedy", "strategic", "self_play"
+    map_name: str = "usa"
 
 
 class TrainingStatusDTO(BaseModel):

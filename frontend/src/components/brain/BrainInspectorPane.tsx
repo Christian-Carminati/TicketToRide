@@ -4,10 +4,14 @@ import { Brain, Cpu } from 'lucide-react';
 import { ValueHeadGauge } from './ValueHeadGauge';
 import { ActionProbabilitiesChart } from './ActionProbabilitiesChart';
 import { ObservationTensorViewer } from './ObservationTensorViewer';
+import { MCTSTreeSearchVisualizer } from './MCTSTreeSearchVisualizer';
+import { BayesianBeliefRadar } from './BayesianBeliefRadar';
 
 export const BrainInspectorPane: React.FC = React.memo(() => {
   const { state, setHoveredAction, setSelectedAgentModel } = useWorkbench();
   const brainData = state.brainData;
+
+  const isTreeSearchModel = brainData?.model_type === 'alphazero' || brainData?.model_type === 'mcts' || (brainData?.mcts_visits && brainData.mcts_visits.length > 0);
 
   return (
     <div
@@ -34,6 +38,8 @@ export const BrainInspectorPane: React.FC = React.memo(() => {
           borderRadius: '8px',
           padding: '0.45rem 0.85rem',
           boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+          flexWrap: 'wrap',
+          gap: '0.4rem',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -47,7 +53,7 @@ export const BrainInspectorPane: React.FC = React.memo(() => {
               letterSpacing: '0.03em',
             }}
           >
-            Neural Analytical Engine
+            Neural & Search Engine
           </span>
         </div>
 
@@ -55,51 +61,36 @@ export const BrainInspectorPane: React.FC = React.memo(() => {
         <div
           style={{
             display: 'flex',
-            gap: '0.25rem',
+            gap: '0.2rem',
             background: 'rgba(0, 0, 0, 0.4)',
             borderRadius: '6px',
             padding: '2px',
             border: '1px solid rgba(197, 155, 39, 0.3)',
+            flexWrap: 'wrap',
           }}
         >
-          <button
-            onClick={() => setSelectedAgentModel('ppo')}
-            style={{
-              background: state.selectedAgentModel === 'ppo'
-                ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
-                : 'transparent',
-              color: state.selectedAgentModel === 'ppo' ? '#23140C' : '#D4C09D',
-              border: state.selectedAgentModel === 'ppo' ? '1px solid #6E4E04' : '1px solid transparent',
-              borderRadius: '4px',
-              padding: '0.2rem 0.6rem',
-              fontSize: '0.72rem',
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontWeight: state.selectedAgentModel === 'ppo' ? 800 : 600,
-              cursor: 'pointer',
-              boxShadow: state.selectedAgentModel === 'ppo' ? '0 1px 4px rgba(0,0,0,0.2)' : 'none',
-            }}
-          >
-            PPO Masked AC
-          </button>
-          <button
-            onClick={() => setSelectedAgentModel('dqn')}
-            style={{
-              background: state.selectedAgentModel === 'dqn'
-                ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
-                : 'transparent',
-              color: state.selectedAgentModel === 'dqn' ? '#23140C' : '#D4C09D',
-              border: state.selectedAgentModel === 'dqn' ? '1px solid #6E4E04' : '1px solid transparent',
-              borderRadius: '4px',
-              padding: '0.2rem 0.6rem',
-              fontSize: '0.72rem',
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontWeight: state.selectedAgentModel === 'dqn' ? 800 : 600,
-              cursor: 'pointer',
-              boxShadow: state.selectedAgentModel === 'dqn' ? '0 1px 4px rgba(0,0,0,0.2)' : 'none',
-            }}
-          >
-            DQN Q-Net
-          </button>
+          {(['ppo', 'alphazero', 'recurrent_ppo', 'dqn'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setSelectedAgentModel(m as any)}
+              style={{
+                background: state.selectedAgentModel === m
+                  ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+                  : 'transparent',
+                color: state.selectedAgentModel === m ? '#23140C' : '#D4C09D',
+                border: state.selectedAgentModel === m ? '1px solid #6E4E04' : '1px solid transparent',
+                borderRadius: '4px',
+                padding: '0.2rem 0.5rem',
+                fontSize: '0.68rem',
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: state.selectedAgentModel === m ? 800 : 600,
+                cursor: 'pointer',
+                boxShadow: state.selectedAgentModel === m ? '0 1px 4px rgba(0,0,0,0.2)' : 'none',
+              }}
+            >
+              {m === 'alphazero' ? 'AlphaZero' : m === 'recurrent_ppo' ? 'LSTM-PPO' : m.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -110,6 +101,27 @@ export const BrainInspectorPane: React.FC = React.memo(() => {
             estimatedValue={brainData.estimated_value}
             modelType={brainData.model_type}
           />
+
+          {/* MCTS & PUCT Tree Search Visualizer (If MCTS or AlphaZero) */}
+          {isTreeSearchModel && (
+            <MCTSTreeSearchVisualizer
+              totalSimulations={brainData.mcts_total_simulations || 40}
+              priors={brainData.mcts_priors}
+              visits={brainData.mcts_visits}
+              qValues={brainData.mcts_q_values}
+              actionLabels={brainData.action_labels}
+              actionMask={brainData.action_mask}
+              greedyActionIndex={brainData.greedy_action_index}
+            />
+          )}
+
+          {/* Bayesian Belief Radar (If Opponent-Aware Tracking is present) */}
+          {brainData.bayesian_beliefs && brainData.bayesian_beliefs.length > 0 && (
+            <BayesianBeliefRadar
+              beliefs={brainData.bayesian_beliefs}
+              opponentName={state.gameState?.players[1]?.name || 'Opponent'}
+            />
+          )}
 
           {/* Policy Actuator Distribution Chart with Synchronized Hover */}
           <ActionProbabilitiesChart
@@ -150,7 +162,7 @@ export const BrainInspectorPane: React.FC = React.memo(() => {
             No Analytical Engine Connected
           </div>
           <div style={{ fontSize: '0.75rem', color: '#5A3822', fontFamily: "'Crimson Pro', Georgia, serif" }}>
-            Initialize a match with an active PPO or DQN automaton to inspect real-time steam pressure logits, policy actuators, and thermionic tensor states.
+            Initialize a match with an active AlphaZero, MCTS, LSTM, PPO, or DQN automaton to inspect real-time steam pressure logits, policy actuators, and tree search states.
           </div>
         </div>
       )}

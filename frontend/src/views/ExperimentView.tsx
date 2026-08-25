@@ -16,7 +16,7 @@ export const ExperimentView: React.FC = () => {
       .then((list) => {
         setExperiments(list);
         if (list.length > 0) {
-          setSelectedExp((prev) => (prev ? list.find((e) => e.experiment_id === prev.experiment_id) || list[0] : list[0]));
+          setSelectedExp((prev: ExperimentRecordDTO | null) => (prev ? list.find((e) => e.experiment_id === prev.experiment_id) || list[0] : list[0]));
         } else {
           setSelectedExp(null);
         }
@@ -201,7 +201,8 @@ export const ExperimentView: React.FC = () => {
               <tbody>
                 {filtered.map((exp) => {
                   const isSelected = selectedExp?.experiment_id === exp.experiment_id;
-                  const winRate = exp.metrics?.win_rate !== undefined ? `${(exp.metrics.win_rate * 100).toFixed(1)}%` : 'N/A';
+                  const rawWr = exp.metrics?.win_rate;
+                  const winRate = rawWr !== undefined ? `${(Number(rawWr) * 100).toFixed(1)}%` : 'N/A';
 
                   return (
                     <tr
@@ -340,7 +341,7 @@ export const ExperimentView: React.FC = () => {
                     fontFamily: "'Courier Prime', monospace",
                   }}
                 >
-                  {JSON.stringify(selectedExp.config || {}, null, 2)}
+                  {JSON.stringify(selectedExp.metrics || {}, null, 2)}
                 </pre>
               </div>
             </div>

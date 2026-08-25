@@ -78,6 +78,8 @@ class NeuralMCTSEngine:
         dirichlet_alpha: float = 0.3,
         dirichlet_eps: float = 0.25,
         seed: int = 42,
+        board: Any = None,
+        tickets: Any = None,
     ):
         self.net = net
         self.num_simulations = num_simulations
@@ -86,12 +88,21 @@ class NeuralMCTSEngine:
         self.dirichlet_eps = dirichlet_eps
         self.rng = SeededRNG(seed=seed)
         
-        self.encoder = ObservationV1()
-        self.action_space = DiscreteActionSpace()
+        self.board = board
+        self.tickets = tickets
+        self.encoder = ObservationV1(board=board, initial_tickets=tickets) if board is not None else ObservationV1()
+        self.action_space = DiscreteActionSpace(board=board) if board is not None else DiscreteActionSpace()
         self.masker = ActionMasker(self.action_space)
 
     def _get_obs_and_mask(self, game: Game, player_id: str) -> Tuple[np.ndarray, np.ndarray, List[int]]:
         player_idx = int(player_id.split("_")[-1]) if "_" in player_id else 0
+        if game.board != self.board and game.board is not None:
+            self.board = game.board
+            self.tickets = game.initial_tickets if hasattr(game, "initial_tickets") and game.initial_tickets else None
+            self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
+            self.action_space = DiscreteActionSpace(board=self.board)
+            self.masker = ActionMasker(self.action_space)
+
         obs = self.encoder.encode(game.state, player_idx)
         player = next((p for p in game.state.players if p.id == player_id), game.state.players[0])
         valid_actions = game.rules.get_valid_actions(player, game.state, game.board, game.num_players)

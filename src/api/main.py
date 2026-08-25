@@ -6,6 +6,7 @@ from typing import Any
 import torch
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.brain_service import BrainService
 from src.api.game_service import GameService
@@ -141,8 +142,9 @@ def get_tournament_leaderboard() -> TournamentLeaderboardDTO:
 
 
 @app.post("/api/tournament/run", response_model=TournamentLeaderboardDTO)
-def run_tournament(request: TournamentRunRequest) -> TournamentLeaderboardDTO:
-    return tournament_service.run_tournament(
+async def run_tournament(request: TournamentRunRequest) -> TournamentLeaderboardDTO:
+    return await asyncio.to_thread(
+        tournament_service.run_tournament,
         participant_ids=request.participant_ids,
         games_per_pair=request.games_per_pair,
         map_name=request.map_name,
@@ -298,7 +300,19 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
         action_labels = [f"Act {i}: {session.action_space.to_action(i).action_type.name}" for i in range(session.action_space.n)]
 
         agent = session.agents[current_idx]
-        if hasattr(agent, "q_net"):
+        if hasattr(agent, "net"):
+            belief_tracker = getattr(agent, "belief_tracker", None)
+            return brain_service.inspect_alphazero(
+                agent.net,
+                obs,
+                mask,
+                action_labels=action_labels,
+                num_simulations=getattr(agent, "num_simulations", 40),
+                belief_tracker=belief_tracker,
+            )
+        elif hasattr(agent, "model") and hasattr(agent.model, "lstm"):
+            return brain_service.inspect_recurrent_ppo(agent.model, obs, mask, action_labels=action_labels)
+        elif hasattr(agent, "q_net"):
             return brain_service.inspect_q_network(agent.q_net, obs, mask, action_labels=action_labels)
         elif hasattr(agent, "actor_critic"):
             return brain_service.inspect_actor_critic(agent.actor_critic, obs, mask, action_labels=action_labels)
@@ -364,3 +378,12 @@ async def websocket_telemetry(websocket: WebSocket) -> None:
             await websocket.send_json({"type": "ack", "message": data})
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
+
+
+# --- Static Mounts (Course & Built Frontend Web Lab) ---
+if os.path.exists("docs/course"):
+    app.mount("/course", StaticFiles(directory="docs/course", html=True), name="course")
+
+if os.path.exists("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
+

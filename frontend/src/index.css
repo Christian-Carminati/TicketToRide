@@ -186,6 +186,11 @@ h1, h2, h3, h4, h5, h6 {
   align-items: start;
 }
 
+.workbench-single-pane {
+  width: 100%;
+  max-width: 100%;
+}
+
 .game-view-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -197,6 +202,53 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   gap: 1.25rem;
   align-items: start;
+}
+
+/* Animations */
+@keyframes steamGlow {
+  0% { filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.5)); }
+  50% { filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.95)) drop-shadow(0 0 6px rgba(205, 127, 50, 0.8)); }
+  100% { filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.5)); }
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.route-edge.hover-linked {
+  animation: steamGlow 1.4s infinite ease-in-out;
+}
+
+/* Match Scoreboard HUD Responsive */
+@media (max-width: 1180px) {
+  .match-scoreboard-hud > .steampunk-panel {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .match-scoreboard-hud > .steampunk-panel > div:nth-child(2) {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+  .lower-station-platform {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .lower-station-platform > div:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .match-scoreboard-hud > .steampunk-panel {
+    grid-template-columns: 1fr !important;
+  }
+  .lower-station-platform {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 1100px) {
@@ -216,4 +268,5 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   outline: 2px solid #C59B27 !important;
   outline-offset: 2px;
 }
+
 

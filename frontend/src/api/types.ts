@@ -17,7 +17,8 @@ export interface PlayerStateDTO {
   trains_remaining: number;
   cards_in_hand: Record<string, number>;
   tickets: Array<{
-    id: string;
+    id?: string;
+    ticket_id?: string;
     city_a: string;
     city_b: string;
     points: number;
@@ -51,6 +52,7 @@ export interface GameSessionCreateRequest {
   player_types?: string[];
   seed?: number;
   model_checkpoint?: string | null;
+  player_checkpoints?: Array<string | null>;
 }
 
 export interface LayerActivationDTO {
@@ -63,24 +65,44 @@ export interface LayerActivationDTO {
   values: number[];
 }
 
+export interface BayesianBeliefDTO {
+  ticket_id: string;
+  city_a: string;
+  city_b: string;
+  points: number;
+  probability: number;
+  threat_level: 'critical' | 'high' | 'moderate' | 'low';
+}
+
 export interface BrainInspectionDTO {
-  model_type: 'dqn' | 'ppo';
+  model_type: string; // 'dqn' | 'ppo' | 'recurrent_ppo' | 'mcts' | 'alphazero' | 'bayesian_mcts'
   observation_vector: number[];
   action_mask: boolean[];
-  layer_activations: LayerActivationDTO[];
+  layer_activations?: LayerActivationDTO[];
   raw_logits_or_q: number[];
   masked_logits_or_q: number[];
   action_probabilities: number[];
   estimated_value?: number | null;
   greedy_action_index: number;
   action_labels: string[];
+  mcts_visits?: number[];
+  mcts_priors?: number[];
+  mcts_q_values?: number[];
+  mcts_total_simulations?: number;
+  bayesian_beliefs?: BayesianBeliefDTO[];
+  memory_filaments?: number[];
+  reward_decomposition?: Record<string, number>;
 }
 
 export interface TrainingStartRequest {
-  config_name: string;
+  config_name?: string;
+  algorithm_type?: string; // 'ppo' | 'dqn' | 'recurrent_ppo' | 'self_play_ppo' | 'alphazero'
   override_timesteps?: number | null;
+  learning_rate?: number | null;
+  num_simulations?: number;
   seed?: number;
-  opponent_type?: 'random' | 'greedy' | 'strategic';
+  opponent_type?: string; // 'random' | 'greedy' | 'strategic' | 'self_play'
+  map_name?: string;
 }
 
 export interface TrainingStatusDTO {
@@ -104,52 +126,10 @@ export interface TelemetryEventDTO {
   value_loss?: number | null;
   entropy?: number | null;
   approx_kl?: number | null;
+  clip_fraction?: number | null;
+  explained_var?: number | null;
   win_rate?: number | null;
   fps?: number | null;
-}
-
-export interface ReplayFrameDTO {
-  step_index: number;
-  turn_number: number;
-  player_index: number;
-  action: ActionDTO;
-  reward: number;
-  state_snapshot: Record<string, any>;
-  observation?: number[] | null;
-  action_mask?: boolean[] | null;
-  action_probabilities?: number[] | null;
-}
-
-export interface ReplayDetailDTO {
-  replay_id: string;
-  map_name: string;
-  seed: number;
-  date: string;
-  player_names: string[];
-  total_steps: number;
-  winner_index: number;
-  final_scores: number[];
-  frames: ReplayFrameDTO[];
-}
-
-export interface ExperimentRecordDTO {
-  experiment_id: string;
-  name: string;
-  algorithm: string;
-  seed: number;
-  timestamp: string;
-  metrics: Record<string, number>;
-  config: Record<string, any>;
-}
-
-export interface CheckpointDTO {
-  checkpoint_id: string;
-  name: string;
-  algorithm: string;
-  path: string;
-  size_mb: number;
-  modified_at: string;
-  total_timesteps?: number | null;
 }
 
 export interface TournamentParticipantOptionDTO {
@@ -190,15 +170,49 @@ export interface TournamentLeaderboardDTO {
   matchups: TournamentMatchupDTO[];
   total_games: number;
   updated_at: string;
-  map_name?: string;
+  map_name: string;
   available_participants?: TournamentParticipantOptionDTO[];
 }
 
 export interface TournamentRunRequest {
   participant_ids?: string[];
   games_per_pair?: number;
-  map_name?: 'usa' | 'mini';
+  map_name?: string;
   seed?: number;
+}
+
+export interface ReplayFrameDTO {
+  step_index: number;
+  turn_number: number;
+  player_index: number;
+  action: ActionDTO;
+  reward: number;
+  state_snapshot: Record<string, unknown>;
+  observation?: number[] | null;
+  action_mask?: boolean[] | null;
+  action_probabilities?: number[] | null;
+}
+
+export interface ReplayDetailDTO {
+  replay_id: string;
+  map_name: string;
+  seed: number;
+  date: string;
+  player_names: string[];
+  total_steps: number;
+  winner_index: number;
+  final_scores: number[];
+  frames: ReplayFrameDTO[];
+}
+
+export interface CheckpointDTO {
+  checkpoint_id: string;
+  name: string;
+  algorithm: string;
+  path: string;
+  size_mb: number;
+  modified_at: string;
+  total_timesteps?: number | null;
 }
 
 export interface ReportItemDTO {
@@ -215,10 +229,20 @@ export interface ReportDetailDTO {
   id: string;
   name: string;
   filename: string;
-  file_type: 'markdown' | 'json' | 'text';
+  file_type: string;
   raw_content: string;
-  json_data?: Record<string, any> | null;
+  json_data?: Record<string, unknown> | null;
   size_kb: number;
   modified_at: string;
+}
+
+export interface ExperimentRecordDTO {
+  experiment_id: string;
+  name: string;
+  seed: number;
+  algorithm: string;
+  env_version: number;
+  reward_version: number;
+  metrics: Record<string, number | string>;
 }
 

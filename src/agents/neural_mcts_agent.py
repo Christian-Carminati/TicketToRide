@@ -32,10 +32,15 @@ class NeuralMCTSAgent(BaseAgent):
         c_puct: float = 1.5,
         name: str = "NeuralMCTSAgent",
         seed: int = 42,
+        board: Optional[Board] = None,
+        tickets: Optional[list[Any]] = None,
     ):
         super().__init__(name=name)
-        self.encoder = ObservationV1()
-        self.action_space = DiscreteActionSpace()
+        default_board, default_tickets = load_usa_board()
+        self.board = board if board is not None else default_board
+        self.tickets = tickets if tickets is not None else list(default_tickets)
+        self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
+        self.action_space = DiscreteActionSpace(board=self.board)
         self.masker = ActionMasker(self.action_space)
         self.seed = seed
         self.num_simulations = num_simulations
@@ -55,6 +60,8 @@ class NeuralMCTSAgent(BaseAgent):
             num_simulations=num_simulations,
             c_puct=c_puct,
             seed=seed,
+            board=self.board,
+            tickets=self.tickets,
         )
 
     def select_action(
@@ -83,12 +90,17 @@ class NeuralMCTSAgent(BaseAgent):
         root_player_id = curr_p.id if curr_p else "player_0"
 
         # Reconstruct Game context for search engine
-        default_board, default_tickets = load_usa_board()
-        active_board = board if board is not None else default_board
+        active_board = board if board is not None else self.board
+        active_tickets = self.tickets if self.tickets else list(load_usa_board()[1])
+        if active_board != self.board:
+            self.board = active_board
+            self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
+            self.action_space = DiscreteActionSpace(board=self.board)
+            self.masker = ActionMasker(self.action_space)
         
         game = Game.__new__(Game)
         game.board = active_board
-        game.initial_tickets = list(default_tickets)
+        game.initial_tickets = list(active_tickets)
         game.num_players = state.num_players
         game.rules = GameRules()
         game.rng = SeededRNG(self.seed)
@@ -116,6 +128,8 @@ class NeuralMCTSAgent(BaseAgent):
                 num_simulations=self.num_simulations,
                 c_puct=self.c_puct,
                 seed=seed,
+                board=self.board,
+                tickets=self.tickets,
             )
 
 class OpponentAwareMCTSAgent(NeuralMCTSAgent):
@@ -129,6 +143,8 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
         c_puct: float = 1.5,
         name: str = "OpponentAwareMCTSAgent",
         seed: int = 42,
+        board: Optional[Board] = None,
+        tickets: Optional[list[Any]] = None,
     ):
         super().__init__(
             net=net,
@@ -136,6 +152,8 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
             c_puct=c_puct,
             name=name,
             seed=seed,
+            board=board,
+            tickets=tickets,
         )
         self.tracker: Optional[BayesianTicketBeliefTracker] = None
         self._observed_routes: set[str] = set()
@@ -151,13 +169,18 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
         if len(valid_actions) == 1:
             return valid_actions[0]
 
-        default_board, default_tickets = load_usa_board()
-        active_board = board if board is not None else default_board
+        active_board = board if board is not None else self.board
+        active_tickets = self.tickets if self.tickets else list(load_usa_board()[1])
+        if active_board != self.board:
+            self.board = active_board
+            self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
+            self.action_space = DiscreteActionSpace(board=self.board)
+            self.masker = ActionMasker(self.action_space)
         
         if self.tracker is None or self.tracker.board != active_board:
             self.tracker = BayesianTicketBeliefTracker(
                 board=active_board,
-                all_tickets=default_tickets,
+                all_tickets=active_tickets,
             )
             self._observed_routes.clear()
 
@@ -172,7 +195,7 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
 
         game = Game.__new__(Game)
         game.board = active_board
-        game.initial_tickets = list(default_tickets)
+        game.initial_tickets = list(active_tickets)
         game.num_players = state.num_players
         game.rules = GameRules()
         game.rng = SeededRNG(self.seed)
@@ -196,3 +219,8 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
             if a.action_type == chosen_action.action_type:
                 return a
         return valid_actions[0]
+
+
+# Backward compatible / analytical naming alias
+BayesianOpponentMCTSAgent = OpponentAwareMCTSAgent
+

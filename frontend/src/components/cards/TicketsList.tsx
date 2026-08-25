@@ -1,7 +1,8 @@
 import React from 'react';
 
 interface TicketItem {
-  id: string;
+  id?: string;
+  ticket_id?: string;
   city_a: string;
   city_b: string;
   points: number;

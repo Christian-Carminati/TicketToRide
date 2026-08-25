@@ -55,3 +55,18 @@ def test_tournament_custom_participants_run():
     assert len(data["leaderboard"]) == 2
     assert len(data["matchups"]) == 1
     assert data["total_games"] == 2
+
+
+def test_tournament_alphazero_and_mcts_run():
+    req = {
+        "participant_ids": ["agent_alphazero", "agent_bayesian_mcts", "baseline_strategic"],
+        "games_per_pair": 1,
+        "map_name": "mini",
+        "seed": 123,
+    }
+    res = client.post("/api/tournament/run", json=req)
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["leaderboard"]) == 3
+    assert len(data["matchups"]) == 3
+    assert data["total_games"] == 3

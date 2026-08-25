@@ -47,3 +47,35 @@ def test_game_service_human_step():
     next_state = service.step_session(state.session_id, action=first_valid)
     assert next_state.session_id == state.session_id
     assert next_state.last_action is not None
+
+
+def test_game_service_safe_action_dto_conversion():
+    service = GameService()
+    # Test valid action
+    act1 = service._from_action_dto(ActionDTO(action_type="DRAW_HIDDEN_CARD"))
+    assert act1.action_type.name == "DRAW_HIDDEN_CARD"
+
+    # Test gray or invalid color string gracefully handled
+    act2 = service._from_action_dto(ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="gray"))
+    assert act2.color_chosen is None
+
+    # Test lowercase color string
+    act3 = service._from_action_dto(ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="blue"))
+    assert act3.color_chosen is not None
+    assert act3.color_chosen.name == "BLUE"
+
+
+def test_game_service_all_agent_types_instantiation():
+    service = GameService()
+    types = [
+        "human", "random", "greedy", "strategic", "mcts",
+        "bayesian_mcts", "alphazero", "recurrent_ppo", "ppo", "dqn"
+    ]
+    for p_type in types:
+        req = GameSessionCreateRequest(map_name="mini", player_types=["human", p_type], seed=42)
+        state = service.create_session(req)
+        assert state.session_id is not None
+        assert len(state.players) == 2
+        # Verify bot can step
+        step1 = service.step_session(state.session_id, action=state.valid_actions[0])
+        assert step1 is not None

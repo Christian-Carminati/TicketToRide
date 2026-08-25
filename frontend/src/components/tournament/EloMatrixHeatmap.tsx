@@ -11,7 +11,7 @@ export const EloMatrixHeatmap: React.FC = () => {
   const [mapName, setMapName] = useState<'usa' | 'mini'>('usa');
   const [availableOptions, setAvailableOptions] = useState<TournamentParticipantOptionDTO[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [gamesPerPair, setGamesPerPair] = useState<number>(10);
+  const [gamesPerPair, setGamesPerPair] = useState<number>(3);
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRunningLive, setIsRunningLive] = useState<boolean>(false);
@@ -329,10 +329,10 @@ export const EloMatrixHeatmap: React.FC = () => {
                     fontFamily: "'Courier Prime', monospace",
                   }}
                 >
-                  <option value={5}>5 matches (Rapid)</option>
-                  <option value={10}>10 matches (Balanced)</option>
-                  <option value={15}>15 matches (Accurate)</option>
-                  <option value={25}>25 matches (Deep Benchmark)</option>
+                  <option value={2}>2 matches (Turbo Rapid ~5s)</option>
+                  <option value={3}>3 matches (Fast Benchmark ~10s)</option>
+                  <option value={5}>5 matches (Balanced)</option>
+                  <option value={10}>10 matches (Deep Benchmark)</option>
                 </select>
               </div>
 

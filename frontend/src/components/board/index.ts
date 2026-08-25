@@ -4,3 +4,6 @@ export * from './RouteEdge';
 export * from './BoardSVG';
 export * from './BoardHeaderControls';
 export * from './BoardCanvas';
+export * from './MatchScoreBoardHUD';
+export * from './GameOverModal';
+

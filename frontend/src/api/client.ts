@@ -135,7 +135,7 @@ export const api = {
     }),
 
   // Brain Introspection
-  inspectBrain: (payload: { session_id?: string; model_type?: 'dqn' | 'ppo'; observation?: number[]; action_mask?: boolean[] }) =>
+  inspectBrain: (payload: { session_id?: string; model_type?: string; observation?: number[]; action_mask?: boolean[] }) =>
     fetchJSON<BrainInspectionDTO>('/api/brain/inspect', {
       method: 'POST',
       body: JSON.stringify(payload),
