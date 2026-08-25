@@ -30,17 +30,17 @@ export const CityNode: React.FC<CityNodeProps> = ({
       onMouseLeave={() => onMouseLeave?.(city)}
       onClick={() => onClick?.(city)}
     >
-      {/* Outer Pulse/Glow on highlight */}
+      {/* Outer Rotating Brass Cogwheel on Highlight / Hover */}
       {(isHighlighted || isHovered) && (
         <circle
           cx={x}
           cy={y}
-          r={16}
+          r={17}
           fill="none"
-          stroke={isHighlighted ? '#F59E0B' : '#38BDF8'}
-          strokeWidth={3}
+          stroke={isHighlighted ? '#B91C1C' : '#C59B27'}
+          strokeWidth={2.5}
           strokeDasharray="4 2"
-          opacity={0.8}
+          opacity={0.9}
         >
           <animateTransform
             attributeName="transform"
@@ -53,39 +53,62 @@ export const CityNode: React.FC<CityNodeProps> = ({
         </circle>
       )}
 
-      {/* Main City Circle */}
+      {/* Shadow Base */}
+      <circle
+        cx={x + 1}
+        cy={y + 2}
+        r={isHovered ? 10 : 8}
+        fill="rgba(56, 44, 38, 0.45)"
+      />
+
+      {/* Outer Brass Ring */}
       <circle
         cx={x}
         cy={y}
-        r={isHovered ? 9 : 7}
-        fill={isHighlighted ? '#F59E0B' : isHovered ? '#38BDF8' : '#F8FAFC'}
-        stroke="#0F172A"
-        strokeWidth={2.5}
+        r={isHovered ? 9.5 : 7.5}
+        fill={isHighlighted ? '#D97706' : isHovered ? '#F6DC88' : '#C59B27'}
+        stroke="#4A2F1D"
+        strokeWidth={1.5}
       />
 
-      {/* City Label with stroke outline */}
+      {/* Inner Rivet Core */}
+      <circle
+        cx={x}
+        cy={y}
+        r={isHovered ? 5.5 : 4}
+        fill={isHighlighted ? '#B91C1C' : isHovered ? '#23140C' : '#FAF5EB'}
+        stroke="#23140C"
+        strokeWidth={1}
+      />
+
+      {/* City Label with Crisp Ivory Halo Underlay for 100% Cartographic Readability */}
       <text
         x={x}
         y={y - 12}
         textAnchor="middle"
-        fontSize={11}
-        fontWeight="600"
-        fill="#0F172A"
-        stroke="#0F172A"
-        strokeWidth={3}
+        fontSize={11.5}
+        fontFamily="'Playfair Display', Georgia, serif"
+        fontWeight="800"
+        fill="#FAF5EB"
+        stroke="#FAF5EB"
+        strokeWidth={4.5}
         strokeLinejoin="round"
         paintOrder="stroke"
         opacity={0.95}
       >
         {city.name}
       </text>
+
+      {/* Foreground Sepia Ink City Label */}
       <text
         x={x}
         y={y - 12}
         textAnchor="middle"
-        fontSize={11}
-        fontWeight="600"
-        fill={isHighlighted ? '#FBBF24' : '#F1F5F9'}
+        fontSize={11.5}
+        fontFamily="'Playfair Display', Georgia, serif"
+        fontWeight="800"
+        fill={isHighlighted ? '#B91C1C' : isHovered ? '#996515' : '#23140C'}
+        letterSpacing="-0.01em"
       >
         {city.name}
       </text>

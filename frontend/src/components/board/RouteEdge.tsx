@@ -45,7 +45,7 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
   const ny = ux;
 
   // Apply parallel offset if double route
-  const offsetDist = (route.offset_index || 0) * 8.0;
+  const offsetDist = (route.offset_index || 0) * 8.5;
   const ox1 = x1 + nx * offsetDist;
   const oy1 = y1 + ny * offsetDist;
   const ox2 = x2 + nx * offsetDist;
@@ -54,7 +54,7 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
   const midX = (ox1 + ox2) / 2;
   const midY = (oy1 + oy2) / 2;
 
-  const baseColor = route.color ? COLOR_HEX[route.color] || '#64748B' : '#64748B';
+  const baseColor = route.color ? COLOR_HEX[route.color] || '#7D6A5A' : '#7D6A5A';
   const isClaimed = Boolean(claimedByPlayerColor);
   const trackColor = isClaimed ? claimedByPlayerColor! : baseColor;
 
@@ -66,85 +66,117 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
       onMouseLeave={() => onMouseLeave?.(route)}
       onClick={() => onClick?.(route)}
     >
-      {/* Background wider track bed */}
+      {/* 1. Track Shadow */}
+      <line
+        x1={ox1 + 1}
+        y1={oy1 + 2}
+        x2={ox2 + 1}
+        y2={oy2 + 2}
+        stroke="rgba(56, 44, 38, 0.45)"
+        strokeWidth={isHovered ? 14 : 10}
+        strokeLinecap="round"
+      />
+
+      {/* 2. Wooden Sleepers / Track Bed */}
       <line
         x1={ox1}
         y1={oy1}
         x2={ox2}
         y2={oy2}
-        stroke={isHovered ? '#38BDF8' : '#0F172A'}
-        strokeWidth={isHovered ? 14 : 10}
+        stroke={isHovered ? '#C59B27' : '#3D281A'}
+        strokeWidth={isHovered ? 13 : 9.5}
         strokeLinecap="round"
-        opacity={isHovered ? 0.9 : 0.8}
         style={{
           transition: 'all 0.15s ease',
-          filter: isHovered ? 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.8))' : undefined,
+          filter: isHovered ? 'drop-shadow(0 0 6px rgba(197, 155, 39, 0.7))' : undefined,
         }}
       />
 
-      {/* Segmented dashed track for train pieces */}
+      {/* 3. Dual Steel Rails Layer */}
+      <line
+        x1={ox1}
+        y1={oy1}
+        x2={ox2}
+        y2={oy2}
+        stroke="#E8DBBE"
+        strokeWidth={7.5}
+        strokeLinecap="round"
+      />
+
+      {/* 4. Jewel Colored Train Cars Segments */}
       <line
         x1={ox1}
         y1={oy1}
         x2={ox2}
         y2={oy2}
         stroke={trackColor}
-        strokeWidth={isHovered ? 8 : 6}
+        strokeWidth={isHovered ? 7 : 5.5}
         strokeDasharray={`${Math.max(8, len / route.length - 4)} 4`}
         strokeLinecap="round"
         style={{
           transition: 'all 0.15s ease',
-          filter: isClaimed ? 'drop-shadow(0 0 4px rgba(255,255,255,0.4))' : undefined,
+          filter: isClaimed ? 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))' : undefined,
         }}
       />
 
-      {/* Claimable highlight pulse */}
+      {/* 5. Claimable Golden Brass Pulse */}
       {isClaimable && !isClaimed && !isHovered && (
         <line
           x1={ox1}
           y1={oy1}
           x2={ox2}
           y2={oy2}
-          stroke="#38BDF8"
-          strokeWidth={8}
-          strokeDasharray="6 6"
-          strokeOpacity={0.7}
+          stroke="#F6DC88"
+          strokeWidth={7.5}
+          strokeDasharray="5 5"
+          strokeOpacity={0.85}
           strokeLinecap="round"
         >
           <animate
             attributeName="stroke-dashoffset"
             from="0"
-            to="24"
-            dur="1.5s"
+            to="20"
+            dur="1.2s"
             repeatCount="indefinite"
           />
         </line>
       )}
 
-      {/* Neural Hover Overlay Badge on Track */}
+      {/* 6. Victorian Brass Neural Plaque on Hover */}
       {isHovered && hoveredMeta && hoveredMeta.probability !== undefined && (
         <g transform={`translate(${midX}, ${midY})`} style={{ pointerEvents: 'none' }}>
           <rect
+            x={-38}
+            y={-15}
+            width={76}
+            height={30}
+            rx={5}
+            fill="#FAF3E6"
+            stroke={hoveredMeta.isMasked ? '#B91C1C' : '#C59B27'}
+            strokeWidth={2}
+            filter="drop-shadow(0 2px 8px rgba(0,0,0,0.4))"
+          />
+          <rect
             x={-35}
-            y={-14}
+            y={-12}
             width={70}
-            height={28}
-            rx={6}
-            fill="rgba(15, 23, 42, 0.95)"
-            stroke={hoveredMeta.isMasked ? '#F43F5E' : '#38BDF8'}
-            strokeWidth={1.5}
-            filter="drop-shadow(0 2px 8px rgba(0,0,0,0.6))"
+            height={24}
+            rx={3}
+            fill="none"
+            stroke="#4D311E"
+            strokeWidth={0.75}
+            strokeDasharray="2 1"
           />
           <text
             x={0}
-            y={4}
+            y={3}
             textAnchor="middle"
-            fill={hoveredMeta.isMasked ? '#F43F5E' : '#38BDF8'}
+            fill={hoveredMeta.isMasked ? '#B91C1C' : '#23140C'}
             fontSize={11}
             fontWeight="bold"
-            fontFamily="monospace"
+            fontFamily="'Courier Prime', 'JetBrains Mono', monospace"
           >
-            {hoveredMeta.isMasked ? 'MASKED' : `P: ${(hoveredMeta.probability * 100).toFixed(0)}%`}
+            {hoveredMeta.isMasked ? 'LOCKED' : `P: ${(hoveredMeta.probability * 100).toFixed(0)}%`}
           </text>
         </g>
       )}

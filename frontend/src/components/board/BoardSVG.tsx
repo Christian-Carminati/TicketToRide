@@ -8,6 +8,7 @@ import {
   getMapData,
 } from './mapData';
 import { RouteEdge } from './RouteEdge';
+import { UsaCartographyBackground } from './UsaCartographyBackground';
 
 interface BoardSVGProps {
   mapName?: string;
@@ -81,36 +82,67 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
     return map;
   }, [players]);
 
+  const isUsaMap = (mapName || 'usa').toLowerCase() === 'usa';
+
   return (
-    <div className="board-svg-container" style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div
+      className="board-svg-container steampunk-panel"
+      style={{
+        width: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '6px',
+        backgroundColor: '#26180F',
+        border: '3px solid #C59B27',
+        borderRadius: '12px',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45), inset 0 0 15px rgba(0,0,0,0.5)',
+      }}
+    >
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         style={{
           width: '100%',
           height: 'auto',
           display: 'block',
-          background: 'linear-gradient(135deg, #090D16 0%, #0F172A 100%)',
-          borderRadius: '12px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          borderRadius: '8px',
+          background: '#F4ECDC',
         }}
       >
-        {/* Subtle grid pattern background */}
-        <defs>
-          <pattern id="board-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
-          </pattern>
-        </defs>
-        <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#board-grid)" />
+        {/* Background Cartography Layer */}
+        {isUsaMap ? (
+          <UsaCartographyBackground width={SVG_WIDTH} height={SVG_HEIGHT} />
+        ) : (
+          <g>
+            <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="#F4ECDC" />
+            <defs>
+              <pattern id="mini-board-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(110, 75, 45, 0.1)" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#mini-board-grid)" />
+            {/* Border frame */}
+            <rect x={10} y={10} width={SVG_WIDTH - 20} height={SVG_HEIGHT - 20} rx={6} fill="none" stroke="#B8860B" strokeWidth={2} />
+          </g>
+        )}
 
-        {/* Observability Mode & Map watermark indicator */}
-        <g transform="translate(20, 30)" opacity={0.4} style={{ pointerEvents: 'none' }}>
-          <text fill="#94A3B8" fontSize={11} fontFamily="monospace" letterSpacing="0.05em">
+        {/* Observability Mode & Cartographer Banner (Top Left) */}
+        <g transform="translate(24, 30)" opacity={0.85} style={{ pointerEvents: 'none' }}>
+          <rect
+            x={-6}
+            y={-14}
+            width={340}
+            height={22}
+            rx={4}
+            fill="rgba(250, 245, 235, 0.85)"
+            stroke="rgba(184, 134, 11, 0.6)"
+            strokeWidth={1}
+          />
+          <text fill="#4A2F1D" fontSize={10} fontFamily="'Courier Prime', 'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.06em">
             {observabilityMode === 'god'
-              ? `● OBSERVER: FULL OMNISCIENT (GOD MODE) [${mapName.toUpperCase()} MAP]`
+              ? `● PERCEPTION: OMNISCIENT OBSERVER [${mapName.toUpperCase()}]`
               : observabilityMode === 'player_0'
-              ? `● AGENT VIEW: PLAYER 0 (PARTIAL OBSERVABILITY) [${mapName.toUpperCase()} MAP]`
-              : `● AGENT VIEW: PLAYER 1 (PARTIAL OBSERVABILITY) [${mapName.toUpperCase()} MAP]`}
+              ? `● AGENT A: PARTIAL OBSERVABILITY [${mapName.toUpperCase()}]`
+              : `● AGENT B: PARTIAL OBSERVABILITY [${mapName.toUpperCase()}]`}
           </text>
         </g>
 
