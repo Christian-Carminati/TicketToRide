@@ -83,7 +83,6 @@ export const GameView: React.FC = () => {
 
   const handleRouteClick = (route: BoardRoute) => {
     if (!isHumanTurn || !gameState) return;
-    // Check if there is a valid CLAIM_ROUTE action for this route
     const matchingActions = gameState.valid_actions.filter(
       (a) => a.action_type === 'CLAIM_ROUTE' && a.route_id === route.id
     );
@@ -123,38 +122,51 @@ export const GameView: React.FC = () => {
   const currentPlayer = gameState?.players[gameState.current_player_index];
 
   return (
-    <div className="game-view" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="game-view" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Top Configuration & Control Bar */}
       <div
-        className="control-bar"
+        className="control-bar steampunk-panel"
         style={{
-          background: 'rgba(15, 23, 42, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '1rem 1.5rem',
+          padding: '0.85rem 1.25rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', color: '#38BDF8', fontWeight: 600 }}>
-            <span>🗺️ USA Official (36 città, 100 tratte)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: '#FAF0DA',
+              border: '1.5px solid #C59B27',
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              color: '#23140C',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 800,
+            }}
+          >
+            <span>🗺️ USA Cartographical Survey (36 Cities, 100 Routes)</span>
           </div>
 
-          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600, marginLeft: '0.5rem' }}>P1:</label>
+          <label style={{ fontSize: '0.82rem', color: '#4A2F1D', fontWeight: 700, fontFamily: "'Crimson Pro', serif", marginLeft: '0.3rem' }}>P1:</label>
           <select
             value={player1Type}
             onChange={(e) => setPlayer1Type(e.target.value)}
             style={{
-              backgroundColor: '#1E293B',
-              color: '#F1F5F9',
-              border: '1px solid rgba(255,255,255,0.1)',
+              backgroundColor: '#FAF5EB',
+              color: '#23140C',
+              border: '1.5px solid #8C6305',
               borderRadius: '6px',
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.85rem',
+              padding: '0.3rem 0.6rem',
+              fontSize: '0.82rem',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
             }}
           >
             <option value="human">Human Player</option>
@@ -165,17 +177,19 @@ export const GameView: React.FC = () => {
             <option value="random">RandomBot</option>
           </select>
 
-          <label style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>vs P2:</label>
+          <label style={{ fontSize: '0.82rem', color: '#4A2F1D', fontWeight: 700, fontFamily: "'Crimson Pro', serif" }}>vs P2:</label>
           <select
             value={player2Type}
             onChange={(e) => setPlayer2Type(e.target.value)}
             style={{
-              backgroundColor: '#1E293B',
-              color: '#F1F5F9',
-              border: '1px solid rgba(255,255,255,0.1)',
+              backgroundColor: '#FAF5EB',
+              color: '#23140C',
+              border: '1.5px solid #8C6305',
               borderRadius: '6px',
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.85rem',
+              padding: '0.3rem 0.6rem',
+              fontSize: '0.82rem',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
             }}
           >
             <option value="ppo">PPO Agent</option>
@@ -188,19 +202,20 @@ export const GameView: React.FC = () => {
 
           {(player1Type === 'ppo' || player1Type === 'dqn' || player2Type === 'ppo' || player2Type === 'dqn') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <label style={{ fontSize: '0.85rem', color: '#38BDF8', fontWeight: 600 }}>🤖 Checkpoint:</label>
+              <label style={{ fontSize: '0.82rem', color: '#9E6B00', fontWeight: 800, fontFamily: "'Playfair Display', serif" }}>🤖 Checkpoint:</label>
               <select
                 value={selectedCheckpoint}
                 onChange={(e) => setSelectedCheckpoint(e.target.value)}
                 style={{
-                  backgroundColor: '#0F172A',
-                  color: '#38BDF8',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  backgroundColor: '#FAF5EB',
+                  color: '#23140C',
+                  border: '1.5px solid #8C6305',
                   borderRadius: '6px',
-                  padding: '0.35rem 0.6rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  maxWidth: '280px',
+                  padding: '0.3rem 0.6rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  maxWidth: '260px',
+                  fontFamily: "'Courier Prime', monospace",
                 }}
               >
                 {checkpoints.map((ckpt) => (
@@ -215,17 +230,8 @@ export const GameView: React.FC = () => {
           <button
             onClick={handleStartNewGame}
             disabled={isLoading}
-            style={{
-              backgroundColor: '#3B82F6',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.4rem 0.9rem',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)',
-            }}
+            className="steampunk-btn"
+            style={{ padding: '0.35rem 0.9rem', fontSize: '0.82rem' }}
           >
             🎮 Nuova Partita
           </button>
@@ -236,40 +242,37 @@ export const GameView: React.FC = () => {
           <button
             onClick={() => stepGame(null)}
             disabled={isLoading || isAutoPlaying || Boolean(gameState?.is_game_over)}
+            className="steampunk-btn"
             style={{
-              backgroundColor: '#10B981',
+              background: 'linear-gradient(180deg, #86EFAC 0%, #16A34A 50%, #14532D 100%)',
               color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.4rem 0.8rem',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
+              border: '1px solid #14532D',
+              padding: '0.35rem 0.8rem',
+              fontSize: '0.82rem',
               opacity: isAutoPlaying ? 0.5 : 1,
             }}
           >
-            ▶ Step Next Turn
+            ▶ Step Turn
           </button>
 
           <button
             onClick={toggleAutoPlay}
             disabled={Boolean(gameState?.is_game_over)}
+            className="steampunk-btn"
             style={{
-              backgroundColor: isAutoPlaying ? '#EF4444' : '#6366F1',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.4rem 0.8rem',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
+              background: isAutoPlaying
+                ? 'linear-gradient(180deg, #F87171 0%, #DC2626 50%, #991B1B 100%)'
+                : 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)',
+              color: isAutoPlaying ? '#FFFFFF' : '#23140C',
+              padding: '0.35rem 0.8rem',
+              fontSize: '0.82rem',
             }}
           >
             {isAutoPlaying ? '⏸ Pause' : '▶▶ Autoplay'}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#94A3B8' }}>
-            <span>Speed:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: '#5A3822', fontFamily: "'Courier Prime', monospace" }}>
+            <span>Rate:</span>
             <input
               type="range"
               min="100"
@@ -277,7 +280,7 @@ export const GameView: React.FC = () => {
               step="100"
               value={playSpeedMs}
               onChange={(e) => setPlaySpeedMs(Number(e.target.value))}
-              style={{ width: '80px' }}
+              style={{ width: '70px', accentColor: '#B8860B' }}
             />
             <span>{playSpeedMs}ms</span>
           </div>
@@ -285,7 +288,7 @@ export const GameView: React.FC = () => {
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #EF4444', color: '#FCA5A5', fontSize: '0.85rem' }}>
+        <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#FEE2E2', border: '1.5px solid #DC2626', color: '#991B1B', fontSize: '0.85rem', fontFamily: "'Playfair Display', serif" }}>
           ⚠️ {error}
         </div>
       )}
@@ -293,27 +296,29 @@ export const GameView: React.FC = () => {
       {/* Game Over Banner */}
       {gameState?.is_game_over && (
         <div
+          className="steampunk-panel"
           style={{
             padding: '1.25rem',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
-            border: '2px solid #F59E0B',
+            border: '3px solid #B8860B',
             textAlign: 'center',
+            background: 'linear-gradient(180deg, #FAF3E6 0%, #EADBBE 100%)',
           }}
         >
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#FCD34D' }}>🏆 Game Over!</h3>
-          <p style={{ margin: 0, color: '#F1F5F9', fontSize: '1rem' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#23140C', fontFamily: "'Cinzel Decorative', Georgia, serif", fontSize: '1.3rem' }}>
+            🏆 Match Concluded — Final Tally
+          </h3>
+          <p style={{ margin: 0, color: '#4A2F1D', fontSize: '1rem', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700 }}>
             Final Scores: {gameState.players.map((p) => `${p.name}: ${p.score} pts`).join(' | ')}
           </p>
         </div>
       )}
 
       {/* Main Game Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1.25rem' }}>
-        {/* Left Column: Board & Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '1rem' }}>
+        {/* Left Column: Board & Decks */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <BoardSVG
-            mapName={gameState?.map_name || 'mini'}
+            mapName={gameState?.map_name || 'usa'}
             claimedRoutes={gameState?.claimed_routes || {}}
             players={gameState?.players || []}
             validActions={gameState?.valid_actions || []}
@@ -335,30 +340,28 @@ export const GameView: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: Player Hands & Ticket Objectives */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Right Column: Player Hands & Telegrams */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {/* Turn Status Badge */}
           <div
+            className="steampunk-panel"
             style={{
               padding: '0.75rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
             <div>
-              <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Turn #{gameState?.turn_number || 1}</span>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#F1F5F9' }}>
-                Active: <span style={{ color: currentPlayer?.color || '#38BDF8' }}>{currentPlayer?.name}</span>
+              <span style={{ fontSize: '0.78rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>Turn #{gameState?.turn_number || 1}</span>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#23140C', fontFamily: "'Playfair Display', Georgia, serif" }}>
+                Active Turn: <span style={{ color: currentPlayer?.color || '#9E6B00' }}>{currentPlayer?.name}</span>
               </div>
             </div>
             {gameState?.last_reward !== null && gameState?.last_reward !== undefined && (
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Last Reward</span>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: (gameState.last_reward || 0) >= 0 ? '#10B981' : '#EF4444' }}>
+                <span style={{ fontSize: '0.72rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>Last Reward</span>
+                <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: "'Courier Prime', monospace", color: (gameState.last_reward || 0) >= 0 ? '#15803D' : '#B91C1C' }}>
                   {(gameState.last_reward || 0) > 0 ? `+${gameState.last_reward}` : gameState.last_reward}
                 </div>
               </div>
@@ -385,35 +388,37 @@ export const GameView: React.FC = () => {
         </div>
       </div>
 
-      {/* Claim Route Color Selection Modal (if multiple colors valid) */}
+      {/* Claim Route Color Selection Modal */}
       {claimModalRoute && gameState && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.7)',
+            backgroundColor: 'rgba(38, 24, 15, 0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 100,
+            backdropFilter: 'blur(4px)',
           }}
         >
           <div
+            className="steampunk-panel"
             style={{
-              background: '#1E293B',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '12px',
               padding: '1.5rem',
-              maxWidth: '400px',
+              maxWidth: '420px',
               width: '100%',
+              border: '3px solid #C59B27',
             }}
           >
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#F1F5F9' }}>Claim Route</h3>
-            <p style={{ color: '#94A3B8', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Choose which color cards to spend for {claimModalRoute.city_a} ⟷ {claimModalRoute.city_b}:
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#23140C', fontFamily: "'Cinzel Decorative', Georgia, serif" }}>
+              Claim Railway Track
+            </h3>
+            <p style={{ color: '#5A3822', fontSize: '0.9rem', marginBottom: '1rem', fontFamily: "'Crimson Pro', Georgia, serif" }}>
+              Choose which stock color to spend for {claimModalRoute.city_a} ⟷ {claimModalRoute.city_b}:
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {gameState.valid_actions
                 .filter((a) => a.action_type === 'CLAIM_ROUTE' && a.route_id === claimModalRoute.id)
                 .map((a, idx) => (
@@ -423,15 +428,11 @@ export const GameView: React.FC = () => {
                       stepGame(a);
                       setClaimModalRoute(null);
                     }}
+                    className="steampunk-btn"
                     style={{
                       padding: '0.6rem 1rem',
-                      borderRadius: '8px',
-                      background: '#334155',
-                      color: '#F8FAFC',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      cursor: 'pointer',
-                      fontWeight: 600,
                       textAlign: 'left',
+                      fontSize: '0.85rem',
                     }}
                   >
                     Spend {claimModalRoute.length} {a.card_color || 'Cards'}
@@ -441,14 +442,13 @@ export const GameView: React.FC = () => {
 
             <button
               onClick={() => setClaimModalRoute(null)}
+              className="steampunk-btn"
               style={{
                 width: '100%',
-                padding: '0.5rem',
-                borderRadius: '6px',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#94A3B8',
-                cursor: 'pointer',
+                padding: '0.45rem',
+                background: 'linear-gradient(180deg, #D4C09D 0%, #A88D75 100%)',
+                color: '#23140C',
+                border: '1px solid #785A42',
               }}
             >
               Cancel

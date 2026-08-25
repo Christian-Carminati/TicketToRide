@@ -138,27 +138,26 @@ export const ReportsView: React.FC = () => {
       const dataRows = tableRows.slice(1).filter((r) => !r.every((c) => c.trim().match(/^:?-+:?$/)));
 
       const el = (
-        <div key={`table-${key}`} style={{ overflowX: 'auto', margin: '1rem 0' }}>
+        <div key={`table-${key}`} style={{ overflowX: 'auto', margin: '1rem 0', borderRadius: '8px', border: '1.5px solid #C59B27' }}>
           <table
             style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: '0.85rem',
-              backgroundColor: 'rgba(15, 23, 42, 0.6)',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              fontSize: '0.82rem',
+              backgroundColor: '#FAF5EB',
+              textAlign: 'left',
             }}
           >
             <thead>
-              <tr style={{ background: 'rgba(30, 41, 59, 0.9)', borderBottom: '2px solid rgba(56, 189, 248, 0.3)' }}>
+              <tr style={{ background: 'linear-gradient(180deg, #EFE1C7 0%, #E2CFAC 100%)', borderBottom: '2px solid #C59B27' }}>
                 {headers.map((h, i) => (
                   <th
                     key={i}
                     style={{
                       padding: '0.65rem 0.85rem',
-                      color: '#38BDF8',
-                      fontWeight: 700,
+                      color: '#23140C',
+                      fontWeight: 800,
+                      fontFamily: "'Playfair Display', Georgia, serif",
                       textAlign: i === 0 ? 'left' : 'center',
                     }}
                   >
@@ -172,8 +171,8 @@ export const ReportsView: React.FC = () => {
                 <tr
                   key={ri}
                   style={{
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                    background: ri % 2 === 1 ? 'rgba(30, 41, 59, 0.25)' : 'transparent',
+                    borderBottom: '1px solid rgba(184, 134, 11, 0.2)',
+                    background: ri % 2 === 1 ? 'rgba(246, 238, 223, 0.5)' : 'transparent',
                   }}
                 >
                   {row.map((cell, ci) => {
@@ -182,10 +181,10 @@ export const ReportsView: React.FC = () => {
                     const isPositiveDiff = cleanCell.startsWith('+');
                     const isNegativeDiff = cleanCell.startsWith('-');
 
-                    let cellColor = '#E2E8F0';
-                    if (isWinRate && parseFloat(cleanCell) >= 50) cellColor = '#34D399';
-                    else if (isPositiveDiff) cellColor = '#38BDF8';
-                    else if (isNegativeDiff) cellColor = '#F87171';
+                    let cellColor = '#23140C';
+                    if (isWinRate && parseFloat(cleanCell) >= 50) cellColor = '#15803D';
+                    else if (isPositiveDiff) cellColor = '#1D4ED8';
+                    else if (isNegativeDiff) cellColor = '#B91C1C';
 
                     return (
                       <td
@@ -194,8 +193,8 @@ export const ReportsView: React.FC = () => {
                           padding: '0.55rem 0.85rem',
                           textAlign: ci === 0 ? 'left' : 'center',
                           color: cellColor,
-                          fontWeight: ci === 0 ? 600 : 500,
-                          fontFamily: ci > 0 ? 'monospace' : 'inherit',
+                          fontWeight: ci === 0 ? 700 : 600,
+                          fontFamily: ci > 0 ? "'Courier Prime', monospace" : "'Playfair Display', serif",
                         }}
                       >
                         {renderInlineMarkdown(cleanCell)}
@@ -223,15 +222,16 @@ export const ReportsView: React.FC = () => {
             <pre
               key={`code-${idx}`}
               style={{
-                background: '#0B1120',
-                padding: '0.85rem',
+                background: '#2B1D14',
+                color: '#FAF5EB',
+                border: '1.5px solid #8C6305',
                 borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#CBD5E1',
-                fontSize: '0.8rem',
+                padding: '0.85rem 1rem',
                 overflowX: 'auto',
-                margin: '0.75rem 0',
-                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                fontFamily: "'Courier Prime', monospace",
+                margin: '0.85rem 0',
+                boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
               }}
             >
               <code>{codeContent.join('\n')}</code>
@@ -257,8 +257,11 @@ export const ReportsView: React.FC = () => {
       // Tables
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
         inTable = true;
-        const cols = trimmed.slice(1, -1).split('|');
-        tableRows.push(cols);
+        const cells = trimmed
+          .slice(1, -1)
+          .split('|')
+          .map((c) => c.trim());
+        tableRows.push(cells);
         return;
       } else if (inTable) {
         const tbl = flushTable(idx);
@@ -268,55 +271,56 @@ export const ReportsView: React.FC = () => {
       // Headings
       if (trimmed.startsWith('# ')) {
         elements.push(
-          <h2
+          <h1
             key={idx}
             style={{
               fontSize: '1.4rem',
-              fontWeight: 800,
-              color: '#F8FAFC',
-              margin: '1.25rem 0 0.5rem 0',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              fontWeight: 900,
+              color: '#23140C',
+              fontFamily: "'Cinzel Decorative', Georgia, serif",
+              margin: '1.5rem 0 0.6rem 0',
+              borderBottom: '2px solid #C59B27',
               paddingBottom: '0.4rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
             }}
           >
-            <BookOpen size={20} color="#38BDF8" />
             {trimmed.slice(2)}
-          </h2>
+          </h1>
         );
         return;
       }
       if (trimmed.startsWith('## ')) {
         elements.push(
-          <h3
+          <h2
             key={idx}
             style={{
               fontSize: '1.15rem',
-              fontWeight: 700,
-              color: '#38BDF8',
-              margin: '1.2rem 0 0.4rem 0',
+              fontWeight: 800,
+              color: '#23140C',
+              fontFamily: "'Cinzel Decorative', Georgia, serif",
+              margin: '1.25rem 0 0.4rem 0',
+              borderBottom: '1px solid rgba(184, 134, 11, 0.3)',
+              paddingBottom: '0.25rem',
             }}
           >
             {trimmed.slice(3)}
-          </h3>
+          </h2>
         );
         return;
       }
       if (trimmed.startsWith('### ')) {
         elements.push(
-          <h4
+          <h3
             key={idx}
             style={{
               fontSize: '0.98rem',
-              fontWeight: 600,
-              color: '#A78BFA',
+              fontWeight: 800,
+              color: '#9E6B00',
+              fontFamily: "'Playfair Display', Georgia, serif",
               margin: '1rem 0 0.3rem 0',
             }}
           >
             {trimmed.slice(4)}
-          </h4>
+          </h3>
         );
         return;
       }
@@ -327,13 +331,15 @@ export const ReportsView: React.FC = () => {
           <div
             key={idx}
             style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              borderLeft: '4px solid #38BDF8',
+              background: '#FAF0DA',
+              borderLeft: '4px solid #C59B27',
               padding: '0.5rem 0.85rem',
               borderRadius: '0 6px 6px 0',
               margin: '0.6rem 0',
-              color: '#CBD5E1',
+              color: '#4A2F1D',
               fontSize: '0.85rem',
+              fontFamily: "'Crimson Pro', Georgia, serif",
+              fontStyle: 'italic',
             }}
           >
             {renderInlineMarkdown(trimmed.slice(2))}
@@ -353,10 +359,11 @@ export const ReportsView: React.FC = () => {
               gap: '0.5rem',
               margin: '0.25rem 0',
               fontSize: '0.85rem',
-              color: '#E2E8F0',
+              color: '#23140C',
+              fontFamily: "'Crimson Pro', Georgia, serif",
             }}
           >
-            <span style={{ color: '#38BDF8', marginTop: '0.1rem' }}>•</span>
+            <span style={{ color: '#9E6B00', marginTop: '0.1rem' }}>•</span>
             <span>{renderInlineMarkdown(trimmed.slice(2))}</span>
           </div>
         );
@@ -370,7 +377,7 @@ export const ReportsView: React.FC = () => {
             key={idx}
             style={{
               border: 'none',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              borderTop: '1px solid rgba(184, 134, 11, 0.3)',
               margin: '1.25rem 0',
             }}
           />
@@ -385,9 +392,10 @@ export const ReportsView: React.FC = () => {
             key={idx}
             style={{
               margin: '0.4rem 0',
-              fontSize: '0.85rem',
-              lineHeight: 1.55,
-              color: '#CBD5E1',
+              fontSize: '0.88rem',
+              lineHeight: 1.6,
+              color: '#23140C',
+              fontFamily: "'Crimson Pro', Georgia, serif",
             }}
           >
             {renderInlineMarkdown(trimmed)}
@@ -404,13 +412,12 @@ export const ReportsView: React.FC = () => {
     return elements;
   };
 
-  // Inline formatting helper: **bold**, `code`, *italic*
   const renderInlineMarkdown = (text: string): React.ReactNode => {
     const parts = text.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
-          <strong key={i} style={{ color: '#F1F5F9', fontWeight: 700 }}>
+          <strong key={i} style={{ color: '#23140C', fontWeight: 800 }}>
             {part.slice(2, -2)}
           </strong>
         );
@@ -420,13 +427,13 @@ export const ReportsView: React.FC = () => {
           <code
             key={i}
             style={{
-              backgroundColor: 'rgba(30, 41, 59, 0.8)',
-              color: '#38BDF8',
-              padding: '0.1rem 0.35rem',
+              background: '#EADBBE',
+              color: '#23140C',
+              border: '1px solid #C59B27',
               borderRadius: '4px',
+              padding: '0.1rem 0.35rem',
               fontSize: '0.8rem',
-              fontFamily: 'monospace',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              fontFamily: "'Courier Prime', monospace",
             }}
           >
             {part.slice(1, -1)}
@@ -435,7 +442,7 @@ export const ReportsView: React.FC = () => {
       }
       if (part.startsWith('*') && part.endsWith('*')) {
         return (
-          <em key={i} style={{ color: '#94A3B8' }}>
+          <em key={i} style={{ fontStyle: 'italic' }}>
             {part.slice(1, -1)}
           </em>
         );
@@ -455,17 +462,18 @@ export const ReportsView: React.FC = () => {
             justifyContent: 'space-between',
             padding: '0.6rem 1rem',
             borderRadius: '8px',
-            background: actionMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-            border: `1px solid ${actionMessage.type === 'success' ? '#10B981' : '#F43F5E'}`,
-            color: actionMessage.type === 'success' ? '#34D399' : '#F43F5E',
+            background: actionMessage.type === 'success' ? '#FAF3E6' : '#FEE2E2',
+            border: `1.5px solid ${actionMessage.type === 'success' ? '#15803D' : '#B91C1C'}`,
+            color: actionMessage.type === 'success' ? '#15803D' : '#B91C1C',
             fontSize: '0.85rem',
-            fontWeight: 600,
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: 700,
           }}
         >
           <span>{actionMessage.text}</span>
           <button
             onClick={() => setActionMessage(null)}
-            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 700 }}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 800 }}
           >
             ✕
           </button>
@@ -474,10 +482,8 @@ export const ReportsView: React.FC = () => {
 
       {/* Top Header Card */}
       <div
+        className="steampunk-panel"
         style={{
-          background: 'rgba(15, 23, 42, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
           padding: '1rem 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -489,24 +495,26 @@ export const ReportsView: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <div
             style={{
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #6366F1 100%)',
+              background: 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)',
+              border: '1.5px solid #6E4E04',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFFFFF',
+              color: '#23140C',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
             }}
           >
-            <BookOpen size={20} />
+            <BookOpen size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#F1F5F9' }}>
-              Scientific Reports & Behavioral Benchmarks
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#23140C', fontFamily: "'Cinzel Decorative', Georgia, serif" }}>
+              Scientific Dispatch Archive & Benchmark Reports
             </h3>
-            <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
-              Esplora i report scientifici Markdown e i dataset di telemetria generati dagli studi di RL (Fase 6 e 7)
+            <div style={{ fontSize: '0.8rem', color: '#5A3822', fontFamily: "'Crimson Pro', Georgia, serif" }}>
+              Explore official Markdown dispatches and empirical tournament logs produced during RL laboratory runs
             </div>
           </div>
         </div>
@@ -516,22 +524,16 @@ export const ReportsView: React.FC = () => {
           <button
             onClick={fetchReports}
             disabled={isLoading}
+            className="steampunk-btn"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#E2E8F0',
-              borderRadius: '6px',
-              padding: '0.4rem 0.75rem',
-              fontWeight: 600,
               fontSize: '0.8rem',
-              cursor: 'pointer',
             }}
           >
             <RefreshCw size={14} />
-            <span>Ricarica</span>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -547,10 +549,8 @@ export const ReportsView: React.FC = () => {
       >
         {/* Left: Reports Catalog Sidebar */}
         <div
+          className="steampunk-panel"
           style={{
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
             padding: '1rem',
             display: 'flex',
             flexDirection: 'column',
@@ -560,73 +560,60 @@ export const ReportsView: React.FC = () => {
           {/* Search & Phase Filters */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={13} color="#64748B" style={{ position: 'absolute', left: '0.6rem' }} />
+              <Search size={13} color="#785A42" style={{ position: 'absolute', left: '0.6rem' }} />
               <input
                 type="text"
-                placeholder="Cerca report..."
+                placeholder="Search reports..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: '#1E293B',
-                  color: '#F1F5F9',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: '#FAF5EB',
+                  color: '#23140C',
+                  border: '1.5px solid #8C6305',
                   borderRadius: '6px',
                   padding: '0.35rem 0.6rem 0.35rem 1.8rem',
                   fontSize: '0.8rem',
                   boxSizing: 'border-box',
+                  fontFamily: "'Courier Prime', monospace",
                 }}
               />
             </div>
 
-            {/* Phase Selector Tabs */}
-            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setPhaseFilter('all')}
-                style={{
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  border: 'none',
-                  background: phaseFilter === 'all' ? '#3B82F6' : 'rgba(30, 41, 59, 0.6)',
-                  color: phaseFilter === 'all' ? '#FFFFFF' : '#94A3B8',
-                  cursor: 'pointer',
-                }}
-              >
-                Tutti ({reports.length})
-              </button>
-              {uniquePhases.map((phase) => (
+            {/* Phase Selector */}
+            {uniquePhases.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                 <button
-                  key={phase}
-                  onClick={() => setPhaseFilter(phase)}
+                  onClick={() => setPhaseFilter('all')}
+                  className="steampunk-btn"
                   style={{
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '4px',
+                    padding: '0.15rem 0.5rem',
                     fontSize: '0.7rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    background: phaseFilter === phase ? '#3B82F6' : 'rgba(30, 41, 59, 0.6)',
-                    color: phaseFilter === phase ? '#FFFFFF' : '#94A3B8',
-                    cursor: 'pointer',
+                    background: phaseFilter === 'all' ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 100%)' : '#FAF5EB',
                   }}
                 >
-                  {phase}
+                  All
                 </button>
-              ))}
-            </div>
+                {uniquePhases.map((phase) => (
+                  <button
+                    key={phase}
+                    onClick={() => setPhaseFilter(phase)}
+                    className="steampunk-btn"
+                    style={{
+                      padding: '0.15rem 0.5rem',
+                      fontSize: '0.7rem',
+                      background: phaseFilter === phase ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 100%)' : '#FAF5EB',
+                    }}
+                  >
+                    {phase}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Report Items List */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.4rem',
-              maxHeight: '600px',
-              overflowY: 'auto',
-            }}
-          >
+          {/* Files List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '550px', overflowY: 'auto' }}>
             {filteredReports.map((r) => {
               const isSelected = selectedFilename === r.filename;
               return (
@@ -634,323 +621,146 @@ export const ReportsView: React.FC = () => {
                   key={r.filename}
                   onClick={() => setSelectedFilename(r.filename)}
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'rgba(30, 41, 59, 0.4)',
-                    border: `1px solid ${isSelected ? '#3B82F6' : 'rgba(255, 255, 255, 0.05)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '6px',
+                    backgroundColor: isSelected ? '#FAF0DA' : '#FAF5EB',
+                    border: `1.5px solid ${isSelected ? '#B8860B' : 'rgba(184, 134, 11, 0.25)'}`,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.25rem',
+                    boxShadow: isSelected ? '0 2px 6px rgba(184, 134, 11, 0.25)' : 'none',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
-                      {r.file_type === 'markdown' ? (
-                        <FileText size={15} color="#38BDF8" style={{ flexShrink: 0 }} />
-                      ) : (
-                        <FileCode size={15} color="#FBBF24" style={{ flexShrink: 0 }} />
-                      )}
-                      <span
-                        style={{
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          color: isSelected ? '#38BDF8' : '#F1F5F9',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                    {r.file_type === 'markdown' ? <FileText size={15} color="#9E6B00" /> : <FileCode size={15} color="#7E22CE" />}
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: isSelected ? 800 : 600, color: '#23140C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Playfair Display', Georgia, serif" }}>
                         {r.name}
                       </span>
+                      <span style={{ fontSize: '0.7rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>
+                        {r.size_kb} KB • {r.modified_at.split(' ')[0]}
+                      </span>
                     </div>
-                    <span
-                      style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        padding: '0.1rem 0.35rem',
-                        borderRadius: '4px',
-                        background: r.file_type === 'markdown' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                        color: r.file_type === 'markdown' ? '#38BDF8' : '#FBBF24',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {r.file_type}
-                    </span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
-                    <span style={{ fontFamily: 'monospace' }}>{r.filename}</span>
-                    <span>{r.size_kb} KB</span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredReports.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
-                Nessun report corrisponde ai criteri di ricerca.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Active Report Viewer */}
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            minHeight: '600px',
-          }}
-        >
-          {reportDetail ? (
-            <>
-              {/* Document Action Toolbar */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                  paddingBottom: '0.75rem',
-                  flexWrap: 'wrap',
-                  gap: '0.75rem',
-                }}
-              >
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#F1F5F9' }}>
-                    {reportDetail.name}
-                  </h4>
-                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.15rem' }}>
-                    File: <code style={{ color: '#38BDF8' }}>{reportDetail.filename}</code> • Ultima Modifica: {reportDetail.modified_at} • Dimensione: {reportDetail.size_kb} KB
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {/* Mode switch */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      background: 'rgba(30, 41, 59, 0.8)',
-                      borderRadius: '6px',
-                      padding: '0.15rem',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                    }}
-                  >
-                    <button
-                      onClick={() => setViewMode('rendered')}
-                      style={{
-                        border: 'none',
-                        background: viewMode === 'rendered' ? '#3B82F6' : 'transparent',
-                        color: viewMode === 'rendered' ? '#FFFFFF' : '#94A3B8',
-                        padding: '0.25rem 0.55rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Rendered
-                    </button>
-                    <button
-                      onClick={() => setViewMode('raw')}
-                      style={{
-                        border: 'none',
-                        background: viewMode === 'raw' ? '#3B82F6' : 'transparent',
-                        color: viewMode === 'raw' ? '#FFFFFF' : '#94A3B8',
-                        padding: '0.25rem 0.55rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Raw
-                    </button>
-                  </div>
-
-                  {/* Copy Button */}
                   <button
-                    onClick={handleCopy}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#CBD5E1',
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(r.filename);
                     }}
-                    title="Copia contenuto negli appunti"
-                  >
-                    {copied ? <Check size={13} color="#34D399" /> : <Copy size={13} />}
-                    <span>{copied ? 'Copiato!' : 'Copia'}</span>
-                  </button>
-
-                  {/* Download Button */}
-                  <button
-                    onClick={handleDownload}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#CBD5E1',
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#B91C1C',
                       cursor: 'pointer',
+                      padding: '0.2rem',
                     }}
-                    title="Scarica file su disco"
-                  >
-                    <Download size={13} />
-                    <span>Download</span>
-                  </button>
-
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => handleDelete(reportDetail.filename)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      background: 'rgba(239, 68, 68, 0.15)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      borderRadius: '6px',
-                      color: '#F87171',
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                    title="Elimina report"
+                    title="Delete dispatch"
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: Selected Report Reader */}
+        <div
+          className="steampunk-panel"
+          style={{
+            padding: '1.25rem',
+            minHeight: '600px',
+          }}
+        >
+          {isDetailLoading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#785A42', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>
+              Loading dispatch document...
+            </div>
+          ) : reportDetail ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Document Action Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '2px solid #C59B27', paddingBottom: '0.75rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#23140C', fontFamily: "'Cinzel Decorative', Georgia, serif" }}>
+                    {reportDetail.name}
+                  </h2>
+                  <div style={{ fontSize: '0.75rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>
+                    {reportDetail.filename} • {reportDetail.size_kb} KB
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setViewMode(viewMode === 'rendered' ? 'raw' : 'rendered')}
+                    className="steampunk-btn"
+                    style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                  >
+                    {viewMode === 'rendered' ? 'View Raw' : 'View Rendered'}
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    className="steampunk-btn"
+                    style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                  >
+                    {copied ? <Check size={13} color="#15803D" /> : <Copy size={13} />}
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="steampunk-btn"
+                    style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                  >
+                    <Download size={13} />
+                    <span>Download</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Rendered View or Raw View */}
-              {isDetailLoading ? (
-                <div style={{ padding: '3rem 0', textAlign: 'center', color: '#94A3B8' }}>
-                  Caricamento contenuto report in corso...
-                </div>
-              ) : viewMode === 'raw' ? (
-                <pre
-                  style={{
-                    background: '#0B1120',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: '#CBD5E1',
-                    fontSize: '0.8rem',
-                    lineHeight: 1.5,
-                    maxHeight: '650px',
-                    overflowY: 'auto',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {reportDetail.raw_content}
-                </pre>
-              ) : reportDetail.file_type === 'json' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {/* Summary Metric Cards for JSON Benchmarks */}
-                  {reportDetail.json_data?.reward_studies && (
-                    <div>
-                      <h5 style={{ margin: '0 0 0.5rem 0', color: '#38BDF8', fontSize: '0.9rem' }}>
-                        🎯 Riepilogo Multi-Reward (Fase 7)
-                      </h5>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                        {Object.entries(reportDetail.json_data.reward_studies).map(([k, v]: [string, any]) => {
-                          const vsRand = v?.vs_random || {};
-                          return (
-                            <div
-                              key={k}
-                              style={{
-                                background: 'rgba(30, 41, 59, 0.7)',
-                                border: '1px solid rgba(56, 189, 248, 0.2)',
-                                borderRadius: '8px',
-                                padding: '0.75rem',
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 800, color: '#38BDF8', fontSize: '0.85rem' }}>
-                                  {k.toUpperCase()}
-                                </span>
-                                <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>vs Random</span>
-                              </div>
-                              <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.75rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#94A3B8' }}>Win Rate:</span>
-                                  <span style={{ fontWeight: 700, color: '#34D399' }}>
-                                    {((vsRand.win_rate || 0) * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#94A3B8' }}>Avg Score:</span>
-                                  <span style={{ fontWeight: 700, color: '#F1F5F9' }}>
-                                    {(vsRand.avg_score || 0).toFixed(1)}
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#94A3B8' }}>Ticket Comp:</span>
-                                  <span style={{ fontWeight: 700, color: '#FBBF24' }}>
-                                    {((vsRand.ticket_completion_rate || 0) * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pretty printed JSON */}
+              {/* Document Body */}
+              <div style={{ color: '#23140C' }}>
+                {viewMode === 'rendered' ? (
+                  reportDetail.file_type === 'markdown' ? (
+                    renderMarkdown(reportDetail.raw_content)
+                  ) : (
+                    <pre
+                      style={{
+                        background: '#2B1D14',
+                        color: '#FAF5EB',
+                        border: '1.5px solid #8C6305',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        overflowX: 'auto',
+                        fontSize: '0.8rem',
+                        fontFamily: "'Courier Prime', monospace",
+                      }}
+                    >
+                      <code>{reportDetail.raw_content}</code>
+                    </pre>
+                  )
+                ) : (
                   <pre
                     style={{
-                      background: '#0B1120',
-                      padding: '1rem',
+                      background: '#2B1D14',
+                      color: '#FAF5EB',
+                      border: '1.5px solid #8C6305',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      color: '#CBD5E1',
+                      padding: '1rem',
+                      overflowX: 'auto',
                       fontSize: '0.8rem',
-                      maxHeight: '550px',
-                      overflowY: 'auto',
-                      fontFamily: 'monospace',
+                      fontFamily: "'Courier Prime', monospace",
                     }}
                   >
-                    {JSON.stringify(reportDetail.json_data || JSON.parse(reportDetail.raw_content), null, 2)}
+                    <code>{reportDetail.raw_content}</code>
                   </pre>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    maxHeight: '650px',
-                    overflowY: 'auto',
-                    paddingRight: '0.5rem',
-                  }}
-                >
-                  {renderMarkdown(reportDetail.raw_content)}
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#64748B', fontStyle: 'italic' }}>
-              Seleziona un report dalla lista a sinistra per visualizzarlo.
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#785A42', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>
+              Select a dispatch from the left catalog to read.
             </div>
           )}
         </div>

@@ -74,12 +74,13 @@ export const CheckpointManagerPane: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0.6rem 1rem',
-            borderRadius: '8px',
-            background: actionMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-            border: `1px solid ${actionMessage.type === 'success' ? '#10B981' : '#F43F5E'}`,
-            color: actionMessage.type === 'success' ? '#34D399' : '#F43F5E',
+            borderRadius: '6px',
+            background: actionMessage.type === 'success' ? '#FAF3E6' : '#FEE2E2',
+            border: `1.5px solid ${actionMessage.type === 'success' ? '#15803D' : '#B91C1C'}`,
+            color: actionMessage.type === 'success' ? '#15803D' : '#B91C1C',
             fontSize: '0.85rem',
-            fontWeight: 600,
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: 700,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -88,7 +89,7 @@ export const CheckpointManagerPane: React.FC = () => {
           </div>
           <button
             onClick={() => setActionMessage(null)}
-            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 700 }}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 800 }}
           >
             ✕
           </button>
@@ -103,39 +104,41 @@ export const CheckpointManagerPane: React.FC = () => {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          background: 'rgba(30, 41, 59, 0.6)',
+          background: 'linear-gradient(180deg, #FAF4E6 0%, #EADBBE 100%)',
           borderRadius: '8px',
           padding: '0.75rem 1rem',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: '1.5px solid #C59B27',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <HardDrive size={16} color="#A855F7" />
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F1F5F9' }}>
-              File Checkpoint Neurali ({checkpoints.length})
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <HardDrive size={16} color="#9E6B00" />
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#23140C', fontFamily: "'Cinzel Decorative', Georgia, serif" }}>
+              Neural Model Archive (.pt) ({checkpoints.length})
             </span>
-            <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontFamily: 'monospace' }}>
-              • {totalSizeMb.toFixed(2)} MB totali
+            <span style={{ fontSize: '0.75rem', color: '#785A42', fontFamily: "'Courier Prime', monospace" }}>
+              • {totalSizeMb.toFixed(2)} MB stored
             </span>
           </div>
 
           {/* Search filter */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search size={13} color="#64748B" style={{ position: 'absolute', left: '0.6rem' }} />
+            <Search size={13} color="#785A42" style={{ position: 'absolute', left: '0.6rem' }} />
             <input
               type="text"
-              placeholder="Filtra checkpoint (.pt)..."
+              placeholder="Search checkpoints..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                backgroundColor: '#0F172A',
-                color: '#F1F5F9',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: '#FAF5EB',
+                color: '#23140C',
+                border: '1.5px solid #8C6305',
                 borderRadius: '6px',
                 padding: '0.3rem 0.6rem 0.3rem 1.8rem',
                 fontSize: '0.8rem',
                 minWidth: '220px',
+                fontFamily: "'Courier Prime', monospace",
               }}
             />
           </div>
@@ -146,46 +149,35 @@ export const CheckpointManagerPane: React.FC = () => {
           <button
             onClick={handleDeleteAll}
             disabled={isLoading || checkpoints.length === 0}
+            className="steampunk-btn"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              backgroundColor: checkpoints.length === 0 ? 'rgba(239, 68, 68, 0.2)' : '#EF4444',
+              background: 'linear-gradient(180deg, #F87171 0%, #DC2626 50%, #991B1B 100%)',
               color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.35rem 0.75rem',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              cursor: checkpoints.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: checkpoints.length === 0 ? 0.5 : 1,
-              transition: 'all 0.15s ease',
+              border: '1px solid #7F1D1D',
+              fontSize: '0.78rem',
             }}
             title="Elimina tutti i file checkpoint dal disco"
           >
             <Trash2 size={13} />
-            <span>Elimina Tutti ({checkpoints.length})</span>
+            <span>Purge All ({checkpoints.length})</span>
           </button>
 
           <button
             onClick={fetchCheckpoints}
             disabled={isLoading}
+            className="steampunk-btn"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              backgroundColor: '#3B82F6',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.35rem 0.75rem',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
+              fontSize: '0.78rem',
             }}
           >
             <RefreshCw size={13} />
-            <span>Aggiorna</span>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -193,22 +185,23 @@ export const CheckpointManagerPane: React.FC = () => {
       {/* Checkpoint Table */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.8)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#FAF5EB',
+          border: '1.5px solid #C59B27',
           borderRadius: '8px',
           overflow: 'hidden',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         }}
       >
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: 'rgba(30, 41, 59, 0.7)', color: '#94A3B8', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <th style={{ padding: '0.6rem 0.8rem' }}>Nome Modello / Checkpoint</th>
-                <th style={{ padding: '0.6rem 0.8rem' }}>Algoritmo</th>
-                <th style={{ padding: '0.6rem 0.8rem' }}>Nome File</th>
-                <th style={{ padding: '0.6rem 0.8rem' }}>Dimensione</th>
-                <th style={{ padding: '0.6rem 0.8rem' }}>Data Ultima Modifica</th>
-                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Azioni</th>
+              <tr style={{ background: 'linear-gradient(180deg, #EFE1C7 0%, #E2CFAC 100%)', color: '#23140C', borderBottom: '2px solid #C59B27' }}>
+                <th style={{ padding: '0.6rem 0.8rem', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>Model Name / Tag</th>
+                <th style={{ padding: '0.6rem 0.8rem', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>Algorithm</th>
+                <th style={{ padding: '0.6rem 0.8rem', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>File Identifier</th>
+                <th style={{ padding: '0.6rem 0.8rem', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>Size</th>
+                <th style={{ padding: '0.6rem 0.8rem', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>Timestamp</th>
+                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center', fontWeight: 800, fontFamily: "'Playfair Display', Georgia, serif" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -216,13 +209,13 @@ export const CheckpointManagerPane: React.FC = () => {
                 <tr
                   key={ckpt.checkpoint_id}
                   style={{
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: idx % 2 === 0 ? 'rgba(30, 41, 59, 0.2)' : 'transparent',
+                    borderBottom: '1px solid rgba(184, 134, 11, 0.2)',
+                    background: idx % 2 === 0 ? 'rgba(246, 238, 223, 0.5)' : 'transparent',
                   }}
                 >
-                  <td style={{ padding: '0.6rem 0.8rem', fontWeight: 600, color: '#F1F5F9' }}>
+                  <td style={{ padding: '0.6rem 0.8rem', fontWeight: 700, color: '#23140C', fontFamily: "'Playfair Display', Georgia, serif" }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <BrainCircuit size={14} color="#A855F7" />
+                      <BrainCircuit size={14} color="#9E6B00" />
                       <span>{ckpt.name}</span>
                     </div>
                   </td>
@@ -230,50 +223,47 @@ export const CheckpointManagerPane: React.FC = () => {
                   <td style={{ padding: '0.6rem 0.8rem' }}>
                     <span
                       style={{
-                        padding: '0.15rem 0.4rem',
+                        padding: '0.15rem 0.45rem',
                         borderRadius: '4px',
-                        backgroundColor: ckpt.algorithm === 'ppo' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                        color: ckpt.algorithm === 'ppo' ? '#34D399' : '#FBBF24',
+                        backgroundColor: '#EADBBE',
+                        color: '#23140C',
+                        border: '1px solid #C59B27',
                         fontSize: '0.72rem',
-                        fontWeight: 700,
+                        fontWeight: 800,
+                        fontFamily: "'Courier Prime', monospace",
                       }}
                     >
                       {ckpt.algorithm.toUpperCase()}
                     </span>
                   </td>
 
-                  <td style={{ padding: '0.6rem 0.8rem', color: '#94A3B8', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  <td style={{ padding: '0.6rem 0.8rem', color: '#5A3822', fontFamily: "'Courier Prime', monospace", fontSize: '0.75rem' }}>
                     {ckpt.checkpoint_id}
                   </td>
 
-                  <td style={{ padding: '0.6rem 0.8rem', color: '#38BDF8', fontFamily: 'monospace', fontWeight: 600 }}>
+                  <td style={{ padding: '0.6rem 0.8rem', color: '#9E6B00', fontFamily: "'Courier Prime', monospace", fontWeight: 800 }}>
                     {ckpt.size_mb} MB
                   </td>
 
-                  <td style={{ padding: '0.6rem 0.8rem', color: '#CBD5E1', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  <td style={{ padding: '0.6rem 0.8rem', color: '#785A42', fontFamily: "'Courier Prime', monospace", fontSize: '0.75rem' }}>
                     {ckpt.modified_at}
                   </td>
 
                   <td style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>
                     <button
                       onClick={() => handleDeleteSingle(ckpt.checkpoint_id, ckpt.name)}
+                      className="steampunk-btn"
                       style={{
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        borderRadius: '4px',
-                        color: '#F87171',
-                        padding: '0.25rem 0.55rem',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        fontSize: '0.74rem',
-                        fontWeight: 600,
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.72rem',
+                        background: 'linear-gradient(180deg, #F87171 0%, #DC2626 50%, #991B1B 100%)',
+                        color: '#FFFFFF',
+                        border: '1px solid #7F1D1D',
                       }}
                       title="Elimina questo file .pt"
                     >
                       <Trash2 size={12} />
-                      <span>Elimina</span>
+                      <span>Delete</span>
                     </button>
                   </td>
                 </tr>
@@ -281,8 +271,8 @@ export const CheckpointManagerPane: React.FC = () => {
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748B' }}>
-                    Nessun file di checkpoint presente in experiments/checkpoints/. Esegui un addestramento per salvare nuovi modelli.
+                  <td colSpan={6} style={{ padding: '2rem 1rem', textAlign: 'center', color: '#785A42', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>
+                    No checkpoint files found in experiments/checkpoints/. Run training to serialize trained automaton policies.
                   </td>
                 </tr>
               )}

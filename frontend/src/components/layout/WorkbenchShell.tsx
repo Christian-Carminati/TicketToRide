@@ -127,11 +127,11 @@ export const WorkbenchShell: React.FC = () => {
       className="workbench-shell"
       style={{
         minHeight: '100vh',
-        background: '#090D16',
-        color: '#F8FAFC',
+        background: 'radial-gradient(circle at 50% 50%, #3D281A 0%, #1F140E 100%)',
+        color: '#23140C',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "'Crimson Pro', Georgia, serif",
       }}
     >
       {/* Studio Master Header */}
@@ -195,7 +195,7 @@ export const WorkbenchShell: React.FC = () => {
         )}
 
         {studioMode === 'training_live' && (
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '1rem' }}>
+          <div className="steampunk-panel" style={{ padding: '1rem' }}>
             <TrainingView />
           </div>
         )}

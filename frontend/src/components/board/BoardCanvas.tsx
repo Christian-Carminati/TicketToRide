@@ -29,16 +29,16 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
 
   return (
     <div
-      className="board-canvas-workbench"
+      className="board-canvas-workbench steampunk-panel"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem',
-        background: 'rgba(15, 23, 42, 0.6)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        gap: '0.6rem',
+        background: 'linear-gradient(180deg, #FBF6ED 0%, #EFE1C7 100%)',
+        border: '2px solid #C59B27',
         borderRadius: '12px',
-        padding: '0.75rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        padding: '0.85rem',
+        boxShadow: '0 6px 24px rgba(0, 0, 0, 0.35)',
       }}
     >
       {/* Header controls with partial-observability & map selector */}

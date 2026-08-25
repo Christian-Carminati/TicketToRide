@@ -21,12 +21,13 @@ export const TournamentArenaView: React.FC = () => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
-          background: 'rgba(30, 41, 59, 0.7)',
-          padding: '0.35rem 0.5rem',
-          borderRadius: '10px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          gap: '0.4rem',
+          background: 'linear-gradient(180deg, #3A261A 0%, #26180F 100%)',
+          padding: '0.35rem 0.6rem',
+          borderRadius: '8px',
+          border: '1.5px solid #C59B27',
           width: 'fit-content',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         }}
       >
         <button
@@ -35,16 +36,19 @@ export const TournamentArenaView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
-            background: activeTab === 'tournament' ? '#3B82F6' : 'transparent',
-            color: activeTab === 'tournament' ? '#FFFFFF' : '#94A3B8',
-            border: 'none',
+            background: activeTab === 'tournament'
+              ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+              : 'transparent',
+            color: activeTab === 'tournament' ? '#23140C' : '#D4C09D',
+            border: activeTab === 'tournament' ? '1px solid #6E4E04' : '1px solid transparent',
             borderRadius: '6px',
             padding: '0.4rem 0.9rem',
             fontSize: '0.82rem',
-            fontWeight: 700,
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: activeTab === 'tournament' ? 800 : 600,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
-            boxShadow: activeTab === 'tournament' ? '0 2px 8px rgba(59, 130, 246, 0.4)' : 'none',
+            boxShadow: activeTab === 'tournament' ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
           }}
         >
           <Trophy size={14} />
@@ -57,20 +61,23 @@ export const TournamentArenaView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
-            background: activeTab === 'checkpoints' ? '#3B82F6' : 'transparent',
-            color: activeTab === 'checkpoints' ? '#FFFFFF' : '#94A3B8',
-            border: 'none',
+            background: activeTab === 'checkpoints'
+              ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+              : 'transparent',
+            color: activeTab === 'checkpoints' ? '#23140C' : '#D4C09D',
+            border: activeTab === 'checkpoints' ? '1px solid #6E4E04' : '1px solid transparent',
             borderRadius: '6px',
             padding: '0.4rem 0.9rem',
             fontSize: '0.82rem',
-            fontWeight: 700,
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: activeTab === 'checkpoints' ? 800 : 600,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
-            boxShadow: activeTab === 'checkpoints' ? '0 2px 8px rgba(59, 130, 246, 0.4)' : 'none',
+            boxShadow: activeTab === 'checkpoints' ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
           }}
         >
           <HardDrive size={14} />
-          <span>Gestione Checkpoint (.pt)</span>
+          <span>Archivio Checkpoint (.pt)</span>
         </button>
 
         <button
@@ -79,16 +86,19 @@ export const TournamentArenaView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
-            background: activeTab === 'experiments' ? '#3B82F6' : 'transparent',
-            color: activeTab === 'experiments' ? '#FFFFFF' : '#94A3B8',
-            border: 'none',
+            background: activeTab === 'experiments'
+              ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+              : 'transparent',
+            color: activeTab === 'experiments' ? '#23140C' : '#D4C09D',
+            border: activeTab === 'experiments' ? '1px solid #6E4E04' : '1px solid transparent',
             borderRadius: '6px',
             padding: '0.4rem 0.9rem',
             fontSize: '0.82rem',
-            fontWeight: 700,
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontWeight: activeTab === 'experiments' ? 800 : 600,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
-            boxShadow: activeTab === 'experiments' ? '0 2px 8px rgba(59, 130, 246, 0.4)' : 'none',
+            boxShadow: activeTab === 'experiments' ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
           }}
         >
           <FlaskConical size={14} />
@@ -98,40 +108,19 @@ export const TournamentArenaView: React.FC = () => {
 
       {/* Main Tab Views */}
       {activeTab === 'tournament' && (
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '0.75rem',
-          }}
-        >
+        <div className="steampunk-panel" style={{ padding: '0.85rem' }}>
           <EloMatrixHeatmap />
         </div>
       )}
 
       {activeTab === 'checkpoints' && (
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1rem',
-          }}
-        >
+        <div className="steampunk-panel" style={{ padding: '1rem' }}>
           <CheckpointManagerPane />
         </div>
       )}
 
       {activeTab === 'experiments' && (
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.7)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            borderRadius: '12px',
-            padding: '1rem',
-          }}
-        >
+        <div className="steampunk-panel" style={{ padding: '1rem' }}>
           <ExperimentView />
         </div>
       )}
