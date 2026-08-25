@@ -15,46 +15,82 @@ export const TrainCardHand: React.FC<TrainCardHandProps> = ({
 
   return (
     <div
-      className={`player-card-panel ${isCurrentTurn ? 'active-turn' : ''}`}
+      className={`player-card-panel steampunk-panel ${isCurrentTurn ? 'active-turn' : ''}`}
       style={{
-        background: 'rgba(15, 23, 42, 0.85)',
-        border: `2px solid ${isCurrentTurn ? player.color : 'rgba(255,255,255,0.1)'}`,
+        background: 'linear-gradient(180deg, #FBF6ED 0%, #EFE1C7 100%)',
+        border: `2.5px solid ${isCurrentTurn ? '#B8860B' : '#C59B27'}`,
         borderRadius: '10px',
-        padding: '1rem',
-        boxShadow: isCurrentTurn ? `0 0 16px ${player.color}40` : 'none',
+        padding: '0.85rem',
+        boxShadow: isCurrentTurn
+          ? '0 0 16px rgba(184, 134, 11, 0.4), 0 4px 12px rgba(0,0,0,0.25)'
+          : '0 4px 12px rgba(0,0,0,0.15)',
         transition: 'all 0.3s ease',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+      {/* Player Identity Strip */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div
             style={{
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
               borderRadius: '50%',
               backgroundColor: player.color,
+              border: '1.5px solid #23140C',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
             }}
           />
-          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#F1F5F9' }}>
-            {player.name} {isCurrentTurn && <span style={{ fontSize: '0.75rem', color: player.color }}>(Current Turn)</span>}
+          <h4
+            style={{
+              margin: 0,
+              fontSize: '0.95rem',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 800,
+              color: '#23140C',
+            }}
+          >
+            {player.name} {isCurrentTurn && <span style={{ fontSize: '0.75rem', color: '#9E6B00', fontStyle: 'italic' }}>(Current Turn)</span>}
           </h4>
         </div>
-        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F59E0B' }}>
-          {player.score} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>pts</span>
+        <div
+          style={{
+            fontSize: '1.15rem',
+            fontWeight: 800,
+            fontFamily: "'Courier Prime', monospace",
+            color: '#B91C1C',
+            background: '#FAF5EB',
+            padding: '0.1rem 0.5rem',
+            borderRadius: '4px',
+            border: '1px solid #C59B27',
+          }}
+        >
+          {player.score} <span style={{ fontSize: '0.75rem', color: '#785A42', fontFamily: "'Crimson Pro', serif" }}>pts</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.85rem', color: '#94A3B8' }}>
-        <div>🚂 Trains: <strong style={{ color: '#F1F5F9' }}>{player.trains_remaining}</strong></div>
-        <div>🃏 Cards: <strong style={{ color: '#F1F5F9' }}>{totalCards}</strong></div>
-        <div>🎫 Tickets: <strong style={{ color: '#F1F5F9' }}>{player.tickets.length}</strong></div>
+      {/* Inventory Counters */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          marginBottom: '0.65rem',
+          fontSize: '0.8rem',
+          color: '#5A3822',
+          fontFamily: "'Crimson Pro', Georgia, serif",
+          borderBottom: '1px solid rgba(184, 134, 11, 0.25)',
+          paddingBottom: '0.4rem',
+        }}
+      >
+        <div>🚂 Trains: <strong style={{ color: '#23140C', fontFamily: "'Courier Prime', monospace" }}>{player.trains_remaining}</strong></div>
+        <div>🃏 Shares: <strong style={{ color: '#23140C', fontFamily: "'Courier Prime', monospace" }}>{totalCards}</strong></div>
+        <div>🎫 Telegrams: <strong style={{ color: '#23140C', fontFamily: "'Courier Prime', monospace" }}>{player.tickets.length}</strong></div>
       </div>
 
-      {/* Cards Badges Grid */}
+      {/* Cards Share Badges Grid */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
         {Object.entries(player.cards_in_hand).map(([color, count]) => {
           if (count === 0) return null;
-          const hex = COLOR_HEX[color] || '#64748B';
+          const hex = COLOR_HEX[color] || '#7D6A5A';
           const isLight = color === 'WHITE' || color === 'YELLOW';
           return (
             <div
@@ -62,23 +98,27 @@ export const TrainCardHand: React.FC<TrainCardHandProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.3rem',
-                padding: '0.2rem 0.5rem',
+                gap: '0.35rem',
+                padding: '0.2rem 0.55rem',
                 borderRadius: '6px',
                 backgroundColor: hex,
-                color: isLight ? '#0F172A' : '#FFFFFF',
+                color: isLight ? '#23140C' : '#FAF5EB',
                 fontSize: '0.75rem',
-                fontWeight: 700,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                fontWeight: 800,
+                fontFamily: "'Playfair Display', Georgia, serif",
+                border: '1.5px solid #FAF5EB',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
               }}
             >
               <span>{color}</span>
               <span
                 style={{
                   background: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.25)',
-                  padding: '0.1rem 0.3rem',
+                  padding: '0.1rem 0.35rem',
                   borderRadius: '4px',
-                  fontSize: '0.7rem',
+                  fontSize: '0.72rem',
+                  fontFamily: "'Courier Prime', monospace",
+                  fontWeight: 900,
                 }}
               >
                 {count}
@@ -87,7 +127,9 @@ export const TrainCardHand: React.FC<TrainCardHandProps> = ({
           );
         })}
         {totalCards === 0 && (
-          <span style={{ fontSize: '0.75rem', color: '#64748B', fontStyle: 'italic' }}>No cards in hand</span>
+          <span style={{ fontSize: '0.78rem', color: '#785A42', fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>
+            No stock shares held in hand.
+          </span>
         )}
       </div>
     </div>

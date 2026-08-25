@@ -28,12 +28,12 @@ export const TelemetryTournamentDock: React.FC = () => {
     });
 
     const rewardChartSeries: ChartSeries[] = [
-      { id: 'mean_reward', name: 'Mean Reward', color: '#34D399', data: rewards },
+      { id: 'mean_reward', name: 'Mean Reward', color: '#15803D', data: rewards },
     ];
 
     const lossChartSeries: ChartSeries[] = [
-      { id: 'policy_loss', name: 'Policy Loss', color: '#38BDF8', data: policyLoss },
-      { id: 'value_loss', name: 'Value Loss', color: '#F43F5E', data: valueLoss },
+      { id: 'policy_loss', name: 'Policy Loss', color: '#1D4ED8', data: policyLoss },
+      { id: 'value_loss', name: 'Value Loss', color: '#B91C1C', data: valueLoss },
     ];
 
     return { rewardSeries: rewardChartSeries, lossSeries: lossChartSeries };
@@ -43,13 +43,13 @@ export const TelemetryTournamentDock: React.FC = () => {
 
   return (
     <div
-      className="telemetry-tournament-dock"
+      className="telemetry-tournament-dock steampunk-panel"
       style={{
-        background: 'rgba(15, 23, 42, 0.95)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'linear-gradient(180deg, #FBF6ED 0%, #EFE1C7 100%)',
+        border: '2px solid #C59B27',
         borderRadius: '12px',
         overflow: 'hidden',
-        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4)',
+        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.35)',
         transition: 'all 0.3s ease',
       }}
     >
@@ -59,14 +59,14 @@ export const TelemetryTournamentDock: React.FC = () => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '0.4rem 1rem',
-          background: 'rgba(30, 41, 59, 0.7)',
-          borderBottom: isBottomDockOpen ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+          padding: '0.45rem 1.25rem',
+          background: 'linear-gradient(180deg, #3A261A 0%, #26180F 100%)',
+          borderBottom: isBottomDockOpen ? '2px solid #C59B27' : 'none',
           cursor: 'pointer',
         }}
       >
         {/* Tab Switchers */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -76,15 +76,19 @@ export const TelemetryTournamentDock: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              background: bottomDockTab === 'telemetry' && isBottomDockOpen ? '#3B82F6' : 'transparent',
-              color: bottomDockTab === 'telemetry' && isBottomDockOpen ? '#FFFFFF' : '#94A3B8',
-              border: 'none',
+              background: bottomDockTab === 'telemetry' && isBottomDockOpen
+                ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+                : 'transparent',
+              color: bottomDockTab === 'telemetry' && isBottomDockOpen ? '#23140C' : '#D4C09D',
+              border: bottomDockTab === 'telemetry' && isBottomDockOpen ? '1px solid #6E4E04' : '1px solid transparent',
               borderRadius: '6px',
-              padding: '0.3rem 0.65rem',
-              fontSize: '0.78rem',
-              fontWeight: 700,
+              padding: '0.3rem 0.75rem',
+              fontSize: '0.8rem',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: bottomDockTab === 'telemetry' && isBottomDockOpen ? 800 : 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              boxShadow: bottomDockTab === 'telemetry' && isBottomDockOpen ? '0 1px 4px rgba(0,0,0,0.25)' : 'none',
             }}
           >
             <Activity size={13} /> Live Telemetry
@@ -99,38 +103,38 @@ export const TelemetryTournamentDock: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              background: bottomDockTab === 'logs' && isBottomDockOpen ? '#3B82F6' : 'transparent',
-              color: bottomDockTab === 'logs' && isBottomDockOpen ? '#FFFFFF' : '#94A3B8',
-              border: 'none',
+              background: bottomDockTab === 'logs' && isBottomDockOpen
+                ? 'linear-gradient(180deg, #F7E099 0%, #CBA232 50%, #996E08 100%)'
+                : 'transparent',
+              color: bottomDockTab === 'logs' && isBottomDockOpen ? '#23140C' : '#D4C09D',
+              border: bottomDockTab === 'logs' && isBottomDockOpen ? '1px solid #6E4E04' : '1px solid transparent',
               borderRadius: '6px',
-              padding: '0.3rem 0.65rem',
-              fontSize: '0.78rem',
-              fontWeight: 700,
+              padding: '0.3rem 0.75rem',
+              fontSize: '0.8rem',
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: bottomDockTab === 'logs' && isBottomDockOpen ? 800 : 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              boxShadow: bottomDockTab === 'logs' && isBottomDockOpen ? '0 1px 4px rgba(0,0,0,0.25)' : 'none',
             }}
           >
-            <ListFilter size={13} /> Action Log
+            <ListFilter size={13} /> Telegraph Log
           </button>
         </div>
 
         {/* Right Status Summary & Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {latestEvent && (
-            <span style={{ fontSize: '0.72rem', color: '#64748B', fontFamily: 'monospace' }}>
-              Step: {latestEvent.step} | FPS: {latestEvent.fps?.toFixed(0) || '60'} | Episode: {latestEvent.episode || 1}
+            <span style={{ fontSize: '0.72rem', color: '#D4C09D', fontFamily: "'Courier Prime', monospace" }}>
+              Step: {latestEvent.step} | Rate: {latestEvent.fps?.toFixed(0) || '60'} Hz | Episode: {latestEvent.episode || 1}
             </span>
           )}
 
           <button
             onClick={toggleBottomDock}
+            className="steampunk-btn"
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '4px',
-              color: '#94A3B8',
-              padding: '0.2rem 0.4rem',
-              cursor: 'pointer',
+              padding: '0.2rem 0.45rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

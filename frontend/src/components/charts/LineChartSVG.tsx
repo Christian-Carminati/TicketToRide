@@ -57,22 +57,35 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
 
   return (
     <div
+      className="steampunk-chart-panel"
       style={{
-        background: 'rgba(15, 23, 42, 0.9)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '10px',
-        padding: '1rem',
+        background: 'linear-gradient(180deg, #FAF4E6 0%, #EADBBE 100%)',
+        border: '1.5px solid #C59B27',
+        borderRadius: '8px',
+        padding: '0.85rem',
         width: '100%',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-        <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#F1F5F9' }}>{title}</h5>
+        <h5
+          style={{
+            margin: 0,
+            fontSize: '0.85rem',
+            fontFamily: "'Cinzel Decorative', Georgia, serif",
+            fontWeight: 800,
+            color: '#23140C',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {title}
+        </h5>
         {/* Legend */}
         <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem' }}>
           {series.map((s) => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-              <span style={{ color: '#94A3B8' }}>{s.name}</span>
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color, border: '1px solid #23140C' }} />
+              <span style={{ color: '#4A2F1D', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700 }}>{s.name}</span>
             </div>
           ))}
         </div>
@@ -90,15 +103,16 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
                 y1={py}
                 x2={width - padding.right}
                 y2={py}
-                stroke="rgba(255, 255, 255, 0.05)"
-                strokeDasharray="4 4"
+                stroke="rgba(110, 75, 45, 0.2)"
+                strokeDasharray="4 3"
               />
               <text
                 x={padding.left - 8}
                 y={py + 3}
                 textAnchor="end"
                 fontSize={10}
-                fill="#64748B"
+                fontFamily="'Courier Prime', monospace"
+                fill="#785A42"
               >
                 {yVal.toFixed(1)}
               </text>
@@ -117,7 +131,8 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
               y={height - 10}
               textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}
               fontSize={10}
-              fill="#64748B"
+              fontFamily="'Courier Prime', monospace"
+              fill="#785A42"
             >
               {Math.round(xVal)}
             </text>
@@ -132,7 +147,9 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
             transform="rotate(-90)"
             textAnchor="middle"
             fontSize={10}
-            fill="#64748B"
+            fontFamily="'Playfair Display', Georgia, serif"
+            fontStyle="italic"
+            fill="#5A3822"
           >
             {yLabel}
           </text>
@@ -142,7 +159,9 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
           y={height - 2}
           textAnchor="middle"
           fontSize={10}
-          fill="#475569"
+          fontFamily="'Playfair Display', Georgia, serif"
+          fontStyle="italic"
+          fill="#5A3822"
         >
           {xLabel}
         </text>
@@ -150,7 +169,6 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
         {/* Lines */}
         {series.map((s) => {
           if (s.data.length === 0) return null;
-          // Decimate points if over 100 points for smooth SVG rendering
           const dataPoints = s.data.length > 100 
             ? s.data.filter((_, idx) => idx % Math.ceil(s.data.length / 100) === 0 || idx === s.data.length - 1)
             : s.data;
@@ -164,7 +182,7 @@ export const LineChartSVG: React.FC<LineChartSVGProps> = React.memo(({
               key={s.id}
               fill="none"
               stroke={s.color}
-              strokeWidth={2}
+              strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
               points={pointsStr}
