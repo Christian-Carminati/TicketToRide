@@ -1,38 +1,36 @@
 {
-  "native_vector_batch": {
-    "num_envs": 64,
-    "total_steps": 320000,
-    "duration_sec": 0.22213929599820403,
-    "steps_per_sec": 1440537.5625327774,
-    "games_per_sec": 20579.108036182533
+  "AlphaZero": {
+    "steps": 57,
+    "sim_time_s": 0.3724,
+    "train_time_s": 0.011,
+    "fps": 153.1,
+    "mcts_sims_per_sec": 3061.0,
+    "train_loss": 6.956689834594727
   },
-  "state_cloning": {
-    "n_clones": 500000,
-    "duration_sec": 0.5135626810006215,
-    "clones_per_sec": 973590.9919034691,
-    "ns_per_clone": 1027.125362001243
+  "PPO": {
+    "steps": 256,
+    "sim_time_s": 0.1488,
+    "train_time_s": 0.0806,
+    "fps": 1720.6,
+    "policy_loss": -0.017380398116074502
   },
-  "observation_encoder": {
-    "n_encodes": 10000,
-    "duration_sec": 0.15618453299975954,
-    "encodes_per_sec": 64026.82652331134,
-    "us_per_encode": 15.618453299975954
+  "Recurrent_PPO": {
+    "steps": 128,
+    "sim_time_s": 0.1142,
+    "train_time_s": 0.1779,
+    "fps": 1120.9,
+    "policy_loss": -0.005328619037754834
   },
-  "action_masker": {
-    "n_masks": 20000,
-    "duration_sec": 0.054897396999876946,
-    "masks_per_sec": 364315.9984442401,
-    "us_per_mask": 2.7448698499938473
+  "DQN": {
+    "steps": 200,
+    "total_time_s": 0.1402,
+    "fps": 1427.0
   },
-  "reward_calculator": {
-    "n_rewards": 20000,
-    "duration_sec": 0.014103599001828115,
-    "rewards_per_sec": 1418077.754295736,
-    "us_per_calc": 0.7051799500914058
-  },
-  "tournament": {
-    "games": 300,
-    "duration_sec": 4.28668258000107,
-    "games_per_sec": 69.98418809911628
+  "SelfPlay_PPO": {
+    "steps": 128,
+    "sim_time_s": 0.1226,
+    "train_time_s": 0.066,
+    "fps": 1044.1,
+    "policy_loss": -0.022289613727480173
   }
 }
