@@ -151,19 +151,27 @@ class AlphaZeroTrainer:
 
             history: list[tuple[str, np.ndarray, np.ndarray, np.ndarray]] = []
             turns = 0
+            prev_root = None
+            last_action = None
 
             while not game.state.is_game_over and turns < max_turns:
                 curr_p = game.state.current_player
                 curr_player_id = curr_p.id if curr_p is not None else "player_0"
                 obs, mask = self._get_obs_and_mask(game, curr_player_id)
 
-                best_action, pi_target, _ = self.search_engine.search(
-                    game, curr_player_id, is_root_exploration=True
+                best_action, pi_target, _, root_node = self.search_engine.search_with_root(
+                    game,
+                    curr_player_id,
+                    is_root_exploration=True,
+                    previous_root=prev_root,
+                    action_taken=last_action,
                 )
 
                 history.append((curr_player_id, obs, mask, pi_target))
                 game_action = self.action_space.to_action(best_action)
                 game.step(game_action)
+                prev_root = root_node
+                last_action = best_action
                 turns += 1
 
             # Assign game outcomes
