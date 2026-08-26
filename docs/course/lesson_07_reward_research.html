@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 07: Reward Research & Behavioral Profiling - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item active"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 7</span>
+      <span class="badge badge-level">Reward Design & Behavioral Science</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 07: Reward Engineering, Potential-Based Shaping e Profiling Comportamentale</h1>
+
+    <p>
+      In Reinforcement Learning, una massima fondamentale recita: <em>"Attento a cosa premi, perché l'agente farà esattamente ciò che massimizza la funzione di ricompensa, non ciò che tu intendevi originariamente."</em> In questa lezione studiamo la matematica del <strong>Reward Shaping</strong> e come diverse formulazioni plasmano radicalmente la personalità strategica dell'AI.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Il Cane, il Biscotto e la Trappola del Loop Infinito</div>
+      <p>
+        Immagina di voler addestrare un cane a completare un percorso a ostacoli lungo 10 chilometri.
+      </p>
+      <ul>
+        <li><strong>Ricompensa Sparse (V1)</strong>: gli dai un biscotto solo dopo che ha tagliato il traguardo dei 10 km. Il cane impiegherà settimane a capire per puro caso come arrivare alla fine, perché per ore non riceve alcun segnale intermedio.</li>
+        <li><strong>Ricompensa Densa Ingenua (V2)</strong>: gli dai un biscottino ogni volta che compie un salto. Risultato? Il cane inizierà a saltare sul posto all'infinito senza mai avanzare verso il traguardo!</li>
+      </ul>
+      <p>
+        In <em>Ticket to Ride</em> accade la stessa dinamica: se assegni un reward immediato troppo alto per ogni singola tratta acquistata, l'agente diventerà un collezionista miope di tratte corte, dimenticandosi completamente di unire le città dei suoi biglietti destinazione!
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: Potential-Based Reward Shaping (PBRS)</h2>
+
+    <p>
+      Il celebre teorema di <strong>Ng, Harada e Russell (1999)</strong> definisce la condizione necessaria e sufficiente affinché l'aggiunta di una funzione di ricompensa intermedia mantenga rigorosamente invariata la politica ottimale $\pi^*(s)$ del gioco:
+    </p>
+
+    $$F(s, a, s') = \gamma \Phi(s') - \Phi(s)$$
+
+    $$R_{\text{shaped}}(s, a, s') = R(s, a, s') + F(s, a, s')$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché la Differenza di Potenziale $\gamma \Phi(s') - \Phi(s)$?</div>
+      <p><strong>Obiettivo:</strong> Vogliamo guidare l'agente verso stati desiderabili (es. avvicinarsi al completamento di un percorso) senza creare "loop di ricompensa infinita" (Reward Hacking). Se un agente esegue un ciclo di azioni che lo riporta allo stato di partenza $s_0$, la somma delle ricompense di shaping deve annullarsi esattamente a zero.</p>
+      <p><strong>Dimostrazione della Somma Telescopica:</strong></p>
+      $$\sum_{t=0}^{T-1} \gamma^t F(s_t, a_t, s_{t+1}) = \sum_{t=0}^{T-1} \gamma^t (\gamma \Phi(s_{t+1}) - \Phi(s_t)) = \gamma^T \Phi(s_T) - \Phi(s_0)$$
+      <p>Lungo qualsiasi traiettoria, tutti i termini intermedi si cancellano a coppie. La funzione $Q^*(s, a)$ sotto reward shaped differisce da quella originaria solo per una costante di potenziale $Q_{\text{shaped}}^*(s, a) = Q^*(s, a) - \Phi(s)$, che <strong>non altera l'ordinamento argmax delle azioni</strong>!</p>
+      <p><strong>Scomposizione Termine per Termine:</strong></p>
+      <ul>
+        <li>$\Phi(s)$: potenziale scalare assegnato allo stato $s$ (es. percentuale di vagoni già posati lungo i cammini minimi dei biglietti).</li>
+        <li>$\Phi(s')$: potenziale dello stato successivo $s_{t+1}$.</li>
+        <li>$\gamma$: fattore di sconto temporale dell'MDP.</li>
+        <li>$R(s, a, s')$: ricompensa originale del gioco (punti vittoria e vittoria/sconfitta).</li>
+      </ul>
+    </div>
+
+    <!-- 3. I 4 REGIMI DI REWARD -->
+    <h2>3. I 4 Regimi di Reward del Laboratorio</h2>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Versione</th>
+            <th>Filosofia Strategica</th>
+            <th>Formulazione Matematica della Ricompensa</th>
+            <th>Comportamento Emergente Osservato</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>RewardV1<br>(Sparse)</strong></td>
+            <td>Puro esito finale senza interferenze umane</td>
+            <td>
+              $$r_t = 0 \quad \forall t < T$$
+              $$r_T = \text{WinBonus} \cdot \mathbf{1}_{\text{win}} + w_\Delta (\text{Score}_{\text{agent}} - \text{Score}_{\text{opp}})$$
+            </td>
+            <td>Apprendimento lento ma privo di bias. Strategia globale pura.</td>
+          </tr>
+          <tr>
+            <td><strong>RewardV2<br>(Dense Routes)</strong></td>
+            <td>Incentivo immediato a occupare tratte e fare punti</td>
+            <td>$$r_t = w_{\text{route}} \cdot \Delta \text{Score}_{\text{route}} - \text{step\_penalty}$$</td>
+            <td>Agente molto aggressivo sul tabellone. Tende a trascurare i biglietti lunghi.</td>
+          </tr>
+          <tr>
+            <td><strong>RewardV3<br>(Milestones)</strong></td>
+            <td>Orientato alla topologia dei Destination Tickets</td>
+            <td>
+              $$r_t = w_{\text{route}} \Delta \text{Score}_{\text{route}} + w_{\text{ticket}} \sum_{k \in \mathcal{K}_{\text{new}}} \text{pts}(k) - \text{step\_penalty}$$
+              $$r_T = \text{WinBonus} \cdot \mathbf{1}_{\text{win}} - w_{\text{fail}} \sum_{k \in \mathcal{K}_{\text{uncompleted}}} \text{pts}(k)$$
+            </td>
+            <td>Altissimo tasso di completamento biglietti ($TCR > 85\%$). Costruzione mirata.</td>
+          </tr>
+          <tr>
+            <td><strong>RewardV4<br>(Strategic)</strong></td>
+            <td>Sintesi bilanciata con pesi calibrati e PBRS</td>
+            <td>
+              $$r_t = w_{\text{route}} \Delta \text{Score}_{\text{route}} + w_{\text{ticket}} \sum_{k \in \mathcal{K}_{\text{new}}} \text{pts}(k) + F(s_t, a_t, s_{t+1}) - \text{step\_penalty}$$
+              $$r_T = \text{WinBonus} \cdot \mathbf{1}_{\text{win}} + w_\Delta (\text{Score}_{\text{agent}} - \text{Score}_{\text{opp}}) - w_{\text{fail}} \sum_{k \in \mathcal{K}_{\text{uncompleted}}} \text{pts}(k)$$
+            </td>
+            <td>Massima efficienza complessiva ed Elo più alto contro avversari eterogenei.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. PROFILING COMPORTAMENTALE -->
+    <h2>4. Metriche di Profiling Comportamentale</h2>
+
+    <p>
+      Il modulo <code>BehavioralEvaluator</code> misura quantitativamente lo stile di gioco:
+    </p>
+
+    $$TCR = \frac{|\mathcal{K}_{\text{completed}}|}{|\mathcal{K}_{\text{held}}|} \times 100\%$$
+
+    $$RE = \frac{\sum_{r \in \mathcal{E}_{\text{agent}}} \text{Points}(r)}{\sum_{r \in \mathcal{E}_{\text{agent}}} \text{Length}(r)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione delle Metriche Comportamentali</div>
+      <ul>
+        <li>$TCR$ (Ticket Completion Rate): percentuale di contratti ferroviari portati a termine rispetto al totale conservato in mano.</li>
+        <li>$RE$ (Route Efficiency): resa media in punti per ogni vagone posato sul tabellone. Poiché una tratta da 6 vagoni assegna 15 punti ($\frac{15}{6} = 2.50$), mentre una tratta da 1 vagone assegna solo 1 punto ($\frac{1}{1} = 1.0$), un valore $RE > 2.0$ denota un agente focalizzato sulle tratte lunghe.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Scomposizione Trasparente del Segnale di Ricompensa in Python</div>
+      <pre><code>class RewardV3_TicketMilestones(BaseRewardCalculator):
+    def calculate(self, prev_state, action, next_state, player_idx) -> float:
+        comps = self.get_components(prev_state, action, next_state, player_idx)
+        return sum(comps.values())
+
+    def get_components(self, prev_state, action, next_state, player_idx) -> dict[str, float]:
+        comps = {}
+        # 1. Punti Tratta immediati
+        delta_route = next_state.players[player_idx].score - prev_state.players[player_idx].score
+        comps["route_points"] = delta_route * self.weights.route_points_weight
+
+        # 2. Biglietti completati in questo turno
+        newly_completed = self._get_newly_completed_tickets(prev_state, next_state, player_idx)
+        comps["ticket_completion"] = sum(t.points for t in newly_completed) * self.weights.ticket_completion_weight
+
+        # 3. Penalità di passo temporale
+        comps["step_penalty"] = -self.weights.step_penalty
+
+        # 4. Esito terminale se la partita è finita
+        if next_state.is_game_over:
+            won = next_state.winner_id == next_state.players[player_idx].id
+            comps["terminal_outcome"] = self.weights.win_bonus if won else -self.weights.loss_penalty
+            comps["ticket_failure"] = -sum(t.points for t in self._get_failed_tickets(next_state, player_idx))
+
+        return comps</code></pre>
+    </div>
+
+    <!-- 6. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Trascurare la Penalità per i Biglietti Falliti</div>
+      <ul>
+        <li><strong>Il Rischio di Premiare Solo i Successi:</strong> Se premi i biglietti completati ma non applichi la penalità $-w_{\text{fail}} \sum \text{pts}(k)$ a fine partita, l'agente imparerà un exploit: pescare decine di biglietti all'ultimo turno, godendo di reward positivi sui biglietti già fortuitamente collegati e ignorando le penalità sul punteggio effettivo di gioco.</li>
+      </ul>
+    </div>
+
+    <!-- 7. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica le tue conoscenze su Potential-Based Reward Shaping, teoremi di invarianza e profiling comportamentale.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Teorema di Invarianza della Policy (Ng et al., 1999)</div>
+      <p>Qual è la proprietà matematica fondamentale garantita dall'adozione della funzione di shaping $F(s, a, s') = \gamma \Phi(s') - \Phi(s)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l07_q1" value="a">
+          <span>A) La somma telescopica dei potenziali lungo qualsiasi traiettoria mantiene inalterato l'ordinamento argmax dei valori $Q^*(s, a)$, impedendo loop di reward hacking e garantendo la conservazione della policy ottimale originale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q1" value="b">
+          <span>B) La funzione azzera istantaneamente la perdita della rete Critic a ogni transizione di stato.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q1" value="c">
+          <span>C) Il fattore di sconto $\gamma$ viene automaticamente forzato al valore $\gamma = 1.0$ per qualsiasi ambiente di simulazione.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q1" value="d">
+          <span>D) La rete Actor smette di utilizzare la distribuzione categoriale per selezionare le mosse.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l07_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l07_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Il teorema di Ng dimostra che la forma $\gamma \Phi(s') - \Phi(s)$ è necessaria e sufficiente affinché l'aggiunta di shaping preservi la medesima politica ottima $\pi^*(s)$ dell'MDP originale senza generare cicli di reward perverso.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Lo shaping non azzera la critic loss, non altera il valore di $\gamma$ impostato nell'ambiente e non modifica la testa dell'Actor.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Effetto del Regime RewardV2 (Dense Routes)</div>
+      <p>Quale comportamento emergente non ottimale (Reward Hacking) si manifesta tipicamente in un agente addestrato con <code>RewardV2_DenseRoutes</code>?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l07_q2" value="a">
+          <span>A) L'agente acquista compulsivamente tratte corte adiacenti per monetizzare il reward immediato $\Delta \text{Score}_{\text{route}}$, disinteressandosi dei biglietti destinazione e registrando un basso Ticket Completion Rate.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q2" value="b">
+          <span>B) L'agente si rifiuta categoricamente di posare vagoni sul tabellone e passa l'intera partita a pescare carte dal mazzo coperto.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q2" value="c">
+          <span>C) L'agente converte tutte le carte Locomotive in vagoni fisici supplementari superando la quota iniziale di 45 pezzi.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q2" value="d">
+          <span>D) L'agente interrompe la partita al turno 2 segnalando un errore di terminazione precoce.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l07_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l07_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Premiare pesantemente la posa di binari senza premiare la connettività dei biglietti induce miopia: l'agente massimizza il gradiente rapido comprando tratte sparse, trascurando la visione strategica a lungo termine.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'agente compra tratte anziché pescare carte all'infinito e le regole del gioco rimangono invariate.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Ruolo della Step Penalty nel Reward Shaping</div>
+      <p>Per quale motivo nei regimi densi viene introdotta una piccola penalità costante per passo (es. $\text{step\_penalty} = -0.01$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l07_q3" value="a">
+          <span>A) Scoraggiare azioni passive o ridondanti (come pescare carte inutili all'infinito), incentivando l'agente a chiudere la partita nel minor numero di turni efficiente.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q3" value="b">
+          <span>B) Forzare l'azzeramento della varianza dei gradienti dell'ottimizzatore Adam.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q3" value="c">
+          <span>C) Impedire all'avversario di usufruire dei bonus di fine partita sul cammino più lungo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q3" value="d">
+          <span>D) Aumentare la dimensione dello spazio di osservazione a 1000 float.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l07_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l07_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Senza un costo temporale di passo, un agente potrebbe accumulare carte in eterno senza alcuna fretta. La step penalty crea una leggera "pressione temporale" che premia l'efficienza d'esecuzione.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La penalità serve per la dinamica temporale dell'agente e non agisce sull'ottimizzatore o sulla dimensione dei tensori.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Metrica di Efficienza delle Tratte ($RE$)</div>
+      <p>Un agente ha occupato 4 tratte da 6 vagoni (15 pt ciascuna) e 2 tratte da 1 vagone (1 pt ciascuna). Qual è il valore della sua Route Efficiency ($RE = \frac{\sum \text{Points}}{\sum \text{Length}}$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l07_q4" value="a">
+          <span>A) $RE = \frac{62}{26} \approx 2.38$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q4" value="b">
+          <span>B) $RE = \frac{16}{7} \approx 2.28$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q4" value="c">
+          <span>C) $RE = \frac{60}{24} = 2.50$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q4" value="d">
+          <span>D) $RE = \frac{26}{62} \approx 0.42$ punti per vagone.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l07_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l07_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Punti totali $= 4 \times 15 + 2 \times 1 = 60 + 2 = 62$. Vagoni totali spesi $= 4 \times 6 + 2 \times 1 = 24 + 2 = 26$. Quindi $RE = \frac{62}{26} \approx 2.3846$ pt/vagone.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Calcolano erroneamente i totali o invertono numeratore e denominatore.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Scomposizione delle Componenti di Reward</div>
+      <p>Qual è il vantaggio architetturale nell'implementare il metodo <code>get_components()</code> all'interno del calcolatore di ricompensa?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l07_q5" value="a">
+          <span>A) Permette di inviare alla telemetria e a TensorBoard i contributi separati di ciascuna voce (punti tratta, milestone biglietti, step penalty, esito finale), rendendo trasparente il debug del reward.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q5" value="b">
+          <span>B) Elimina la necessità di eseguire la backpropagation durante le sotto-epoche PPO.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q5" value="c">
+          <span>C) Raddoppia automaticamente la velocità di calcolo della scheda video durante il forward pass.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l07_q5" value="d">
+          <span>D) Permette al giocatore umano di modificare le carte sul tabellone durante la partita.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l07_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l07_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Isolare le componenti analitiche consente di monitorare graficamente quale parte del reward sta guidando l'apprendimento, identificando immediatamente squilibri o anomalie nei pesi.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La scomposizione serve per introspezione e telemetria, non per alterare il training o modificare lo stato di gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_06_ppo_from_scratch.html" class="btn-nav-lesson">← Lezione 06: CleanRL PPO from Scratch</a>
+      <a href="lesson_08_pomdp_lstm_ppo.html" class="btn-nav-lesson">Lezione 08: Parziale Osservabilità & LSTM →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

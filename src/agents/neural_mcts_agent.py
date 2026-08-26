@@ -220,6 +220,11 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
                 return a
         return valid_actions[0]
 
+    def reset(self, seed: Optional[int] = None) -> None:
+        super().reset(seed=seed)
+        self.tracker = None
+        self._observed_routes.clear()
+
 
 # Backward compatible / analytical naming alias
 BayesianOpponentMCTSAgent = OpponentAwareMCTSAgent

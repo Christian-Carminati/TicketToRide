@@ -70,3 +70,13 @@ def test_tournament_alphazero_and_mcts_run():
     assert len(data["leaderboard"]) == 3
     assert len(data["matchups"]) == 3
     assert data["total_games"] == 3
+
+
+def test_tournament_progress_endpoint():
+    res = client.get("/api/tournament/progress")
+    assert res.status_code == 200
+    data = res.json()
+    assert "is_running" in data
+    assert "status" in data
+    assert "percentage" in data
+    assert "elapsed_seconds" in data

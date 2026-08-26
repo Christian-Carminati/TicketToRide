@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 08: Parziale Osservabilità & Recurrent PPO (LSTM) - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item active"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 8</span>
+      <span class="badge badge-level">Deep Recurrent Reinforcement Learning</span>
+      <span class="badge badge-time">Tempo di Studio: 40 min</span>
+    </div>
+
+    <h1>Lezione 08: Parziale Osservabilità (POMDP), Belief State e Recurrent PPO con LSTM</h1>
+
+    <p>
+      Nelle lezioni precedenti abbiamo utilizzato reti neurali <em>feed-forward</em> (MLP) che decidono la mossa guardando esclusivamente la "fotografia istantanea" del turno corrente. In questa lezione scopriamo perché questo approccio è teoricamente insufficiente nei giochi imperfetti e come una memoria ricorrente <strong>LSTM</strong> permetta all'AI di dedurre le risorse segrete dell'avversario.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Il Singolo Frame vs Il Film Completo</div>
+      <p>
+        Immagina di guardare il tabellone di <em>Ticket to Ride</em> al turno 15:
+      </p>
+      <ul>
+        <li><strong>L'Agente Stateless (MLP - La Fotografia Istantanea)</strong>: vede che l'avversario possiede 6 carte in mano. Ma non sa <em>quali</em> colori siano, né in quali turni siano state pescate. Per lui quelle carte sono un mistero totale.</li>
+        <li><strong>L'Agente con Memoria (LSTM - Il Film della Partita)</strong>: ricorda che nei tre turni precedenti l'avversario ha prelevato 4 carte Rosse scoperte dal tavolo. L'agente ricorrente sa con certezza quasi assoluta che l'avversario sta preparando la tratta Rossa da 4 vagoni <strong>Helena $\to$ Duluth</strong> o <strong>Boston $\to$ New York</strong>!</li>
+      </ul>
+      <p>
+        Grazie alla memoria temporale, l'agente può anticipare l'avversario e rubargli la tratta prima che lui la chiuda.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: La Rottura della Proprietà di Markov</h2>
+
+    <p>
+      In un classico MDP pienamente osservabile vale la proprietà di Markov: il futuro dipende unicamente dallo stato presente, $\mathbb{P}(s_{t+1} \mid s_t, a_t)$.
+    </p>
+    
+    <div class="pedagogical-box box-math">
+      <div class="box-title">📐 Il Dilemma della Parziale Osservabilità (POMDP)</div>
+      <p>Nello spazio delle sole osservazioni parziali $\Omega$, la proprietà di Markov <strong>non è soddisfatta</strong>:</p>
+      $$\mathbb{P}(s_{t+1} \mid o_t, a_t) \neq \mathbb{P}(s_{t+1} \mid o_t, a_t, o_{t-1}, a_{t-1}, \dots, o_0)$$
+      
+      <p><strong>Significato di ciascuna variabile:</strong></p>
+      <ul>
+        <li>$s_{t+1} \in \mathcal{S}$: vero stato globale oggettivo del gioco al passo successivo.</li>
+        <li>$o_t \in \Omega$: vettore di osservazione parziale percepito dal giocatore al passo $t$.</li>
+        <li>$a_t \in \mathcal{A}$: azione eseguita al passo $t$.</li>
+        <li>$\mathcal{H}_t = (o_0, a_0, o_1, a_1, \dots, o_t)$: l'intera <em>storia delle osservazioni e azioni passate</em>.</li>
+      </ul>
+
+      <p>
+        Per prendere decisioni ottimali, la policy deve fondarsi sul <strong>Belief State</strong> $b_t(s)$, ovvero la distribuzione di probabilità a posteriori sullo stato vero $s_t$:
+      </p>
+      $$b_t(s) = \mathbb{P}(s_t = s \mid \mathcal{H}_t)$$
+    </div>
+
+    <h3>2.1 La Cella LSTM come Approssimatore del Belief State</h3>
+    <p>
+      Poiché la storia $\mathcal{H}_t$ si allunga a ogni turno, utilizziamo una cella <strong>LSTM (Long Short-Term Memory)</strong> per comprimere la traiettoria temporale in un vettore latente compatto $(h_t, c_t) \in \mathbb{R}^{d_{\text{lstm}}}$:
+    </p>
+
+    $$f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f) \quad \text{(Forget Gate)}$$
+
+    $$i_t = \sigma(W_i x_t + U_i h_{t-1} + b_i) \quad \text{(Input Gate)}$$
+
+    $$\tilde{c}_t = \tanh(W_c x_t + U_c h_{t-1} + b_c) \quad \text{(Candidate Cell Memory)}$$
+
+    $$c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t \quad \text{(Cell State Update)}$$
+
+    $$o_t = \sigma(W_o x_t + U_o h_{t-1} + b_o) \quad \text{(Output Gate)}$$
+
+    $$h_t = o_t \odot \tanh(c_t) \quad \text{(Hidden State / Belief Embedding)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione dei Gate LSTM</div>
+      <p><strong>Cosa fa ciascun gate in una partita di Ticket to Ride?</strong></p>
+      <ul>
+        <li>$x_t = \text{Encoder}(o_t)$: vettore di feature estratte dall'osservazione istantanea.</li>
+        <li>$f_t \in (0, 1)^d$ (Forget Gate): decide quanta informazione del passato cancellare. Ad esempio, se l'avversario ha appena speso 4 carte rosse per comprare una tratta, il forget gate cancella il ricordo delle carte rosse accumulate nei turni passati.</li>
+        <li>$i_t \in (0, 1)^d$ (Input Gate): decide quali nuove informazioni registrare nella memoria a lungo termine $c_t$ (es. quale carta scoperta è stata appena pescata).</li>
+        <li>$c_t \in \mathbb{R}^d$ (Cell State): il "nastro di memoria lineare" a lungo termine che trasporta il contesto senza attenuazione esponenziale del gradiente.</li>
+        <li>$h_t \in \mathbb{R}^d$ (Hidden State): il vettore di stato latente compresso che viene passato direttamente all'Actor $\pi_\theta(a \mid h_t)$ e al Critic $V_\phi(h_t)$.</li>
+      </ul>
+    </div>
+
+    <!-- 3. TRUNCATED BPTT E GESTIONE CONFINI EPISODICI -->
+    <h2>3. Truncated BPTT e Gestione dei Confini Episodici</h2>
+
+    <p>
+      L'addestramento ricorrente richiede due attenzioni matematiche fondamentali:
+    </p>
+
+    <h3>3.1 Reset dello Stato Nascosto al Termine della Partita</h3>
+    <p>
+      Quando una partita termina ($\text{done}_t = 1$), la memoria accumulata non deve contaminare l'episodio successivo:
+    </p>
+
+    $$h_t \leftarrow (1.0 - \text{done}_t) \cdot h_t, \quad c_t \leftarrow (1.0 - \text{done}_t) \cdot c_t$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Logica dell'Azzeramento</div>
+      <p>Se $\text{done}_t = 1.0$, $(1.0 - \text{done}_t) = 0.0$, azzerando istantaneamente il tensore di memoria. Se la partita prosegue ($\text{done}_t = 0.0$), il tensore viene preservato intatto per il turno successivo.</p>
+    </div>
+
+    <h3>3.2 Chunking dei Minibatch Sequenziali (Truncated BPTT)</h3>
+    <p>
+      A differenza di PPO con MLP in cui i singoli step possono essere mescolati a caso con <code>torch.randperm</code>, in Recurrent PPO le transizioni devono rimanere <strong>chunk di sequenze temporali contigue</strong> (es. $T_{\text{seq}} = 8$ passi consecutivi). Il <code>RecurrentRolloutBuffer</code> alimenta la rete con il rispettivo $(h_0, c_0)$ registrato all'inizio di ciascun blocco.
+    </p>
+
+    <!-- 4. CODICE PYTORCH -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del Forward Ricorrente in PyTorch</div>
+      <pre><code>class RecurrentMaskedActorCritic(nn.Module):
+    def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int = 128, lstm_dim: int = 128):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            layer_init(nn.Linear(obs_dim, hidden_dim), np.sqrt(2)),
+            nn.Tanh()
+        )
+        self.lstm = nn.LSTM(hidden_dim, lstm_dim, batch_first=True)
+        for name, param in self.lstm.named_parameters():
+            if "weight" in name:
+                nn.init.orthogonal_(param, 1.0)
+            elif "bias" in name:
+                nn.init.constant_(param, 0.0)
+
+        self.actor = layer_init(nn.Linear(lstm_dim, action_dim), 0.01)
+        self.critic = layer_init(nn.Linear(lstm_dim, 1), 1.0)
+
+    def forward(self, obs_seq, hidden_state):
+        # obs_seq ha forma (batch_size, seq_len, obs_dim)
+        features = self.encoder(obs_seq)
+        lstm_out, new_hidden = self.lstm(features, hidden_state)
+        logits = self.actor(lstm_out)
+        values = self.critic(lstm_out)
+        return logits, values, new_hidden</code></pre>
+    </div>
+
+    <!-- 5. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Permutare i Singoli Timestep</div>
+      <ul>
+        <li><strong>Spezzare la Catena Temporale:</strong> Rimescolare i singoli frame indipendenti distrugge la derivata $\frac{\partial h_t}{\partial h_{t-1}}$, rendendo l'LSTM incapace di conservare la memoria storica. Campiona sempre blocchi contigui di rollout.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica le tue competenze su parziale osservabilità nei POMDP, architetture ricorrenti LSTM e sequenze BPTT.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: La Rottura della Proprietà di Markov nei POMDP</div>
+      <p>Per quale motivo teorico un agente puramente stateless (MLP) è strutturalmente svantaggiato in un gioco a carte coperte come Ticket to Ride rispetto a una rete ricorrente (LSTM)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l08_q1" value="a">
+          <span>A) Perché nell'osservazione istantanea non compaiono le carte segrete dell'avversario, ma la memoria sequenziale dell'LSTM permette di dedurne i colori tracciando le carte scoperte pescate nei turni precedenti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q1" value="b">
+          <span>B) Perché le reti MLP non possono elaborare vettori di osservazione con più di 50 variabili numeriche.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q1" value="c">
+          <span>C) Perché le reti MLP azzerano automaticamente i pesi del Critic dopo 10 partite.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q1" value="d">
+          <span>D) Perché l'algoritmo PPO non supporta l'uso di funzioni di attivazione Tanh su reti non ricorrenti.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l08_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l08_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La parziale osservabilità implica che $o_t$ da solo non costituisca uno stato markoviano completo. La traiettoria temporale passata contiene informazioni vitali sulle pescate visibili dell'avversario che l'LSTM integra nel proprio Hidden State.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> I modelli MLP gestiscono input ad alta dimensione, non azzerano i pesi e supportano qualsiasi funzione di attivazione.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Funzione del Forget Gate nell'LSTM</div>
+      <p>Qual è il ruolo matematico e operativo svolto dal Forget Gate $f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f)$ all'interno della cella di memoria?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l08_q2" value="a">
+          <span>A) Modulare tramite la funzione Sigmoide $[0, 1]$ quanta informazione del precedente Cell State $c_{t-1}$ deve essere rimossa (ad esempio, cancellare le carte rosse accumulate quando l'avversario le spende per una tratta).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q2" value="b">
+          <span>B) Azzerare l'intero grafo computazionale di PyTorch prima di calcolare la backpropagation.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q2" value="c">
+          <span>C) Forzare la policy a selezionare esclusivamente azioni con ricompensa di passo negativa.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q2" value="d">
+          <span>D) Ridurre a zero il numero di vagoni disponibili nella riserva del giocatore attivo.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l08_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l08_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Il Forget Gate calcola un vettore di pesi $f_t \in (0, 1)^d$ che moltiplica elemento per elemento il Cell State precedente ($f_t \odot c_{t-1}$), azzerando selettivamente i ricordi non più pertinenti.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il gate è un'operazione algebrica interna e non distrugge grafi né modifica le risorse di gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Gestione dei Confini Episodici (Reset di Memoria)</div>
+      <p>Cosa accadrebbe durante l'addestramento se non applicassimo la formula di reset $h_t \leftarrow (1.0 - \text{done}_t) \cdot h_t$ al termine di un episodio?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l08_q3" value="a">
+          <span>A) La memoria della partita appena conclusa inquinerebbe lo stato iniziale della nuova partita, inducendo l'agente a credere erroneamente che l'avversario possieda ancora le carte o le tratte della partita precedente.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q3" value="b">
+          <span>B) La dimensione del tensore di osservazione aumenterebbe progressivamente fino a saturare la memoria GPU.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q3" value="c">
+          <span>C) L'ottimizzatore Adam invertirebbe automaticamente il segno dei gradienti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q3" value="d">
+          <span>D) La ricompensa totale dell'episodio verrebbe moltiplicata per il fattore di sconto $\gamma$.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l08_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l08_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Ogni partita è un processo stocastico indipendente. Se il vettore nascosto $h_t$ non viene azzerato al reset dell'ambiente, l'agente eredita convinzioni fittizie (cross-episode contamination), compromettendo le prime decisioni del match.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La dimensione dei tensori non muta e non si verificano inversioni arbitrarie di ottimizzazione.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Campionamento dei Minibatch in Recurrent PPO</div>
+      <p>Perché nel <code>RecurrentRolloutBuffer</code> i dati non possono essere rimescolati a livello di singoli timestep con <code>torch.randperm(N)</code>?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l08_q4" value="a">
+          <span>A) Perché rimescolare i singoli timestep spezza la continuità temporale necessaria alla Backpropagation Through Time (BPTT) per calcolare la propagazione dei gradienti tra $t-1$ e $t$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q4" value="b">
+          <span>B) Perché PyTorch non supporta la generazione di numeri casuali all'interno di classi che ereditano da <code>nn.Module</code>.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q4" value="c">
+          <span>C) Perché la maschera delle azioni legali diventerebbe identica per tutti i nodi della mappa.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q4" value="d">
+          <span>D) Perché la perdita quadratica del Critic si annullerebbe automaticamente su dati disordinati.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l08_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l08_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> L'LSTM calcola $h_t = \text{LSTM}(x_t, h_{t-1})$. Se gli elementi del batch provengono da turni e partite scorrelati, la dipendenza temporale è distrutta. I dati devono essere organizzati in sequenze contigue (chunking).</li>
+          <li><strong>Perché B, C e D sono errate:</strong> PyTorch supporta il campionamento casuale ovunque e la maschera delle azioni non dipende dal buffer di memoria.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Definizione Formale del Belief State</div>
+      <p>Nel contesto dei POMDP, cosa esprime formalmente il Belief State $b_t(s) = \mathbb{P}(s_t = s \mid \mathcal{H}_t)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l08_q5" value="a">
+          <span>A) La distribuzione di probabilità soggettiva che il vero stato completo dell'universo sia $s$, condizionata alla storia cronologica $\mathcal{H}_t$ di tutte le osservazioni e azioni osservate dall'inizio della partita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q5" value="b">
+          <span>B) La probabilità che l'avversario abbandoni la partita prima del turno 20.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q5" value="c">
+          <span>C) La percentuale esatta di vagoni di plastica residui nel sacchetto di riserva del simulatore.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l08_q5" value="d">
+          <span>D) La derivata prima della funzione obiettivo surrogata clippata $L^{CLIP}$.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l08_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l08_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Il Belief State è la statistica sufficiente che sintetizza l'intera storia informativa passata in una credenza probabilistica sullo stato reale del sistema (comprensivo delle mani e delle intenzioni avversarie).</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il Belief State è un concetto fondante della teoria della decisione stocastica, non una statistica di abbandono né un gradiente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_07_reward_research.html" class="btn-nav-lesson">← Lezione 07: Reward Research & Shaping</a>
+      <a href="lesson_09_self_play_policy_pool.html" class="btn-nav-lesson">Lezione 09: Multi-Agent Self-Play & PFSP →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

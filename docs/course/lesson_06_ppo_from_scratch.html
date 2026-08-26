@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 06: PPO from Scratch & i 37 Dettagli CleanRL - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item active"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 6</span>
+      <span class="badge badge-level">Policy Optimization allo Stato dell'Arte</span>
+      <span class="badge badge-time">Tempo di Studio: 40 min</span>
+    </div>
+
+    <h1>Lezione 06: Proximal Policy Optimization (PPO) Puro da Zero e i 37 Dettagli CleanRL</h1>
+
+    <p>
+      In questa lezione esploriamo l'algoritmo di Reinforcement Learning che costituisce lo standard de facto dell'industria moderna (impiegato da OpenAI per ChatGPT/RLHF, da DeepMind e nella robotica avanzata): <strong>Proximal Policy Optimization (PPO)</strong>.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Il Guardrail sul Burrone</div>
+      <p>
+        Nel Policy Gradient standard, se l'agente trova una buona mossa e calcola il gradiente per aumentare la probabilità di quella mossa, rischia di fare un passo di aggiornamento troppo grande.
+      </p>
+      <p>
+        In uno spazio di parametri ad alta dimensionalità, fare un passo eccessivo è come saltare nel vuoto: se sbagli la direzione, precipiti in una regione di parametri degeneri da cui la rete non si riprenderà mai più (<strong>Policy Collapse</strong>).
+      </p>
+      <p>
+        <strong>PPO introduce un guardrail matematico (Clipping)</strong>: consente alla nuova politica di discostarsi al massimo del $\pm 20\%$ rispetto alla vecchia politica. Se il gradiente spinge per un cambiamento più radicale, PPO taglia (clippa) l'incentivo, garantendo un apprendimento progressivo, solido e privo di crolli improvvisi.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO DI PPO -->
+    <h2>2. Formalismo Matematico: Il Surrogate Clipped Objective</h2>
+
+    <p>
+      Definiamo il <strong>Probability Ratio</strong> tra la nuova policy $\pi_\theta$ e la vecchia policy di campionamento $\pi_{\theta_{\text{old}}}$:
+    </p>
+
+    $$r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché il Probability Ratio e cosa risolve?</div>
+      <p><strong>Obiettivo:</strong> Nelle traiettorie di rollout, le azioni $a_t$ sono state campionate dalla vecchia policy $\pi_{\theta_{\text{old}}}$. Quando eseguiamo più epoche di ottimizzazione SGD sullo stesso batch, i pesi $\theta$ cambiano. Il ratio $r_t(\theta)$ applica la tecnica di <em>Importance Sampling</em>: se $r_t(\theta) = 1.1$, la nuova policy assegna il $10\%$ in più di probabilità a quell'azione rispetto a prima.</p>
+      <ul>
+        <li>$r_t(\theta) = 1.0$: all'inizio della prima epoca di training, la nuova policy coincide con la vecchia.</li>
+        <li>$r_t(\theta) > 1.0$: la nuova policy rende l'azione $a_t$ più probabile.</li>
+        <li>$r_t(\theta) < 1.0$: la nuova policy rende l'azione $a_t$ meno probabile.</li>
+      </ul>
+    </div>
+
+    <h3>2.1 La Funzione Obiettivo Clippata di PPO ($L^{CLIP}$)</h3>
+    <p>
+      L'aggiornamento dell'Actor massimizza la funzione obiettivo surrogata clippata:
+    </p>
+
+    $$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta)\hat{A}_t, \; \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t \right) \right]$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione della Loss Clippata</div>
+      <p><strong>Cosa fa l'operatore $\min$ con la funzione $\text{clip}$?</strong></p>
+      <ul>
+        <li>$\epsilon$: iperparametro di clipping (standard $\epsilon = 0.2$), che definisce l'intervallo di sicurezza $[1-\epsilon, 1+\epsilon] = [0.8, 1.2]$.</li>
+        <li>$\hat{A}_t$: il vantaggio stimato (Advantage) normalizzato a media zero e varianza unitaria.</li>
+        <li><strong>Caso 1: $\hat{A}_t > 0$ (Azione Positiva / Vincente)</strong>:<br>
+          La formula diventa $\min(r_t \hat{A}_t, (1+\epsilon)\hat{A}_t)$. L'obiettivo incoraggia l'aumento di $r_t(\theta)$ fino a $1+\epsilon = 1.2$. Se la probabilità cresce oltre $1.2$, l'operatore $\min$ seleziona la costante $1.2 \hat{A}_t$, azzerando il gradiente $\frac{\partial L}{\partial \theta} = 0$. La policy non viene sovra-ottimizzata su un singolo batch!
+        </li>
+        <li><strong>Caso 2: $\hat{A}_t < 0$ (Azione Negativa / Svantaggiosa)</strong>:<br>
+          Poiché $\hat{A}_t$ è negativo, la moltiplicazione inverte le disuguaglianze: $\min(r_t \hat{A}_t, (1-\epsilon)\hat{A}_t)$. Il gradiente deprime $r_t(\theta)$ fino a $1-\epsilon = 0.8$. Se $r_t < 0.8$, l'obiettivo seleziona il termine non clippato, evitando punizioni sproporzionate e distruttive.
+        </li>
+      </ul>
+    </div>
+
+    <!-- 3. GENERALIZED ADVANTAGE ESTIMATION -->
+    <h2>3. Generalized Advantage Estimation (GAE)</h2>
+
+    <p>
+      Per calcolare il vantaggio $\hat{A}_t$ bilanciando analiticamente bias e varianza, utilizziamo <strong>GAE($\gamma, \lambda$)</strong> (Schulman et al., 2015):
+    </p>
+
+    $$\delta_t^V = r_t + \gamma (1 - d_t) V(s_{t+1}) - V(s_t)$$
+
+    $$\hat{A}_t = \delta_t^V + (\gamma \lambda) (1 - d_t) \hat{A}_{t+1}$$
+
+    $$R_t = \hat{A}_t + V(s_t)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione e Bilanciamento Bias-Varianza in GAE</div>
+      <p><strong>Cosa controlla il parametro $\lambda \in [0, 1]$?</strong></p>
+      <ul>
+        <li>$\delta_t^V$: l'errore di differenza temporale a 1 passo (TD residual).</li>
+        <li>$\lambda = 0$ (TD a 1 Passo): $\hat{A}_t = \delta_t^V$. Minima varianza, ma massimo bias (dipende interamente dalla precisione del Critic $V$).</li>
+        <li>$\lambda = 1$ (Monte Carlo completo): $\hat{A}_t = \sum_{l=0}^\infty \gamma^l r_{t+l} - V(s_t)$. Zero bias, ma varianza altissima (somma di molti reward casuali).</li>
+        <li>$\lambda = 0.95$ (Compromesso Ottimale): crea una media esponenzialmente ponderata di tutti i ritorni $k$-step, fornendo stime di vantaggio robuste e stabili.</li>
+      </ul>
+    </div>
+
+    <!-- 4. I DETTAGLI CLEANRL -->
+    <h2>4. I Dettagli Fondamentali di CleanRL per la Stabilità Numerica</h2>
+
+    <p>
+      La ricerca empirica (Huang et al., 2022) ha dimostrato che la robustezza di PPO dipende criticamente da specifici dettagli implementativi:
+    </p>
+
+    <h3>4.1 Inizializzazione Ortogonale (<code>nn.init.orthogonal_</code>)</h3>
+    <ul>
+      <li><strong>Layer Lineari Nascosti (Tanh)</strong>: $\text{gain} = \sqrt{2} \approx 1.4142$.</li>
+      <li><strong>Actor Output Head (Logits)</strong>: $\mathbf{\text{gain} = 0.01}$.<br>
+        <em>Motivazione didattica:</em> con un gain di 0.01, i logits iniziali sono quasi identici a zero ($z_a \approx 0$). Applicando l'Action Masking, la distribuzione $\pi(a|s)$ risulta perfettamente uniforme su tutte le sole azioni lecite, garantendo massima esplorazione iniziale ed evitando il collasso dell'entropia!</li>
+      <li><strong>Critic Output Head</strong>: $\text{gain} = 1.0$.</li>
+    </ul>
+
+    <h3>4.2 Decadimento Lineare del Learning Rate (Linear Annealing)</h3>
+    $$\text{lr}_t = \text{lr}_0 \cdot \max\left(0.0, \; 1.0 - \frac{t}{T_{\text{total}}}\right)$$
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Logica del Decadimento</div>
+      <p>All'inizio del training ($t=0$), $\text{lr} = \text{lr}_0$ permette passi ampi per esplorare strategie macroscopiche. Verso la fine del training ($t \to T_{\text{total}}$), $\text{lr} \to 0$ stabilizza la convergenza fine della policy senza sovrascrivere le feature apprese.</p>
+    </div>
+
+    <h3>4.3 Value Function Loss Clipping</h3>
+    $$\mathcal{L}^{VF}(\theta) = \frac{1}{2} \mathbb{E} \left[ \max\left( (V_\theta(s_t) - R_t)^2, \; (V_{\text{old}}(s_t) + \text{clip}(V_\theta(s_t) - V_{\text{old}}(s_t), -\epsilon_{vf}, \epsilon_{vf}) - R_t)^2 \right) \right]$$
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Protezione del Critic</div>
+      <p>Impedisce che la stima del valore $V_\theta(s_t)$ subisca variazioni istantanee superiori a $\pm \epsilon_{vf}$ in una singola epoca di addestramento rispetto alla stima $V_{\text{old}}$ calcolata durante il rollout.</p>
+    </div>
+
+    <h3>4.4 Target KL Early Stopping</h3>
+    $$d_{\text{KL}} \approx \mathbb{E} \left[ (r_t(\theta) - 1) - \log r_t(\theta) \right]$$
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Freno d'Emergenza su Divergenza di Policy</div>
+      <p>Se $d_{\text{KL}} > \text{target\_kl}$ (tipicamente impostato a $0.015$), interrompiamo immediatamente le sotto-epoche di ottimizzazione del batch corrente, impedendo alla policy di allontanarsi eccessivamente dalla distribuzione dei dati raccolti.</p>
+    </div>
+
+    <!-- 5. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Normalizzazione dell'Advantage</div>
+      <ul>
+        <li><strong>Dimenticare la normalizzazione $\hat{A}_t = \frac{A_t - \mu}{\sigma + 10^{-8}}$:</strong> Se i vantaggi non vengono normalizzati sul mini-batch, la magnitudo dei gradienti oscillerà in funzione della scala grezza dei punteggi del gioco, provocando salti violenti nei pesi dell'Actor.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Testa la tua comprensione su PPO, objective clipping, formulazione GAE e stabilizzazioni numeriche CleanRL.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Meccanismo di Clipping dell'Obiettivo PPO</div>
+      <p>Durante una sotto-epoca di ottimizzazione PPO, per un'azione molto favorevole con vantaggio positivo ($\hat{A}_t > 0$), la nuova policy raddoppia la probabilità rispetto al rollout originario ($r_t(\theta) = 2.0$). Quale valore assegna la formula $L^{CLIP}$ con $\epsilon = 0.2$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l06_q1" value="a">
+          <span>A) Selezionerà $2.0 \times \hat{A}_t$, continuando ad amplificare il gradiente senza alcun vincolo superiore.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q1" value="b">
+          <span>B) Selezionerà $(1 + \epsilon)\hat{A}_t = 1.2 \times \hat{A}_t$, bloccando il gradiente $\frac{\partial L}{\partial \theta} = 0$ per impedire un aggiornamento eccessivamente destabilizzante.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q1" value="c">
+          <span>C) Selezionerà $0.0$, azzerando istantaneamente tutti i pesi della testa dell'Actor.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q1" value="d">
+          <span>D) Selezionerà $-1.2 \times \hat{A}_t$, invertendo il segno del gradiente per punire la deviazione.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l06_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l06_q1_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Con $\hat{A}_t > 0$ e $r_t(\theta) = 2.0 > 1 + \epsilon = 1.2$, l'operatore $\min(r_t \hat{A}_t, (1+\epsilon)\hat{A}_t)$ sceglie il termine clippato $1.2 \hat{A}_t$. Essendo costante rispetto a $\theta$ oltre la soglia $1.2$, la derivata si annulla, impedendo variazioni di policy troppo drastiche.</li>
+          <li><strong>Perché A è errata:</strong> Rappresenta l'assenza di clipping (TRPO/Vanilla PG), vulnerabile a policy collapse.</li>
+          <li><strong>Perché C e D sono errate:</strong> L'obiettivo non azzera i pesi né inverte la direzione del gradiente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Bilanciamento Bias-Varianza nel Parametro $\lambda$ di GAE</div>
+      <p>Cosa accade matematicamente al calcolo del vantaggio GAE $\hat{A}_t$ quando impostiamo il parametro $\lambda = 0$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l06_q2" value="a">
+          <span>A) Il vantaggio coincide con l'errore TD a 1 passo $\delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$, ottenendo la minima varianza possibile ma la massima dipendenza da bias introdotto dalla stima del Critic.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q2" value="b">
+          <span>B) Il vantaggio coincide con il ritorno Monte Carlo completo sommato fino all'ultimo turno della partita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q2" value="c">
+          <span>C) Il vantaggio si annulla identicamente ($\hat{A}_t = 0$), bloccando qualsiasi aggiornamento dell'Actor.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q2" value="d">
+          <span>D) La convergenza dell'algoritmo diventa garantita in una singola epoca di backpropagation.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l06_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l06_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Nella formula $\hat{A}_t = \delta_t^V + (\gamma \lambda)\hat{A}_{t+1}$, se $\lambda = 0$ il secondo termine svanisce e rimane solo $\delta_t^V$. Questo riduce al minimo la varianza statistica campionaria ma espone l'Actor al bias di approssimazione della funzione $V(s)$.</li>
+          <li><strong>Perché B è errata:</strong> Il ritorno Monte Carlo completo si ottiene quando $\lambda = 1$.</li>
+          <li><strong>Perché C e D sono errate:</strong> Il vantaggio non è zero e non garantisce convergenza istantanea.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Inizializzazione Ortogonale con Gain Ridotto sull'Actor</div>
+      <p>Perché nei dettagli CleanRL la testa lineare di output dell'Actor viene inizializzata con un gain molto piccolo ($\text{gain} = 0.01$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l06_q3" value="a">
+          <span>A) Per fare in modo che i logits iniziali siano quasi nulli ($z_a \approx 0$), garantendo una distribuzione Softmax uniforme su tutte le sole azioni legali per massimizzare l'esplorazione iniziale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q3" value="b">
+          <span>B) Per forzare l'Actor a selezionare unicamente la prima azione $a=0$ per i primi 1000 step di gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q3" value="c">
+          <span>C) Per ridurre del 99% il tempo computazionale necessario al calcolo del backward pass su GPU.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q3" value="d">
+          <span>D) Per impedire alla rete di calcolare l'entropia della policy durante l'ottimizzazione.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l06_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l06_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Se i pesi iniziali dell'Actor fossero grandi, alcune azioni riceverebbero casualmente probabilità vicine a $1.0$ e altre a $0.0$ fin dal turno 1, causando collasso prematuro dell'entropia e mancata esplorazione. Con gain 0.01, la policy parte equamente bilanciata sulle azioni lecite.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'inizializzazione non favorisce un'azione fissa, non riduce il costo di FLOP e supporta pienamente il calcolo dell'entropia.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Funzione del Target KL Early Stopping</div>
+      <p>Cosa accade durante il ciclo di ottimizzazione PPO se la divergenza di Kullback-Leibler empirica stimata supera la soglia prefissata (es. $d_{\text{KL}} > 0.015$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l06_q4" value="a">
+          <span>A) L'addestramento interrompe immediatamente le epoche di aggiornamento sul batch corrente (Early Stopping) per evitare che la policy subisca una deriva eccessiva rispetto ai dati raccolti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q4" value="b">
+          <span>B) L'ambiente cancella l'intero Replay Buffer e riavvia la simulazione partendo con un nuovo seed casuale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q4" value="c">
+          <span>C) Il learning rate viene moltiplicato istantaneamente per 10 per forzare la convergenza dei pesi.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q4" value="d">
+          <span>D) La rete neurale sostituisce tutte le funzioni di attivazione Tanh con funzioni Sigmoid.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l06_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l06_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La stima della KL misura quanto la nuova policy si è allontanata da quella di campionamento. Se supera la soglia di guardia (es. 0.015), ulteriori passi di gradiente sui dati di rollout rischierebbero di causare policy collapse. L'uscita anticipata (break) protegge l'agente.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> PPO non usa replay buffer off-policy e non altera le architetture o i learning rate in modo anomalo.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Normalizzazione del Vettore dei Vantaggi (Advantage)</div>
+      <p>Qual è il beneficio teorico di normalizzare i vantaggi $\hat{A}_t = \frac{A_t - \mu}{\sigma + \epsilon}$ su ciascun mini-batch prima dell'aggiornamento dell'Actor?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l06_q5" value="a">
+          <span>A) Rende la grandezza dei gradienti indipendente dalla scala assoluta delle ricompense fornite dal gioco, stabilizzando la dimensione del passo di ottimizzazione.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q5" value="b">
+          <span>B) Elimina completamente la necessità di utilizzare un discount factor $\gamma$ durante il calcolo dei ritorni.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q5" value="c">
+          <span>C) Permette di addestrare l'Actor senza richiedere l'uso della rete Critic.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l06_q5" value="d">
+          <span>D) Assicura che esattamente il 50% di tutte le azioni di gioco diventi permanentemente illegale.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l06_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l06_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Se una ricompensa vale $+100$ in un gioco e $+1$ in un altro, i gradienti non normalizzati risulterebbero 100 volte più intensi nel primo caso. Normalizzando a media 0 e deviazione standard 1, l'intensità del segnale di gradiente rimane calibrata e robusta indipendentemente dal design del reward.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> $\gamma$ e il Critic rimangono indispensabili per il calcolo di GAE, e la maschera delle azioni non dipende dalla normalizzazione.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_05_web_lab_optimization.html" class="btn-nav-lesson">← Lezione 05: Web Lab & Performance</a>
+      <a href="lesson_07_reward_research.html" class="btn-nav-lesson">Lezione 07: Reward Research & Shaping →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

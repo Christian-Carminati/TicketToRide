@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 10: Generalizzazione & Mappe Procedurali - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item active"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 10</span>
+      <span class="badge badge-level">Generalizzazione & Teoria dei Grafi</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 10: Generalizzazione, Mappe Procedurali (MST) e Transfer Learning Cross-Mappa</h1>
+
+    <p>
+      In questa lezione affrontiamo la domanda scientifica cardine di qualsiasi progetto di intelligenza artificiale: <em>"L'agente ha davvero compreso i principi strategici universali del gioco, oppure ha semplicemente memorizzato a memoria i nomi delle città e la geometria del tabellone USA?"</em>
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Imparare a Guidare vs Memorizzare un Singolo Percorso</div>
+      <p>
+        Pensa a due studenti che imparano a guidare:
+      </p>
+      <ul>
+        <li><strong>Lo Studente che Impara a Memoria (Overfitting Topologico)</strong>: memorizza che <em>"dopo 50 metri devi svoltare a destra vicino all'albero e dopo 200 metri devi fermarti al cartello"</em>. Se lo porti in una città diversa, farà un incidente perché non sa adattarsi a una mappa differente.</li>
+        <li><strong>Il Vero Guidatore (Generalizzazione Spaziale)</strong>: comprende i principi universali (distanze di sicurezza, incroci, flussi di traffico). Saprà guidare su qualsiasi strada del mondo!</li>
+      </ul>
+      <p>
+        In questa lezione costringiamo l'agente a misurarsi su <strong>centinaia di mappe generate proceduralmente</strong> e sul tabellone ufficiale di <strong>Ticket to Ride Europa</strong> per testare la sua reale capacità di astrazione.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico del Generalization Gap</h2>
+
+    <p>
+      Dato un insieme di mappe di addestramento $\mathcal{M}_{\text{train}}$ e un insieme disgiunto di mappe mai viste di test $\mathcal{M}_{\text{test}}$:
+    </p>
+
+    $$\Delta_{\text{gen}} = \overline{S}_{\text{train}} - \overline{S}_{\text{test}} = \frac{1}{|\mathcal{M}_{\text{train}}|} \sum_{m \in \mathcal{M}_{\text{train}}} \mathbb{E}[\text{Score}(m)] - \frac{1}{|\mathcal{M}_{\text{test}}|} \sum_{m' \in \mathcal{M}_{\text{test}}} \mathbb{E}[\text{Score}(m')]$$
+
+    $$R_{\text{ret}} = \frac{\overline{S}_{\text{test}}}{\max(1.0, \; \overline{S}_{\text{train}})} \times 100\%$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché quantificare il Generalization Gap e il Retention Rate?</div>
+      <p><strong>Obiettivo:</strong> Nel Machine Learning, un modello può raggiungere ottimi risultati su un singolo benchmark semplicemente memorizzando le coordinate esatte delle città. Il Generalization Gap $\Delta_{\text{gen}}$ e il Relative Retention Rate $R_{\text{ret}}$ misurano oggettivamente quanta abilità strategica sopravvive quando l'ambiente viene alterato.</p>
+      <ul>
+        <li>$\Delta_{\text{gen}} \approx 0$: perfetta generalizzazione. Il modello gioca con la stessa efficacia su mappe note e mappe completamente inedite.</li>
+        <li>$\Delta_{\text{gen}} \gg 0$: grave overfitting topologico. Il modello è incapace di adattarsi a nuove geometrie di rete.</li>
+        <li>$R_{\text{ret}} \in [0\%, 100\%]$: frazione di rendimento conservata. Un valore $R_{\text{ret}} > 80\%$ denota un transfer learning cross-mappa di alto livello.</li>
+      </ul>
+    </div>
+
+    <!-- 3. GENERATORE PROCEDURALE BASATO SU MST -->
+    <h2>3. Algoritmo di Generazione Mappe Procedurali</h2>
+
+    <p>
+      Per creare infiniti tabelloni di gioco realistici e sempre giocabili, il modulo <code>ProceduralMapGenerator</code> applica un pipeline in 5 passi basato sulla teoria dei grafi:
+    </p>
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">📐 Pipeline di Sintesi Topologica</div>
+      <ol>
+        <li><strong>Campionamento Spaziale con Rejection Radius:</strong>
+          Campiona $N_{\text{cities}}$ città con coordinate $(x_i, y_i) \in [0.05, 0.95]^2$ imponendo una distanza euclidea minima $d_{\min} = 0.15$ tra ogni coppia per evitare sovrapposizioni.
+        </li>
+        <li><strong>Garanzia di Connettività tramite Minimum Spanning Tree (MST):</strong>
+          Calcola l'albero di copertura minimo con l'algoritmo di Kruskal. Questo assicura con esattamente $N_{\text{cities}} - 1$ tratte che tutte le $N_{\text{cities}}$ città siano connesse in un'unica componente (nessuna città isolata!).
+        </li>
+        <li><strong>Aggiunta di Archi KNN & Delaunay:</strong>
+          Aggiunge ulteriori $K_{\text{extra}}$ archi tra città vicine per creare maglie, cicli e percorsi alternativi.
+        </li>
+        <li><strong>Quantizzazione delle Lunghezze e Bilanciamento Cromatico:</strong>
+          Assegna a ciascuna tratta una lunghezza intera $L \in [1, 6]$ proporzionale alla distanza geometrica euclidea e distribuisce uniformemente gli 8 colori del gioco.
+        </li>
+        <li><strong>Sintesi dei Biglietti di Destinazione:</strong>
+          Calcola tutti i cammini minimi con Dijkstra e assegna a ciascuna coppia $(u, v)$ un valore in punti proporzionale alla distanza:
+          $$\text{Points}(u, v) = \max\left(2, \; \min\left(22, \; \lfloor d_{\text{path}}(u, v) \times 1.2 \rfloor\right)\right)$$
+        </li>
+      </ol>
+      <div class="box-title" style="margin-top: 16px;">🔍 Scomposizione del Calcolo Punti Biglietto</div>
+      <ul>
+        <li>$d_{\text{path}}(u, v)$: distanza minima in numero di vagoni calcolata con Dijkstra tra $u$ e $v$.</li>
+        <li>$1.2$: coefficiente di proporzionalità che bilancia il valore rispetto allo sforzo in vagoni.</li>
+        <li>$\max(2, \min(22, \dots))$: vincola il punteggio dei contratti nell'intervallo standard di gioco $[2, 22]$ punti.</li>
+      </ul>
+    </div>
+
+    <!-- 4. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Generazione del Minimum Spanning Tree in Python</div>
+      <pre><code>def generate_connected_graph(cities: list[City], target_routes: int) -> list[Route]:
+    # 1. Calcola tutte le distanze euclidee tra le coppie di città
+    all_edges = []
+    for i in range(len(cities)):
+        for j in range(i + 1, len(cities)):
+            dist = np.hypot(cities[i].x - cities[j].x, cities[i].y - cities[j].y)
+            all_edges.append((dist, i, j))
+    all_edges.sort(key=lambda x: x[0])
+
+    # 2. Algoritmo di Kruskal con Disjoint Set Union (MST)
+    dsu = DisjointSetUnion(len(cities))
+    mst_routes = []
+    remaining_edges = []
+
+    for dist, i, j in all_edges:
+        if dsu.union(i, j):
+            mst_routes.append((cities[i].id, cities[j].id, dist))
+        else:
+            remaining_edges.append((cities[i].id, cities[j].id, dist))
+
+    # 3. Aggiunta di archi extra per creare percorsi alternativi
+    extra_needed = target_routes - len(mst_routes)
+    for c_a, c_b, dist in remaining_edges[:extra_needed]:
+        mst_routes.append((c_a, c_b, dist))
+
+    return mst_routes</code></pre>
+    </div>
+
+    <!-- 5. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Addestrare su una Singola Mappa</div>
+      <ul>
+        <li><strong>Overfitting della Mappa USA:</strong> Un agente addestrato solo su mappa USA raggiunge un retention rate $R_{\text{ret}} < 35\%$ su mappa Europa. Addestrando invece con <code>MultiMapTicketToRideEnv</code> su 50 mappe procedurali, il retention rate sale a oltre l'<strong>$82\%$</strong>.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica la tua comprensione su algoritmi MST per mappe procedurali, metriche di retention e transfer learning.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Garanzia Topologica del Minimum Spanning Tree</div>
+      <p>Perché l'algoritmo di generazione procedurale delle mappe utilizza il Minimum Spanning Tree (MST) come scheletro iniziale della rete ferroviaria?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l10_q1" value="a">
+          <span>A) Perché garantisce matematicamente che l'intero grafo contenga un'unica componente connessa senza città isolate, utilizzando il numero minimo indispensabile di archi ($N - 1$).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q1" value="b">
+          <span>B) Perché impone che tutte le tratte abbiano esattamente lunghezza pari a 6 vagoni.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q1" value="c">
+          <span>C) Perché assegna automaticamente 20 punti vittoria a ciascun giocatore all'inizio della partita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q1" value="d">
+          <span>D) Perché impedisce all'algoritmo di Dijkstra di calcolare i cammini minimi tra città.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l10_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l10_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> L'albero di copertura minimo connette tutti gli $N$ vertici con $N-1$ archi a costo minimo, assicurando l'assenza di isole o città irraggiungibili che renderebbero i biglietti impossibili da completare.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'MST riguarda la connettività del grafo e non fissa la lunghezza degli archi né i punti dei giocatori.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Significato del Relative Performance Retention ($R_{\text{ret}}$)</div>
+      <p>Un agente ottiene un punteggio medio $\overline{S}_{\text{train}} = 120$ punti sulle mappe di addestramento e $\overline{S}_{\text{test}} = 96$ punti su mappe procedurali mai viste. Qual è il valore del suo Retention Rate $R_{\text{ret}}$ e cosa esprime?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l10_q2" value="a">
+          <span>A) $R_{\text{ret}} = \frac{96}{120} \times 100\% = 80\%$; indica che l'agente preserva l'80% della sua efficacia strategica quando opera in ambienti out-of-distribution mai visti in precedenza.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q2" value="b">
+          <span>B) $R_{\text{ret}} = 120 - 96 = 24\%$; indica la percentuale di partite perse contro il RandomAgent.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q2" value="c">
+          <span>C) $R_{\text{ret}} = \frac{120}{96} \times 100\% = 125\%$; indica che l'agente ha subito un fenomeno di catastrofico oblio.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q2" value="d">
+          <span>D) $R_{\text{ret}} = 0.0\%$; indica che la policy è crollata completamente a causa dell'action masking.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l10_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l10_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> $R_{\text{ret}} = \frac{\overline{S}_{\text{test}}}{\overline{S}_{\text{train}}} \times 100\% = \frac{96}{120} = 80\%$. Un valore di $80\%$ attesta un'ottima capacità di generalizzazione cross-mappa.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Calcolano la differenza scalare o invertono i termini della frazione.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Campionamento con Rejection Radius</div>
+      <p>Nella generazione procedurale dei vertici, quale funzione svolge il vincolo di distanza minima euclidea $d_{\min} = 0.15$ tra ogni coppia di città?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l10_q3" value="a">
+          <span>A) Impedire la sovrapposizione geometrica e l'eccessivo addensamento dei nodi, garantendo che le tratte abbiano lunghezze significative e visivamente distinte.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q3" value="b">
+          <span>B) Forzare l'algoritmo a disporre tutte le città lungo una singola retta orizzontale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q3" value="c">
+          <span>C) Azzerare il numero di carte colore richieste per acquistare le tratte.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q3" value="d">
+          <span>D) Disabilitare la creazione di tratte doppie a due giocatori.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l10_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l10_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Se le città fossero campionate in modo uniforme puro senza rejection radius, molte di esse cadrebbero quasi nello stesso punto, generando tratte di lunghezza zero o grafi degeneri.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il raggio di reiezione preserva la distribuzione 2D realistica sul piano.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Vantaggio dell'Ambiente Multi-Map (<code>MultiMapTicketToRideEnv</code>)</div>
+      <p>Qual è il vantaggio architetturale principale nell'addestrare un modello di RL alternando ad ogni episodio una mappa procedurale differente?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l10_q4" value="a">
+          <span>A) Impedisce alla rete neurale di memorizzare euristiche posizionali legate alle coordinate o ai nomi di una specifica mappa (Domain Randomization Topologica), forzando l'apprendimento di principi di connettività invarianti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q4" value="b">
+          <span>B) Permette di eliminare il calcolo dell'Advantage GAE durante le epoche di addestramento.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q4" value="c">
+          <span>C) Rende le partite istantanee azzerando il tempo di inferenza PyTorch.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q4" value="d">
+          <span>D) Sostituisce l'ottimizzatore Adam con la discesa del gradiente stocastico classica (SGD).</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l10_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l10_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Variando le mappe a ogni episodio (Domain Randomization), la rete non può sovra-adattarsi alle tratte USA; è costretta ad apprendere feature astratte (es. gestione carte, sinergia biglietti, bottleneck di rete).</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'architettura dell'algoritmo di RL (GAE, Adam, tempi di calcolo) rimane intatta.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Formulazione dei Punti Biglietto nel Generatore</div>
+      <p>Nella formula di assegnazione del punteggio ai biglietti $\text{Points}(u, v) = \max(2, \min(22, \lfloor d_{\text{path}}(u, v) \times 1.2 \rfloor))$, perché il punteggio dipende dalla distanza di cammino minimo $d_{\text{path}}$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l10_q5" value="a">
+          <span>A) Per garantire che il valore in punti vittoria sia proporzionato al numero di vagoni fisici necessari per collegare le due città, preservando il bilanciamento rischio-rendimento del gioco ufficiale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q5" value="b">
+          <span>B) Per forzare tutti i biglietti della mappa ad avere sempre lo stesso identico punteggio di 10 punti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q5" value="c">
+          <span>C) Per azzerare i vagoni spesi quando un giocatore reclama una tratta di montagna.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l10_q5" value="d">
+          <span>D) Per ridurre a zero il tempo di calcolo dell'algoritmo di Kruskal.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l10_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l10_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Un biglietto che richiede molti vagoni espone l'agente a un rischio maggiore di penalità $(-p)$; calcolare i punti tramite $d_{\text{path}} \times 1.2$ garantisce che le ricompense siano calibrate realisticamente sul grafo generato.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La formula genera punteggi variabili proporzionali alla distanza e non altera le risorse fisiche o la complessità di Kruskal.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_09_self_play_policy_pool.html" class="btn-nav-lesson">← Lezione 09: Multi-Agent Self-Play & PFSP</a>
+      <a href="lesson_11_mcts_tree_search.html" class="btn-nav-lesson">Lezione 11: MCTS & Determinizzazione →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

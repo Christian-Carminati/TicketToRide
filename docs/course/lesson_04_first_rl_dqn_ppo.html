@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 04: First Deep RL (Double DQN & Actor-Critic) - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item active"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 4</span>
+      <span class="badge badge-level">Deep Q-Learning & Policy Gradients</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 04: Il Salto nel Deep RL — Masked Double DQN e Fondamenti Actor-Critic</h1>
+
+    <p>
+      In questa lezione entriamo nel vivo dell'apprendimento automatico per rinforzo. Abbandoniamo le euristiche scritte a mano dal programmatore umano per creare una rete neurale in grado di scoprire strategie vincenti <strong>interagendo autonomamente con l'ambiente</strong> tramite tentativi, errori e ricompense.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Il Cartellino del Valore e la Trappola dell'Ottimismo</div>
+      <p>
+        Immagina di trovarti davanti a un tabellone di <em>Ticket to Ride</em>. Sul tavolo ci sono 142 possibili azioni.
+      </p>
+      <p>
+        Un algoritmo <strong>Value-Based (come DQN)</strong> funziona come se attaccasse un "cartellino del prezzo" $Q(s, a)$ a ogni mossa lecita:
+      </p>
+      <ul>
+        <li><em>"Pescare dal mazzo coperto vale +3.2 punti futuri attesi."</em></li>
+        <li><em>"Comprare la tratta Boston-New York vale +8.7 punti futuri attesi."</em></li>
+      </ul>
+      <p>
+        Tuttavia, quando una rete neurale stima questi cartellini, a causa del rumore casuale tenderà a <strong>sovrastimare</strong> alcune azioni. Se prendi sempre il massimo di stime rumorose, diventi come un giocatore iper-ottimista che crede che ogni mossa rischiosa andrà sempre per il verso giusto. <strong>Double DQN</strong> risolve questo difetto separando chi sceglie la mossa da chi ne valuta il vero valore.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: Bellman e la "Deadly Triad"</h2>
+
+    <p>
+      La funzione di valore azione ottimale $Q^*(s, a)$ soddisfa l'<strong>Equazione di Ottimalità di Bellman</strong>:
+    </p>
+
+    $$Q^*(s, a) = \mathbb{E}_{s' \sim \mathcal{T}} \left[ r_t + \gamma \max_{a' \in \mathcal{A}_{\text{valid}}(s')} Q^*(s', a') \;\middle|\; s_t=s, a_t=a \right]$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché l'Equazione di Bellman e cosa risolve?</div>
+      <p><strong>Obiettivo:</strong> Calcolare il ritorno a lungo termine senza dover simulare ogni volta l'intera partita fino alla fine. L'equazione esprime una relazione ricorsiva fondamentale: il valore della mossa attuale $Q^*(s, a)$ è pari alla ricompensa immediata $r_t$ sommata al valore atteso della migliore mossa possibile nello stato futuro $s'$, scontata di $\gamma$.</p>
+      <p><strong>Scomposizione Termine per Termine:</strong></p>
+      <ul>
+        <li>$Q^*(s, a)$: massimo ritorno cumulativo scontato atteso partendo dallo stato $s$ ed eseguendo l'azione $a$.</li>
+        <li>$\mathbb{E}_{s' \sim \mathcal{T}}[\dots]$: valore atteso rispetto alla distribuzione di transizione dell'ambiente $s' \sim \mathcal{T}(s' \mid s, a)$.</li>
+        <li>$r_t$: ricompensa scalare immediata ricevuta dall'ambiente al termine dello step.</li>
+        <li>$\gamma \in [0, 1)$: fattore di sconto (es. $\gamma = 0.99$). Se $\gamma \to 0$ l'agente è miope (guarda solo $r_t$); se $\gamma \to 1$ pianifica sul lungo termine.</li>
+        <li>$\max_{a' \in \mathcal{A}_{\text{valid}}(s')} Q^*(s', a')$: il valore della migliore azione lecita nello stato futuro $s'$. L'insieme $\mathcal{A}_{\text{valid}}(s')$ esclude rigorosamente le azioni illegali.</li>
+      </ul>
+    </div>
+
+    <h3>2.1 Dimostrazione del Bias di Sovrastima e Soluzione Double DQN</h3>
+    <p>
+      Nel DQN classico (Mnih et al., 2015), la stessa rete $\theta$ sceglie l'azione e ne calcola il valore: $y_t = r_t + \gamma \max_{a'} Q_\theta(s_{t+1}, a')$. Poiché $\mathbb{E}[\max(X_1, X_2)] \ge \max(\mathbb{E}[X_1], \mathbb{E}[X_2])$, il rumore di stima si accumula trasformandosi in una sovrastima sistematica positiva dei Q-values.
+    </p>
+    <p>
+      <strong>Double DQN (Van Hasselt et al., 2016)</strong> elimina questo bias disaccoppiando selezione e valutazione:
+    </p>
+
+    $$a^* = \arg\max_{a' \in \mathcal{A}_{\text{valid}}(s_{t+1})} Q_\theta(s_{t+1}, a') \quad \text{(1. Selezione tramite la rete Online } \theta\text{)}$$
+
+    $$y_t^{\text{DDQN}} = r_t + \gamma (1 - d_t) Q_{\theta^-}(s_{t+1}, a^*) \quad \text{(2. Valutazione tramite la Target Network } \theta^-\text{)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Perché il Disaccoppiamento Funziona?</div>
+      <p><strong>Intuizione:</strong> Se la rete Online $\theta$ sovrastima per errore l'azione $a^*$, la Target Network $\theta^-$ (i cui pesi sono indipendenti o congelati) non condividerà lo stesso identico picco di rumore per $a^*$. La stima combinata $Q_{\theta^-}(s_{t+1}, a^*)$ risulterà priva del bias positivo.</p>
+      <ul>
+        <li>$\theta$: pesi della rete Online, aggiornati continuamente a ogni mini-batch tramite discesa del gradiente.</li>
+        <li>$\theta^-$: pesi della Target Network, congelati e sincronizzati con $\theta$ solo ogni $C$ step (es. ogni 1000 step).</li>
+        <li>$d_t \in \{0, 1\}$: flag di terminazione (done). Se $d_t = 1$ (fine partita), $(1 - d_t) = 0$, azzerando il termine futuro e ponendo il target $y_t = r_t$.</li>
+      </ul>
+    </div>
+
+    <h3>2.2 La Funzione di Loss per l'Addestramento di Double DQN</h3>
+    <p>
+      La rete Online viene addestrata minimizzando l'errore quadratico medio o l'errore di Huber (Smooth L1) sulle transizioni campionate dall'Experience Replay Buffer $\mathcal{D}$:
+    </p>
+
+    $$\mathcal{L}(\theta) = \mathbb{E}_{(s_t, a_t, r_t, s_{t+1}, d_t) \sim \mathcal{D}} \left[ \left( Q_\theta(s_t, a_t) - y_t^{\text{DDQN}} \right)^2 \right]$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione della Loss TD</div>
+      <ul>
+        <li>$\mathcal{D}$: Replay Buffer circolare contenente transizioni storiche. Campionare uniformemente mini-batch da $\mathcal{D}$ rompe la forte correlazione temporale tra stati consecutivi.</li>
+        <li>$\delta_t = Q_\theta(s_t, a_t) - y_t^{\text{DDQN}}$: l'<strong>Errore Temporale di Differenza (TD Error)</strong>.</li>
+        <li>Se $\delta_t > 0$, la rete sta sovrastimando il valore rispetto all'evidenza empirica e il gradiente ne riduce i pesi. Se $\delta_t < 0$, il gradiente ne incrementa il valore.</li>
+      </ul>
+    </div>
+
+    <!-- 3. FONDAMENTI ACTOR-CRITIC E POLICY GRADIENT -->
+    <h2>3. Fondamenti Policy-Based: Actor-Critic e Advantage</h2>
+
+    <p>
+      Mentre DQN apprende i valori $Q(s, a)$, la famiglia <strong>Policy Gradient</strong> ottimizza direttamente i parametri $\theta$ di una distribuzione di probabilità $\pi_\theta(a \mid s)$ tramite il Policy Gradient Theorem:
+    </p>
+
+    $$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \ln \pi_\theta(a_t \mid s_t) \cdot A^\pi(s_t, a_t) \right]$$
+
+    $$A^\pi(s, a) = Q^\pi(s, a) - V^\pi(s)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia del Gradiente di Policy e dell'Advantage</div>
+      <p><strong>Perché usiamo la Funzione di Vantaggio $A(s, a)$ anziché il semplice ritorno totale $R_t$?</strong> Il ritorno grezzo $R_t$ ha una varianza elevatissima: una buona mossa può ricevere un ritorno negativo se più avanti l'agente commette un errore madornale. Sottraendo la baseline di stato $V^\pi(s)$, l'Advantage quantifica se la singola azione è stata <em>migliore o peggiore della media</em> per quello stato, abbattendo la varianza senza introdurre bias.</p>
+      <ul>
+        <li>$\nabla_\theta \ln \pi_\theta(a_t \mid s_t)$: vettore gradiente che indica la direzione di massimo incremento della probabilità di scegliere l'azione $a_t$.</li>
+        <li>$A(s, a) > 0$: l'azione scelta è superiore alla media attesa dello stato. Il gradiente incrementa $\pi_\theta(a \mid s)$.</li>
+        <li>$A(s, a) < 0$: l'azione scelta è inferiore alla media. Il gradiente deprime $\pi_\theta(a \mid s)$.</li>
+      </ul>
+    </div>
+
+    <!-- 4. CODICE PYTORCH -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Action Masking Numerico con Categorical Softmax in PyTorch</div>
+      <pre><code>import torch
+import torch.nn as nn
+from torch.distributions import Categorical
+
+class MaskedActorCritic(nn.Module):
+    def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int = 128):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(obs_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Tanh()
+        )
+        self.actor_head = nn.Linear(hidden_dim, action_dim)
+        self.critic_head = nn.Linear(hidden_dim, 1)
+
+    def forward(self, obs: torch.Tensor, action_mask: torch.Tensor):
+        features = self.encoder(obs)
+        raw_logits = self.actor_head(features)
+        value = self.critic_head(features)
+
+        # Action Masking: impostiamo -1e8 sui logit delle azioni non consentite
+        masked_logits = torch.where(action_mask, raw_logits, torch.tensor(-1e8, device=obs.device))
+        dist = Categorical(logits=masked_logits)
+        
+        return dist, value</code></pre>
+    </div>
+
+    <!-- 5. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni nel Deep RL per Giochi da Tavolo</div>
+      <ul>
+        <li><strong>Non sincronizzare la Target Network troppo frequentemente:</strong> Se aggiorni $\theta^-$ a ogni batch, Double DQN degenera nel DQN classico e perde qualsiasi stabilità di convergenza.</li>
+        <li><strong>Non omettere il flag $d_t$ (done):</strong> Se non azzeri il termine futuro all'ultimo turno ($1 - d_t$), l'agente tenterà di bootstrappare valori fittizi da stati inesistenti successivi alla fine della partita.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica la tua preparazione su Bellman optimality, bias di sovrastima in Q-Learning e stima dell'Advantage.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: La Funzione della Target Network in Double DQN</div>
+      <p>Qual è la ragione fondamentale per cui in Double DQN i pesi della Target Network $\theta^-$ vengono mantenuti congelati per centinaia di step anziché aggiornati a ogni singolo batch?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l04_q1" value="a">
+          <span>A) Ridurre il consumo di memoria video GPU evitando di dover allocare i tensori del grafo computazionale per la backpropagation.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q1" value="b">
+          <span>B) Stabilizzare il bersaglio di regressione di Bellman, prevenendo oscillazioni distruttive causate dall'inseguimento di un bersaglio continuamente mutevole.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q1" value="c">
+          <span>C) Forzare l'agente a selezionare esclusivamente azioni con ricompensa immediata strettamente positiva in ogni turno.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q1" value="d">
+          <span>D) Garantire che la funzione di valore converga sempre al valore massimo di 100 punti vittoria indipendentemente dalla mappa.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l04_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l04_q1_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Se usassimo la stessa rete per calcolare sia $Q(s, a)$ sia il target $r + \gamma \max Q(s', a')$, ogni aggiornamento cambierebbe immediatamente l'obiettivo stesso ("inseguire un bersaglio mobile"), innescando divergenza o loop oscillatori.</li>
+          <li><strong>Perché A, C e D sono errate:</strong> Il congelamento serve per la stabilità matematica dell'algoritmo di Bellman, non per vincoli di RAM o per imporre punteggi fissi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Meccanismo di Disaccoppiamento in Double DQN</div>
+      <p>Nella formula del bersaglio Double DQN $y_t^{\text{DDQN}} = r_t + \gamma (1 - d_t) Q_{\theta^-}(s_{t+1}, a^*)$, come viene individuata l'azione $a^*$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l04_q2" value="a">
+          <span>A) Viene selezionata estraendo l'azione con il valore massimo predetto dalla rete Online $\theta$: $a^* = \arg\max_{a'} Q_\theta(s_{t+1}, a')$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q2" value="b">
+          <span>B) Viene scelta estraendo uniformemente a caso un'azione tra tutte le $142$ azioni possibili dello spazio $\mathcal{A}$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q2" value="c">
+          <span>C) Viene estratta calcolando il minimo valore stimato dalla Target Network $\theta^-$: $a^* = \arg\min_{a'} Q_{\theta^-}(s_{t+1}, a')$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q2" value="d">
+          <span>D) Viene impostata di default all'azione di pesca carta dal mazzo coperto ($a^* = 0$).</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l04_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l04_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Il principio cardine di Double DQN è che la rete Online $\theta$ sceglie l'azione ottimale candidata ($a^* = \arg\max Q_\theta$), mentre la Target Network $\theta^-$ si occupa unicamente di stimarne il valore numerico $Q_{\theta^-}(s_{t+1}, a^*)$.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'azione non è casuale, né minimizzata, né fissa a zero.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Ruolo dell'Advantage nei Policy Gradients</div>
+      <p>Se per un dato stato $s$ la funzione di valore baseline è $V^\pi(s) = 5.0$ e un'azione $a$ produce un valore atteso $Q^\pi(s, a) = 3.5$, quale sarà l'impatto dell'Advantage $A^\pi(s, a)$ sull'aggiornamento della policy?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l04_q3" value="a">
+          <span>A) Poiché $A^\pi(s, a) = 3.5 - 5.0 = -1.5 < 0$, il gradiente ridurrà la probabilità $\pi_\theta(a \mid s)$ di scegliere l'azione $a$, poiché è risultata peggiore rispetto alla media dello stato.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q3" value="b">
+          <span>B) Poiché $Q^\pi(s, a) = 3.5 > 0$, il gradiente aumenterà comunque la probabilità dell'azione $a$ poiché il valore assoluto è positivo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q3" value="c">
+          <span>C) Il gradiente rimarrà esattamente invariato perché l'aggiornamento dipende unicamente dal segno del reward immediato $r_t$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q3" value="d">
+          <span>D) L'ambiente Gymnasium interromperà l'episodio impostando il flag $d_t = 1$ per violazione della proprietà di Markov.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l04_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l04_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> L'Advantage $A = Q - V = 3.5 - 5.0 = -1.5$. Essendo negativo, segnala alla policy che l'azione $a$ è inferiore rispetto a quanto ci si aspetterebbe mediamente in quello stato ($5.0$), orientando il gradiente a diminuire $\pi(a|s)$.</li>
+          <li><strong>Perché B e C sono errate:</strong> L'incremento/decremento dipende dal segno di $A(s, a)$, non dal segno assoluto di $Q$ o da $r_t$ isolato.</li>
+          <li><strong>Perché D è errata:</strong> Non si verifica alcuna interruzione di episodio.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Gestione della Terminazione tramite il Flag $d_t$</div>
+      <p>Cosa accadrebbe matematicamente se nel calcolo del target di Bellman omettessimo il termine $(1 - d_t)$ quando la partita si conclude?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l04_q4" value="a">
+          <span>A) La rete sommerebbe erroneamente una stima di valore futuro $Q_{\theta^-}(s_{\text{terminal}}, a')$ proveniente da uno stato inesistente successivo alla fine del gioco, distorcendo i Q-values degli stati finali.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q4" value="b">
+          <span>B) La loss si azzererebbe automaticamente a ogni batch, accelerando il tempo di calcolo dell'ottimizzatore Adam.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q4" value="c">
+          <span>C) La rete neurale convertirebbe automaticamente tutte le ricompense in valori logaritmici non lineari.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q4" value="d">
+          <span>D) Non cambierebbe nulla, poiché negli stati terminali $Q_{\theta^-}$ è sempre identicamente pari a zero per definizione architetturale.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l04_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l04_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Quando un episodio termina ($d_t = 1$), non esistono azioni future né ritorni futuri. Il target deve essere esattamente $y_t = r_t$. Senza $(1 - d_t)$, la rete farebbe bootstrap su output arbitrari generati dalla rete per lo stato terminale, corrompendo l'apprendimento.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La rete neurale non produce nativamente $0$ su stati terminali senza un azzeramento esplicito.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: La "Deadly Triad" di Sutton & Barto</div>
+      <p>Quali sono i tre elementi teorici che, se presenti contemporaneamente, possono provocare instabilità o divergenza nell'apprendimento per rinforzo?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l04_q5" value="a">
+          <span>A) Function Approximation (reti neurali), Bootstrapping (aggiornamenti basati su stime future) e Off-Policy Learning (apprendimento da dati generati da policy differenti).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q5" value="b">
+          <span>B) Monte Carlo Rollout, On-Policy Learning e Tabelle Tabulari Esatte con stati discreti finiti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q5" value="c">
+          <span>C) Action Masking, Gradient Clipping e Inizializzazione Ortogonale dei pesi delle matrici lineari.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l04_q5" value="d">
+          <span>D) Regolarizzazione L2, Batch Normalization e funzioni di attivazione Leaky ReLU.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l04_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l04_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La "Deadly Triad" identificata da Sutton & Barto è la combinazione di approssimazione funzionale (es. Deep Neural Networks), bootstrapping (usare $Q(s', a')$ per aggiornare $Q(s, a)$) e addestramento off-policy (es. dati da Replay Buffer o $\epsilon$-greedy). Tecniche come Target Network ed Experience Replay servono specificamente a mitigare questa triade.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'on-policy e il metodo tabulare o le tecniche di regolarizzazione non fanno parte della triade instabile.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_03_gymnasium_pomdp.html" class="btn-nav-lesson">← Lezione 03: Gymnasium Env & POMDP</a>
+      <a href="lesson_05_web_lab_optimization.html" class="btn-nav-lesson">Lezione 05: Web Lab & Performance →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

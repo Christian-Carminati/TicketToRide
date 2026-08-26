@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicketToRide RL Lab: Corso Universitario di Reinforcement Learning Avanzato</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+  <style>
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(188, 140, 255, 0.1));
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 40px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-banner h1 {
+      border: none;
+      padding: 0;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #58a6ff, #bc8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 30px;
+    }
+    .module-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .module-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    .module-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .module-phase-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      background: rgba(88, 166, 255, 0.15);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+    .module-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .module-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .module-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item active"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="hero-banner">
+      <div class="lesson-badge-header">
+        <span class="badge badge-phase">Master Universitario in Deep RL</span>
+        <span class="badge badge-level">Livello: Laurea Magistrale / Dottorato</span>
+        <span class="badge badge-time">12 Moduli Accademici</span>
+      </div>
+      <h1>Intelligenza Artificiale per Giochi da Tavolo: Dal Regolamento ad AlphaZero</h1>
+      <p style="font-size: 1.1rem; color: var(--text-primary); max-width: 850px;">
+        Un percorso didattico completo, rigoroso e "a prova di idiota" che ti guida passo dopo passo nella progettazione di un sistema di Reinforcement Learning allo stato dell'arte applicato al gioco <strong>Ticket to Ride</strong>. Nessuna scatola nera: ogni formula matematica, algoritmo su grafo, tensore PyTorch e albero di ricerca è derivato e implementato da zero.
+      </p>
+
+      <div class="hero-stats">
+        <div class="stat-card">
+          <div class="stat-num">12</div>
+          <div class="stat-label">Lezioni Complete</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">60</div>
+          <div class="stat-label">Quiz di Autoverifica (5/Lezione)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Zero Scatole Nere</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">PyTorch</div>
+          <div class="stat-label">Framework di Riferimento</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>I 6 Pilastri Metodologici del Corso</h2>
+    <p>
+      Ogni singola lezione è strutturata con una metodologia pedagogica multilivello pensata per eliminare ogni ambiguità:
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 24px 0;">
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-yellow); margin-top: 0;">💡 1. Intuizione Senza Formule</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">Spiegazione visiva e analogica per comprendere il problema reale prima di passare alla matematica.</p>
+      </div>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-purple); margin-top: 0;">📐 2. Formalismo Matematico & Scomposizione</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">Definizioni rigorose, teoremi, logica dell'applicazione e scomposizione termine a termine di ogni formula.</p>
+      </div>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-cyan); margin-top: 0;">🎲 3. Esempio Reale sul Gioco</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">Città, tratte (es. Seattle-New York), vagoni e carte colore simulati con numeri esatti.</p>
+      </div>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-green); margin-top: 0;">💻 4. Codice Python/PyTorch da Zero</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">Implementazione pura senza librerie opache (SB3 o Ray), con spiegazione rigo per rigo.</p>
+      </div>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-red); margin-top: 0;">⚠️ 5. Trappole & "Cosa NON fare"</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">Errori classici che fanno fallire l'apprendimento (reward negativi spuri, policy drift, leakage).</p>
+      </div>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 18px; border-radius: 8px;">
+        <h4 style="color: var(--accent-blue); margin-top: 0;">🧠 6. 5 Domande di Valutazione per Lezione</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0;">60 domande complessive con opzioni omogenee, distrattori realistici e soluzioni dettagliate.</p>
+      </div>
+    </div>
+
+    <h2>Piano di Studi dei 12 Moduli</h2>
+
+    <div class="modules-grid">
+      
+      <!-- Modulo 1 -->
+      <a href="lesson_01_game_core.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 01</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 1</span>
+          </div>
+          <div class="module-title">Game Core Deterministico & FSM</div>
+          <div class="module-desc">Macchine a stati finiti a sottostati atomici, invarianti di conservazione a 110 carte e 45 vagoni, algoritmi di connettività BFS e cammino continuo più lungo DFS.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 2 -->
+      <a href="lesson_02_baseline_agents.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 02</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 2</span>
+          </div>
+          <div class="module-title">Baseline, Dijkstra & Valutazione Elo</div>
+          <div class="module-desc">Costruzione della gerarchia di bot (Random, Greedy, Strategic con cammini minimi su grafi dinamici), sinergia dei biglietti e tornei deterministici con rating Elo.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 3 -->
+      <a href="lesson_03_gymnasium_pomdp.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 03</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 3</span>
+          </div>
+          <div class="module-title">Gymnasium Environment & POMDP</div>
+          <div class="module-desc">Formalizzazione del POMDP a 7 tuple, Teorema di Non-Leakage delle carte segrete, codifica vettoriale a 464 float e Action Masking di prima classe.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 4 -->
+      <a href="lesson_04_first_rl_dqn_ppo.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 04</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 4</span>
+          </div>
+          <div class="module-title">First Deep RL: Double DQN & Actor-Critic</div>
+          <div class="module-desc">Equazione di Bellman, Deadly Triad, disaccoppiamento della Target Network per eliminare l'overestimation bias, Replay Buffer e basi del Policy Gradient.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 5 -->
+      <a href="lesson_05_web_lab_optimization.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 05</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 5</span>
+          </div>
+          <div class="module-title">Web Lab, Telemetria & High Performance</div>
+          <div class="module-desc">Introspezione neurale nel browser, streaming WebSocket a 20 FPS, Disjoint Set Union (DSU) per connettività O(1) e Replay Scrubber frame-by-frame.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 6 -->
+      <a href="lesson_06_ppo_from_scratch.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 06</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 6</span>
+          </div>
+          <div class="module-title">CleanRL PPO from Scratch</div>
+          <div class="module-desc">Implementazione pura dei 37 dettagli CleanRL: inizializzazione ortogonale, Value Loss Clipping, Target KL Early Stopping, GAE e VectorRolloutBuffer.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 7 -->
+      <a href="lesson_07_reward_research.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 07</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 7</span>
+          </div>
+          <div class="module-title">Reward Engineering & Shaping</div>
+          <div class="module-desc">Studio sperimentale tra Sparse Rewards e Dense Rewards, teorema di invarianza di Ng, calcolatori modulari V1-V4 e profiling comportamentale degli agenti.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 8 -->
+      <a href="lesson_08_pomdp_lstm_ppo.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 08</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 8</span>
+          </div>
+          <div class="module-title">Parziale Osservabilità & Recurrent PPO (LSTM)</div>
+          <div class="module-desc">Rottura della proprietà di Markov nell'osservazione singola, approssimazione del Belief State latente con cella LSTM, Truncated BPTT e reset dello stato.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 9 -->
+      <a href="lesson_09_self_play_policy_pool.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 09</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 9</span>
+          </div>
+          <div class="module-title">Multi-Agent Self-Play & PFSP</div>
+          <div class="module-desc">Overfitting da singolo avversario, non-transitività (cicli sasso-carta-forbice), Prioritized Fictitious Self-Play, Baseline Anchoring e rating generazionale.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 10 -->
+      <a href="lesson_10_generalization_procedural.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 10</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 10</span>
+          </div>
+          <div class="module-title">Generalizzazione & Mappe Procedurali MST</div>
+          <div class="module-desc">Generatore di grafi con Minimum Spanning Tree e Delaunay, tabellone ufficiale Europa, MultiMapEnv e formalizzazione scientifica del Generalization Gap.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 11 -->
+      <a href="lesson_11_mcts_tree_search.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 11</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 11</span>
+          </div>
+          <div class="module-title">Monte Carlo Tree Search & Determinizzazione</div>
+          <div class="module-desc">Algoritmo MCTS a 4 stadi, formula UCT per la selezione, Determinizzazione Information-Set (SO-MCTS), clonazione rapida in-memory ed euristiche foglia.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Modulo 12 -->
+      <a href="lesson_12_alphazero_advanced.html" class="module-card">
+        <div>
+          <div class="module-card-header">
+            <span class="module-phase-tag">LEZIONE 12</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fase 12</span>
+          </div>
+          <div class="module-title">Neural MCTS, AlphaZero & Opponent Model</div>
+          <div class="module-desc">Sintesi finale: Dual Policy-Value ResNet, ricerca neurale PUCT con rumore di Dirichlet, Bayesian Opponent Belief Tracker su Detour Cost e Curriculum Learning.</div>
+        </div>
+        <div class="module-footer">
+          <span>Inizia Lezione</span>
+          <span>→</span>
+        </div>
+      </a>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

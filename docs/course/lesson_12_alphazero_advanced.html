@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 12: Neural MCTS (AlphaZero) & Advanced Research - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item active"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 12</span>
+      <span class="badge badge-level">Ricerca Avanzata & AlphaZero</span>
+      <span class="badge badge-time">Tempo di Studio: 45 min</span>
+    </div>
+
+    <h1>Lezione 12: Neural MCTS (AlphaZero), Modellazione Bayesiana dell'Avversario e Curriculum Learning</h1>
+
+    <p>
+      Siamo giunti al modulo conclusivo del corso. In questa dodicesima lezione uniamo tutti i fili teorici e algoritmici sviluppati nelle fasi precedenti: fondiamo il <strong>Monte Carlo Tree Search (MCTS)</strong> con le <strong>Reti Neurali Profonde (Policy-Value Networks)</strong> secondo il paradigma di <strong>AlphaZero</strong>, affiancandolo a un motore di <strong>Deduzione Bayesiana dei Biglietti Segreti dell'Avversario</strong> e a una progressione di <strong>Curriculum Learning</strong>.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: L'Intuizione Umana Sposa il Calcolo Tattico Profondo</div>
+      <p>
+        Pensa alla differenza tra un computer convenzionale e un grande maestro di scacchi:
+      </p>
+      <ul>
+        <li><strong>L'Albero Puro (MCTS classico)</strong>: esplora milioni di rami con rollout casuali, calcolando instancabilmente ma privo di un senso strategico a colpo d'occhio.</li>
+        <li><strong>La Rete Neurale Pura (PPO/DQN)</strong>: possiede un'intuizione immediata sui pattern visivi del tabellone, ma può cadere in trappole tattiche a breve termine perché non esegue simulazioni previsionali.</li>
+      </ul>
+      <p>
+        <strong>AlphaZero unisce il meglio dei due mondi:</strong> la rete neurale guida la ricerca dell'albero focalizzandosi unicamente sulle mosse promettenti (<em>Intuizione</em>), mentre l'albero simula le contromosse concrete dell'avversario (<em>Ragionamento Profondo</em>). A questo aggiungiamo un modulo di inferenza probabilistica (<em>Bayesian Opponent Tracker</em>) che osserva le tratte occupate dall'avversario per decifrarne i biglietti obiettivo segreti!
+      </p>
+    </div>
+
+    <!-- 2. ARCHITETTURA DUALE POLICY-VALUE -->
+    <h2>2. Architettura Duale AlphaZero (Policy-Value Network)</h2>
+
+    <p>
+      Dato il vettore di osservazione $s \in \mathbb{R}^{d_{\text{obs}}}$ e la maschera delle azioni legali $\mathbf{m}(s)$, una singola rete neurale parametrizzata da $\theta$ produce simultaneamente due output:
+    </p>
+
+    $$p_\theta(s, a) = \frac{\exp(\tilde{z}_a)}{\sum_{b \in \mathcal{A}} \exp(\tilde{z}_b)} \quad \text{con } \tilde{z}_a = \begin{cases} z_a & \text{se } m_a = 1 \\ -\infty & \text{se } m_a = 0 \end{cases}$$
+
+    $$v_\theta(s) = \tanh(f_{\text{value}}(\mathbf{h}(s))) \in [-1.0, 1.0]$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché la Rete a Due Teste e cosa risolve?</div>
+      <p><strong>Obiettivo:</strong> Nei motori di gioco tradizionali servono due moduli separati: un generatore di mosse e una funzione di valutazione statica della posizione. In AlphaZero, un unico backbone condiviso $\mathbf{h}(s)$ estrae le feature topologiche del tabellone; la testa Actor produce il <strong>Prior di Policy</strong> $p_\theta(s, a)$ per restringere l'ampiezza dell'albero, mentre la testa Critic produce la <strong>Stima di Valore</strong> $v_\theta(s)$ per valutare istantaneamente i nodi foglia senza bisogno di rollout casuali.</p>
+    </div>
+
+    <h3>2.1 La Funzione di Loss Multi-Task di AlphaZero</h3>
+    <p>
+      La rete viene addestrata congiuntamente per minimizzare l'errore di predizione del valore finale e l'entropia incrociata rispetto alla distribuzione di visite dell'albero $\boldsymbol{\pi}$:
+    </p>
+
+    $$\mathcal{L}(\theta) = (z - v_\theta(s))^2 - \boldsymbol{\pi}^T \ln \mathbf{p}_\theta(s) + c \|\theta\|^2$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione dei 3 Termini della Loss di AlphaZero</div>
+      <ul>
+        <li>$(z - v_\theta(s))^2$ (Value Loss): errore quadratico medio tra l'esito reale della partita $z \in \{-1, +1\}$ e il valore stimato $v_\theta(s)$.</li>
+        <li>$-\boldsymbol{\pi}^T \ln \mathbf{p}_\theta(s) = -\sum_{a \in \mathcal{A}} \pi(a \mid s) \ln p_\theta(s, a)$ (Policy Cross-Entropy Loss): addestra i prior della rete neurale $\mathbf{p}_\theta$ ad allinearsi alla distribuzione empirica delle visite $\boldsymbol{\pi} = \left(\frac{N(s, a)}{\sum N(s, b)}\right)$ generata dall'albero MCTS. L'albero funge da <em>Policy Improvement Operator</em>!</li>
+        <li>$c \|\theta\|^2$ (Regolarizzazione L2 / Weight Decay): previene l'overfitting dei pesi della rete neurale.</li>
+      </ul>
+    </div>
+
+    <!-- 3. FORMULA PUCT & RUMORE DI DIRICHLET -->
+    <h2>3. Algoritmo di Ricerca Neurale PUCT (AlphaZero Style)</h2>
+
+    <p>
+      Durante la discesa dell'albero, la selezione del ramo ad ogni nodo $s$ massimizza la formula <strong>PUCT (Polynomial Upper Confidence Trees)</strong>:
+    </p>
+
+    $$a^* = \arg\max_{a \in \mathcal{A}(s)} \left[ Q(s, a) + c_{\text{puct}} \cdot P(s, a) \cdot \frac{\sqrt{\sum_{b \in \mathcal{A}(s)} N(s, b)}}{1 + N(s, a)} \right]$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione della Formula PUCT</div>
+      <p><strong>Come si combinano Intuizione Neurale e Statistiche di Visita?</strong></p>
+      <ul>
+        <li>$Q(s, a)$: valore medio retropropagato dalle stime dei Critic sui sotto-alberi discendenti.</li>
+        <li>$P(s, a) = p_\theta(s, a)$: probabilità a priori suggerita dalla testa Actor della rete neurale. Se la rete assegna alta confidenza a una mossa, quella mossa viene esplorata per prima.</li>
+        <li>$\frac{\sqrt{\sum N(s, b)}}{1 + N(s, a)}$: fattore di attenuazione dell'esplorazione. Con il procedere delle simulazioni ($N(s, a) \to \infty$), l'influenza del prior neurale sfuma e la decisione finale è dominata unicamente dal valore effettivo $Q(s, a)$.</li>
+      </ul>
+    </div>
+
+    <h3>3.1 Esplorazione con Rumore di Dirichlet alla Radice</h3>
+    <p>
+      Per assicurare che l'albero esplori percorsi alternativi durante il Self-Play, il prior alla radice viene miscelato con rumore di Dirichlet $\text{Dir}(\alpha)$:
+    </p>
+
+    $$P(s_{\text{root}}, a) = (1 - \epsilon_{\text{dir}}) \cdot p_\theta(s_{\text{root}}, a) + \epsilon_{\text{dir}} \cdot \eta_a, \quad \boldsymbol{\eta} \sim \text{Dir}(\alpha=0.3), \; \epsilon_{\text{dir}} = 0.25$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Perché il Rumore di Dirichlet?</div>
+      <p>La distribuzione di Dirichlet $\text{Dir}(\alpha)$ con $\alpha = 0.3$ genera vettori stocastici sparsi: favorisce casualmente una o due azioni alternative alla radice, consentendo al motore di scoprire strategie inaspettate senza compromettere la stabilità dei nodi interni.</p>
+    </div>
+
+    <!-- 4. MODELLAZIONE BAYESIANA DELL'AVVERSARIO -->
+    <h2>4. Modellazione Bayesiana dell'Avversario (Destination Ticket Belief Tracker)</h2>
+
+    <p>
+      Durante la partita, l'avversario persegue biglietti segreti $T_k \in \mathcal{T}$. L'agente osserva la sequenza di tratte pubbliche $\mathcal{E}_{\text{opp}} = \{e_1, \dots, e_m\}$.
+    </p>
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">📐 Costo di Deviazione sul Grafo (Detour Cost) e Inferenza Bayesiana</div>
+      <p>Per ogni tratta $e = (a, b)$ occupata dall'avversario, quantifichiamo quanto essa devia dal cammino minimo del biglietto $T_k = (u_k, v_k)$:</p>
+      $$\text{Detour}(e, T_k) = \min\big( d_G(u_k, a) + w(e) + d_G(b, v_k), \; d_G(u_k, b) + w(e) + d_G(a, v_k) \big) - d_G(u_k, v_k)$$
+      
+      <p><strong>Verosimiglianza Esponenziale e Probabilità a Posteriori:</strong></p>
+      $$L(e \mid T_k) = \gamma \cdot \exp\left(-\beta \cdot \text{Detour}(e, T_k)\right) + (1 - \gamma) \epsilon_{\text{noise}}$$
+      $$P(T_k \mid \mathcal{E}_{\text{opp}}) = \frac{P(T_k) \prod_{e \in \mathcal{E}_{\text{opp}}} L(e \mid T_k)}{\sum_{j=1}^{|\mathcal{T}|} P(T_j) \prod_{e \in \mathcal{E}_{\text{opp}}} L(e \mid T_j)}$$
+      
+      <p><strong>Scomposizione Termine per Termine:</strong></p>
+      <ul>
+        <li>$\text{Detour}(e, T_k) = 0$: la tratta $e$ si trova <em>esattamente</em> sul cammino più breve per completare il biglietto $T_k$. La verosimiglianza $L(e \mid T_k)$ è massima ($e^0 = 1.0$).</li>
+        <li>$\text{Detour}(e, T_k) \gg 0$: la tratta è distante dal percorso del biglietto. La verosimiglianza decade esponenzialmente verso zero con fattore $\beta = 0.40$.</li>
+        <li>$P(T_k \mid \mathcal{E}_{\text{opp}})$: probabilità a posteriori che l'avversario stia realizzando il biglietto $T_k$. Quando supera una soglia critica (es. $>70\%$), l'agente attiva contromisure di blocco sui colli di bottiglia residui.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CURRICULUM LEARNING -->
+    <h2>5. Curriculum Learning: Progressione su 3 Stadi</h2>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Stadio del Curriculum</th>
+            <th>Dimensioni Tabellone & Obiettivi</th>
+            <th>Avversari nel Matchmaking</th>
+            <th>Criterio di Promozione (Gate)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Stadio 1: Micro-Board</strong></td>
+            <td>6 città, 8 tratte, 4 biglietti. Meccaniche base di pesca e colore.</td>
+            <td><code>RandomAgent</code></td>
+            <td>$\text{WinRate} \ge 75\%$, $\text{TCR} \ge 80\%$ su 100 partite</td>
+          </tr>
+          <tr>
+            <td><strong>Stadio 2: Small-Board</strong></td>
+            <td>14 città, 20 tratte, 10 biglietti. Gestione vagoni e sinergie.</td>
+            <td><code>GreedyAgent</code> & <code>StrategicAgent</code></td>
+            <td>$\text{WinRate} \ge 70\%$, $\text{TCR} \ge 75\%$ su 100 partite</td>
+          </tr>
+          <tr>
+            <td><strong>Stadio 3: Full USA Standard</strong></td>
+            <td>36 città, 100+ tratte, 30 biglietti. Strategia globale e blocco tattico.</td>
+            <td>AlphaZero Self-Play Pool & Bayesian Opponent Agents</td>
+            <td>Padronanza strategica assoluta ed Elo $\ge 1750$</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione Finale</h2>
+    <p>Dimostra la tua padronanza sui principi di Neural MCTS AlphaZero, formula PUCT, inferenza bayesiana e curriculum training.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Valutazione Foglia in AlphaZero vs MCTS Classico</div>
+      <p>Qual è la differenza fondamentale nel modo in cui <em>AlphaZero Neural MCTS</em> valuta gli stati foglia rispetto all'MCTS classico tradizionale?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l12_q1" value="a">
+          <span>A) AlphaZero elimina i rollout casuali fino a fine partita, sostituendoli con la valutazione immediata deterministica della testa Critic $v_\theta(s)$ e guidando l'espansione dei rami tramite il prior di probabilità $p_\theta(s, a)$ della testa Actor.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q1" value="b">
+          <span>B) AlphaZero esegue 1000 rollout casuali per ogni singolo nodo foglia anziché uno solo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q1" value="c">
+          <span>C) AlphaZero disabilita la retropropagazione del valore nell'albero decisionale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q1" value="d">
+          <span>D) AlphaZero azzera i vagoni di entrambi i giocatori all'inizio di ciascuna simulazione.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l12_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l12_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> AlphaZero sostituisce i rollout stocastici lunghi e rumorosi con l'inferenza della rete Critic $v_\theta(s)$, e restringe la larghezza dell'albero espandendo prioritariamente i rami suggeriti dal prior $p_\theta(s, a)$.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> AlphaZero non usa rollout casuali, preserva la backpropagation e rispetta le regole fisiche di gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Ruolo del Prior $P(s, a)$ nella Formula PUCT</div>
+      <p>Nella formula PUCT di selezione $a^* = \arg\max \left[ Q(s, a) + c_{\text{puct}} P(s, a) \frac{\sqrt{\sum N}}{1 + N(s, a)} \right]$, come influisce il termine $P(s, a)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l12_q2" value="a">
+          <span>A) Agisce come peso di priorità iniziale: le azioni considerate promettenti dalla rete neurale vengono esplorate per prime anche quando il conteggio visite è ancora zero ($N=0$), ma con l'aumentare delle simulazioni la scelta viene dominata dalle statistiche empiriche $Q(s, a)$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q2" value="b">
+          <span>B) Blocca permanentemente tutte le azioni che non ricevono almeno il 50% di probabilità dalla testa Actor.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q2" value="c">
+          <span>C) Raddoppia i punti vittoria assegnati al giocatore in caso di completamento del biglietto.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q2" value="d">
+          <span>D) Forza la perdita del Critic a convergere a zero in un singolo step.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l12_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l12_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> $P(s, a)$ orienta la ricerca precoce verso le mosse tatticamente più plausibili. Man mano che $N(s, a)$ cresce, il termine con $P(s, a)$ decade al denominatore e prevale il valore reale $Q(s, a)$ accumulato dall'albero.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Nessuna azione viene censurata a priori e non vengono alterati i punteggi del gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Rumore di Dirichlet alla Radice dell'Albero</div>
+      <p>Per quale motivo teorico nell'addestramento AlphaZero il prior della radice viene perturbato con rumore di Dirichlet $\boldsymbol{\eta} \sim \text{Dir}(\alpha)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l12_q3" value="a">
+          <span>A) Garantire che l'albero continui a esplorare rami alternativi durante il Self-Play, prevenendo il collasso prematuro della policy su sequenze di aperture fisse e monotone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q3" value="b">
+          <span>B) Rallentare la velocità di calcolo della scheda video per evitare il surriscaldamento termico.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q3" value="c">
+          <span>C) Modificare le città di partenza e di arrivo dei biglietti destinazione.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q3" value="d">
+          <span>D) Rendere l'ambiente Gymnasium compatibile con la libreria NumPy.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l12_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l12_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Senza rumore alla radice, il Self-Play deterministico tenderebbe a giocare sempre le medesime prime mosse. Il rumore di Dirichlet stimola l'esplorazione di nuove linee tattiche salvaguardando la diversità del dataset di addestramento.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il rumore di Dirichlet è un costrutto probabilistico di esplorazione per giochi da tavolo, non un limitatore termico né un modificatore di regole.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Il Costo di Deviazione (Detour Cost) nell'Inferenza Bayesiana</div>
+      <p>Se un avversario acquista una tratta $e$ che giace esattamente sul cammino minimo di un biglietto destinazione $T_k$, quanto vale il suo $\text{Detour}(e, T_k)$ e come varia la probabilità a posteriori $P(T_k \mid \mathcal{E}_{\text{opp}})$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l12_q4" value="a">
+          <span>A) $\text{Detour}(e, T_k) = 0$; la verosimiglianza $L(e \mid T_k)$ è massima ($e^0 = 1.0$), incrementando sensibilmente la probabilità a posteriori che l'avversario stia completando proprio il biglietto $T_k$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q4" value="b">
+          <span>B) $\text{Detour}(e, T_k) = 45$; la verosimiglianza si azzera escludendo il biglietto dai calcoli.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q4" value="c">
+          <span>C) $\text{Detour}(e, T_k) = -1$; la formula lancia un'eccezione di valore negativo non consentito.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q4" value="d">
+          <span>D) La probabilità rimane identicamente pari a zero per via del teorema di non-leakage.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l12_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l12_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Quando una tratta appartiene al percorso ottimo per un biglietto, il costo di deviazione extra è zero. L'esponenziale negativo assume il valore massimo ($e^0 = 1$), trasmettendo un segnale forte all'aggiornamento bayesiano.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il detour non è negativo né forzato a 45, e l'inferenza bayesiana si basa legittimamente sulle sole mosse pubbliche senza violare il non-leakage.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: La Loss Multi-Task di AlphaZero</div>
+      <p>Nella funzione di perdita $\mathcal{L}(\theta) = (z - v_\theta(s))^2 - \boldsymbol{\pi}^T \ln \mathbf{p}_\theta(s) + c \|\theta\|^2$, cosa rappresenta il termine $-\boldsymbol{\pi}^T \ln \mathbf{p}_\theta(s)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l12_q5" value="a">
+          <span>A) L'entropia incrociata che addestra i prior di probabilità della testa Actor $\mathbf{p}_\theta(s)$ ad allinearsi alla distribuzione migliorata delle visite $\boldsymbol{\pi}$ prodotta dalla ricerca ad albero MCTS.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q5" value="b">
+          <span>B) La penalità per il consumo di vagoni da parte del giocatore avversario.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q5" value="c">
+          <span>C) Il gradiente della funzione di sconto temporale $\gamma$ calcolato al passo $t$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l12_q5" value="d">
+          <span>D) La divergenza di Kullback-Leibler calcolata sui soli nodi terminali della mappa.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l12_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l12_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Questo termine implementa l'idea centrale di AlphaZero: l'albero MCTS, aggregando le simulazioni, calcola una politica $\boldsymbol{\pi}$ più forte della rete da sola. Minimizzare la cross-entropy tra $\boldsymbol{\pi}$ e i prior $p_\theta$ permette alla rete di internalizzare la profondità dell'albero.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> È la componente di loss di policy (cross-entropy), non una penalità di vagoni né un gradiente di $\gamma$.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Congratulazioni e Footer -->
+    <div style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(57, 197, 207, 0.15)); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 30px; margin-top: 50px; text-align: center;">
+      <h3 style="color: var(--accent-green); margin-top: 0; font-size: 1.6rem;">🎉 Congratulazioni! Hai Completato il Corso Universitario!</h3>
+      <p style="color: var(--text-primary); max-width: 750px; margin: 12px auto 20px;">
+        Hai completato con successo tutti i 12 moduli accademici del <strong>TicketToRide RL Lab</strong>. Ora possiedi una padronanza completa, rigorosa e implementativa di tutti i concetti fondamentali dell'AI moderna: dai motori a stati finiti deterministici al Deep Q-Learning, dai dettagli di CleanRL PPO al Recurrent RL, dal Multi-Agent Self-Play ad AlphaZero con modellazione bayesiana!
+      </p>
+      <a href="index.html" class="btn-nav-lesson" style="display: inline-flex; background: var(--accent-green); color: #fff; border: none; padding: 12px 24px;">← Torna alla Dashboard del Corso</a>
+    </div>
+
+    <div class="lesson-nav-footer">
+      <a href="lesson_11_mcts_tree_search.html" class="btn-nav-lesson">← Lezione 11: MCTS & Determinizzazione</a>
+      <a href="index.html" class="btn-nav-lesson">Dashboard del Corso (Hub) →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

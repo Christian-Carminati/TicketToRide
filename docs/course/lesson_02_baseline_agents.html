@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 02: Baseline Agents, Dijkstra & Valutazione Elo - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item active"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 2</span>
+      <span class="badge badge-level">Teoria dei Giochi & Grafi</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 02: Agenti Baseline, Algoritmi su Grafi (Dijkstra) e Sistemi di Rating Elo</h1>
+
+    <p>
+      Prima di addestrare algoritmi di Reinforcement Learning avanzati, è indispensabile costruire dei <strong>termini di paragone oggettivi e riproducibili (Benchmark Baselines)</strong>. Senza un avversario di riferimento solido, non potrai mai stabilire se una rete neurale sta davvero imparando una strategia complessa o se sta semplicemente vincendo per puro caso.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: La Gerarchia delle Menti di Gioco</div>
+      <p>
+        Pensa a tre diversi tipi di giocatori umani che potresti incontrare a una serata di giochi da tavolo:
+      </p>
+      <ul>
+        <li><strong>Il Giocatore Casuale (<code>RandomAgent</code>)</strong>: sceglie a occhi chiusi qualsiasi mossa sia permessa dal regolamento tra quelle legali. Serve come test di sanità mentale: se un modello neurale non vince nel 100% dei match contro il RandomAgent, l'ambiente o il loss presentano anomalie gravi.</li>
+        <li><strong>Il Giocatore Miope (<code>GreedyAgent</code>)</strong>: guarda solo al piatto del giorno. Se vede una tratta da 6 vagoni che gli dà subito 15 punti, la compra immediatamente, anche se quella tratta si trova isolata e non serve a nessun biglietto obiettivo.</li>
+        <li><strong>L'Ingegnere Ferroviario (<code>StrategicAgent</code>)</strong>: analizza la mappa come una rete logistica. Calcola i cammini minimi con Dijkstra, capisce quali biglietti condividono le stesse tratte (sinergia), tiene traccia di quante carte di ciascun colore mancano e pesca in modo mirato solo le carte utili dal tavolo.</li>
+      </ul>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: Ponderazione Dinamica e Dijkstra</h2>
+    
+    <p>
+      Per permettere allo <code>StrategicAgent</code> di pianificare percorsi ottimali, rappresentiamo il tabellone di gioco come un grafo pesato dinamico $G_t = (V, E, W_t)$, dove:
+    </p>
+    <ul>
+      <li>$V$: l'insieme di tutte le città (vertici del grafo) presenti sul tabellone.</li>
+      <li>$E$: l'insieme di tutte le tratte ferroviarie (archi) che collegano le città.</li>
+      <li>$W_t: E \to \mathbb{R}_{\ge 0} \cup \{\infty\}$: la funzione di peso dinamica che associa un costo a ciascun arco al turno $t$.</li>
+    </ul>
+
+    <p>La funzione di costo $W(r)$ per una tratta $r \in E$ viene formalizzata come segue:</p>
+
+    $$W(r) = \begin{cases} 
+    0 & \text{se la tratta } r \text{ è già stata reclamata dall'agente} \\
+    \text{Length}(r) & \text{se la tratta } r \text{ è libera (richiede vagoni per essere acquisita)} \\
+    +\infty & \text{se la tratta } r \text{ è occupata dall'avversario o bloccata}
+    \end{cases}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché questa formulazione del costo di arco?</div>
+      <p><strong>Obiettivo:</strong> L'algoritmo di Dijkstra calcola il percorso a costo minimo sommando i pesi degli archi. Assegnando peso $0$ ai binari già posati dall'agente, Dijkstra li tratta come <em>"autostrade a costo zero"</em>. In questo modo, quando l'agente deve collegare una nuova destinazione, cerca istintivamente di innestarsi sui propri binari esistenti anziché costruire un tracciato completamente parallelo.</p>
+      <p><strong>Scomposizione dei Termini:</strong></p>
+      <ul>
+        <li>$W(r) = 0$: costo marginale zero. I vagoni fisici sono già stati spesi in turni passati; l'agente può attraversare questo segmento gratuitamente.</li>
+        <li>$W(r) = \text{Length}(r)$: costo effettivo in pezzi vagone e carte dello stesso colore richiesto per rivendicare il segmento.</li>
+        <li>$W(r) = +\infty$: barriera invalicabile. La tratta è posseduta dall'avversario oppure è chiusa per la regola delle tratte doppie a 2 giocatori. Dijkstra scarterà ogni cammino passante per questo arco.</li>
+      </ul>
+    </div>
+
+    <h3>2.1 Calcolo della Sinergia Iniziale dei Biglietti (Synergy Ratio)</h3>
+    <p>
+      All'inizio della partita, il giocatore riceve 3 biglietti destinazione e deve sceglierne almeno 2. Lo <code>StrategicAgent</code> valuta tutti i possibili sottoinsiemi validi $S \subseteq \{T_1, T_2, T_3\}$ con $|S| \ge 2$, massimizzando il <strong>Rendimento di Efficienza Punti-Vagone</strong>:
+    </p>
+
+    $$\text{Efficiency}(S) = \frac{\sum_{T \in S} \text{Points}(T)}{\text{UnionTrainCost}(S)} = \frac{\sum_{T \in S} \text{Points}(T)}{\sum_{r \in \bigcup_{T \in S} \text{DijkstraPath}(T)} \text{Length}(r)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione della Formula di Sinergia</div>
+      <p><strong>Perché questa metrica batte la semplice somma dei punti?</strong> Se un giocatore sceglie due biglietti da 20 punti che viaggiano in direzioni opposte (uno a nord e uno a sud), dovrà spendere $21 + 21 = 42$ vagoni (quasi l'intera riserva). Se invece sceglie due biglietti che condividono lo stesso asse ferroviario, paga le tratte comuni una volta sola.</p>
+      <ul>
+        <li>$S$: sottoinsieme candidato di biglietti ($|S| \in \{2, 3\}$).</li>
+        <li>$\sum_{T \in S} \text{Points}(T)$: somma aritmetica dei punti vittoria promessi dai biglietti se completati con successo.</li>
+        <li>$\text{DijkstraPath}(T)$: insieme degli archi che compongono il cammino minimo per il singolo biglietto $T$.</li>
+        <li>$\bigcup_{T \in S} \text{DijkstraPath}(T)$: <em>unione insiemistica</em> delle tratte. Gli archi condivisi tra più biglietti compaiono una sola volta nell'unione, abbattendo il denominatore!</li>
+        <li>$\text{Efficiency}(S)$: punti vittoria attesi per ogni singolo vagone fisico speso sul tabellone.</li>
+      </ul>
+    </div>
+
+    <h3>2.2 Vettore di Deficienza Carte (Card Deficiency Vector)</h3>
+    <p>
+      Per ogni colore $c \in \mathcal{C}$, lo <code>StrategicAgent</code> calcola il fabbisogno netto per completare la rete pianificata:
+    </p>
+
+    $$\Delta C(c) = \max\left(0, \sum_{r \in \text{Paths}} \text{Cost}(r, c) - \text{Hand}(c)\right)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Logica Operativa del Deficit</div>
+      <p><strong>Come guida l'azione?</strong> Se $\Delta C(c) > 0$ e una carta del colore $c$ è visibile sul tavolo nei 5 slot scoperti, l'agente esegue <code>DRAW_VISIBLE_CARD</code> in modo mirato, eliminando l'incertezza rispetto alla pesca casuale coperta.</p>
+      <ul>
+        <li>$\text{Cost}(r, c)$: numero di carte del colore $c$ necessarie per la tratta $r$.</li>
+        <li>$\text{Hand}(c)$: carte del colore $c$ già in possesso nella mano privata.</li>
+        <li>$\max(0, \cdot)$: se la mano possiede già carte sufficienti o in eccesso, il deficit vale $0$.</li>
+      </ul>
+    </div>
+
+    <!-- 3. SISTEMA DI RATING ELO -->
+    <h2>3. Il Sistema di Rating Elo e Tornei Round-Robin</h2>
+    
+    <p>
+      Per stilare una classifica quantitativa continua tra modelli, adottiamo il sistema <strong>Elo</strong> standard:
+    </p>
+
+    $$E_A = \frac{1}{1 + 10^{(R_B - R_A) / 400}}$$
+
+    $$R_A' = R_A + K \cdot (S_A - E_A)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione Matematica del Sistema Elo</div>
+      <p><strong>Perché usiamo la funzione logistica in base 10 con costante 400?</strong></p>
+      <ul>
+        <li>$R_A, R_B$: i punteggi di abilità stimati dei due agenti prima della partita (ad esempio, rating iniziale convenzionale $1200.0$).</li>
+        <li>$E_A \in (0, 1)$: la probabilità attesa di vittoria per l'agente $A$. Se $R_A = R_B$, allora $E_A = \frac{1}{1+10^0} = 0.5$ (partita equilibrata al 50%).</li>
+        <li>$R_B - R_A = 400$: se l'avversario $B$ ha 400 punti di vantaggio, $E_A = \frac{1}{1+10^1} = \frac{1}{11} \approx 0.091$ ($9.1\%$ di probabilità di vittoria per $A$).</li>
+        <li>$S_A$: risultato reale della partita ($1.0$ per vittoria, $0.5$ per pareggio, $0.0$ per sconfitta).</li>
+        <li>$S_A - E_A$: <em>l'errore di predizione (Sorpresa)</em>. Se un agente debole ($E_A = 0.09$) batte un campione ($S_A = 1.0$), la sorpresa è $1.0 - 0.09 = +0.91$, producendo un massiccio salto di rating. Se il favorito vince come previsto ($E_B = 0.91, S_B = 1.0$), il guadagno è minimo ($+0.09$).</li>
+        <li>$K$: fattore di aggiornamento ($K = 32.0$). Determina la velocità con cui il rating reagisce ai nuovi risultati.</li>
+      </ul>
+    </div>
+
+    <!-- 4. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del Sistema Elo e Tournament Runner in Python</div>
+      <pre><code>class EloSystem:
+    def __init__(self, k_factor: float = 32.0, default_rating: float = 1200.0):
+        self.k_factor = k_factor
+        self.ratings: dict[str, float] = {}
+        self.default_rating = default_rating
+
+    def get_rating(self, agent_name: str) -> float:
+        return self.ratings.get(agent_name, self.default_rating)
+
+    def update_match(self, agent_a: str, agent_b: str, score_a: float):
+        """score_a: 1.0 per vittoria di A, 0.5 per patta, 0.0 per vittoria di B."""
+        r_a = self.get_rating(agent_a)
+        r_b = self.get_rating(agent_b)
+
+        # Calcolo aspettative logistiche
+        e_a = 1.0 / (1.0 + 10.0 ** ((r_b - r_a) / 400.0))
+        e_b = 1.0 - e_a
+
+        score_b = 1.0 - score_a
+        self.ratings[agent_a] = r_a + self.k_factor * (score_a - e_a)
+        self.ratings[agent_b] = r_b + self.k_factor * (score_b - e_b)</code></pre>
+    </div>
+
+    <!-- 5. TRAPPOLE COMUNI -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni nella Valutazione degli Agenti</div>
+      <ul>
+        <li><strong>First-Player Advantage Bias:</strong> Il primo giocatore ha un vantaggio iniziale sulle tratte contese. Nei tornei di benchmarking è obbligatorio far giocare ogni coppia di agenti un numero pari di volte, alternando esattamente chi inizia per primo a turni alterni.</li>
+        <li><strong>Valutazione su Mazzi Disuguali:</strong> Due agenti non vanno confrontati su partite con seed casuali differenti; ogni match deve essere ripetuto a parti invertite sullo stesso identico seed di generazione delle carte.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica la tua comprensione degli algoritmi di euristica su grafi, sinergia dei biglietti e dinamiche di rating Elo.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Interpretazione del Punteggio Atteso Elo</div>
+      <p>Un agente esperto $A$ con rating Elo $1600$ sfida un nuovo modello $B$ con rating Elo $1200$. In base alla formula logistica $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$, quale valore assume l'aspettativa di vittoria $E_A$ e come viene interpretata?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="a">
+          <span>A) $E_A \approx 0.091$; indica che l'agente A ha soltanto il 9.1% di probabilità stimata di superare l'agente B in virtù del fattore di scala $K=32$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="b">
+          <span>B) $E_A \approx 0.909$; indica che l'agente A ha circa il 90.9% di probabilità attesa di vittoria statistica contro l'agente B prima dell'inizio del match.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="c">
+          <span>C) $E_A = 0.500$; indica che a parità di regole del gioco ogni partita tra due agenti ha sempre un esito atteso perfettamente equiprobabile.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="d">
+          <span>D) $E_A = 4.000$; indica il numero medio di tratte consecutive da 6 vagoni che l'agente A completerà durante la partita contro B.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l02_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l02_q1_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Con $R_B - R_A = 1200 - 1600 = -400$, abbiamo $E_A = \frac{1}{1 + 10^{-400/400}} = \frac{1}{1 + 10^{-1}} = \frac{1}{1 + 0.1} = \frac{1}{1.1} \approx 0.909$, corrispondente al $90.9\%$ di probabilità attesa a favore del giocatore più forte $A$.</li>
+          <li><strong>Perché A è errata:</strong> $0.091$ è l'aspettativa del giocatore più debole $B$, non del favorito $A$.</li>
+          <li><strong>Perché C e D sono errate:</strong> $E_A$ varia tra $0$ e $1$ in funzione del divario di punteggio e non misura quantità fisiche di vagoni.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Ponderazione Dinamica in Dijkstra</div>
+      <p>Perché nello <code>StrategicAgent</code> assegniamo peso $W(r) = 0$ a tutte le tratte ferroviarie già precedentemente occupate dall'agente stesso?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="a">
+          <span>A) Perché azzerare il peso permette all'algoritmo di Dijkstra di riutilizzare i binari esistenti senza costi aggiuntivi in vagoni, incentivando l'agente a connettere nuovi biglietti alla rete già costruita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="b">
+          <span>B) Perché impostare un costo positivo causerebbe cicli negativi nel grafo, impedendo all'algoritmo di Dijkstra di convergere entro il limite di tempo del turno.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="c">
+          <span>C) Perché il regolamento ufficiale obbliga i giocatori a demolire e ricostruire i propri vagoni ogni volta che iniziano un nuovo percorso.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q1" value="d">
+          <span>D) Perché in questo modo l'agente ignora completamente i biglietti destinazione e si concentra unicamente sulla tratta più lunga della mappa.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l02_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l02_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Una volta che una tratta è stata comprata, i treni sono posati permanentemente sul tabellone. Per completare un nuovo biglietto che passa per quelle città non serve spendere ulteriori vagoni; impostare il costo a $0$ orienta Dijkstra verso la minimizzazione dei soli vagoni <em>mancanti</em>.</li>
+          <li><strong>Perché B è errata:</strong> Dijkstra gestisce senza problemi pesi nulli o positivi; sono i pesi <em>strettamente negativi</em> che violano la correttezza di Dijkstra.</li>
+          <li><strong>Perché C e D sono errate:</strong> I vagoni non vengono mai demoliti e questa logica serve proprio a completare i biglietti in modo ottimale.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Metrica di Sinergia dei Biglietti</div>
+      <p>Considera due biglietti: $T_1$ da 10 punti (richiede 8 vagoni) e $T_2$ da 12 punti (richiede 10 vagoni). Se i due percorsi condividono un segmento comune di 6 vagoni, qual è l'efficienza $\text{Efficiency}(\{T_1, T_2\})$ del sottoinsieme?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l02_q3" value="a">
+          <span>A) $\text{Efficiency} = \frac{22}{18} \approx 1.22$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q3" value="b">
+          <span>B) $\text{Efficiency} = \frac{22}{12} \approx 1.83$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q3" value="c">
+          <span>C) $\text{Efficiency} = \frac{10}{6} \approx 1.66$ punti per vagone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q3" value="d">
+          <span>D) $\text{Efficiency} = \frac{12}{10} = 1.20$ punti per vagone.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l02_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l02_q3_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Punti totali $= 10 + 12 = 22$. Costo in vagoni dell'unione $= 8 + 10 - 6 = 12$ vagoni (il segmento condiviso di 6 vagoni viene pagato una sola volta). Quindi $\text{Efficiency} = \frac{22}{12} \approx 1.833$ pt/vagone.</li>
+          <li><strong>Perché A è errata:</strong> $18$ vagoni corrisponderebbe alla somma disgiunta senza considerare il riutilizzo delle tratte condivise.</li>
+          <li><strong>Perché C e D sono errate:</strong> Calcolano solo un singolo biglietto parziale anziché l'intero sottoinsieme congiunto.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Aggiornamento del Rating Elo in caso di Upset</div>
+      <p>Un agente novizio $B$ ($R_B = 1000, E_B = 0.05$) vince a sorpresa contro un agente consolidato $A$ ($R_A = 1500, E_A = 0.95$) con fattore $K = 32$. Qual è la variazione $\Delta R_B$ applicata al rating di $B$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l02_q4" value="a">
+          <span>A) $\Delta R_B = +32 \times (1.0 - 0.05) = +30.4$ punti Elo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q4" value="b">
+          <span>B) $\Delta R_B = +32 \times (0.5 - 0.05) = +14.4$ punti Elo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q4" value="c">
+          <span>C) $\Delta R_B = +32 \times (1.0 - 0.95) = +1.6$ punti Elo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q4" value="d">
+          <span>D) $\Delta R_B = +500.0$ punti Elo, azzerando istantaneamente il divario iniziale tra i due concorrenti.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l02_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l02_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La formula di aggiornamento è $\Delta R_B = K \cdot (S_B - E_B)$. Avendo vinto la partita ($S_B = 1.0$) con aspettativa iniziale molto bassa ($E_B = 0.05$), la sorpresa è massima: $32 \times (1.0 - 0.05) = 32 \times 0.95 = +30.4$ punti Elo guadagnati.</li>
+          <li><strong>Perché B è errata:</strong> $0.5$ corrisponde a un pareggio, non a una vittoria.</li>
+          <li><strong>Perché C è errata:</strong> Scambia l'aspettativa di $B$ con quella di $A$.</li>
+          <li><strong>Perché D è errata:</strong> Il sistema Elo non copia mai il rating dell'avversario in un singolo match.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Rigore Metodologico nei Tornei di Benchmarking</div>
+      <p>Quale delle seguenti procedure è strettamente necessaria per garantire che il confronto di Elo tra due agenti sia privo di bias sperimentale?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l02_q5" value="a">
+          <span>A) Disputare un numero dispari di partite lasciando che sia sempre lo stesso agente a iniziare come primo giocatore, massimizzando la velocità di convergenza.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q5" value="b">
+          <span>B) Far disputare un numero pari di partite accoppiate (paired seeds), alternando esattamente chi muove per primo sullo stesso seed di generazione del mazzo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q5" value="c">
+          <span>C) Modificare dinamicamente il fattore $K$ a ogni partita in base al numero di carte scoperte presenti sul tabellone al turno 10.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l02_q5" value="d">
+          <span>D) Escludere dal conteggio finale tutte le partite in cui un agente non riesce a completare almeno due biglietti destinazione.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l02_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l02_q5_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> In Ticket to Ride il primo giocatore gode di un vantaggio statistico (first-player bias) e la distribuzione iniziale delle carte incide sulla varianza. Giocare a coppie sullo stesso seed con ruoli invertiti neutralizza l'impatto della fortuna e del turno iniziale.</li>
+          <li><strong>Perché A è errata:</strong> Favorire costantemente un agente con la prima mossa altera in modo permanente il rating.</li>
+          <li><strong>Perché C e D sono errate:</strong> Scartare partite o alterare arbitrariamente i parametri produce selezione spuria dei dati (data cherry-picking).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_01_game_core.html" class="btn-nav-lesson">← Lezione 01: Game Core Deterministico</a>
+      <a href="lesson_03_gymnasium_pomdp.html" class="btn-nav-lesson">Lezione 03: Gymnasium Env & POMDP →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

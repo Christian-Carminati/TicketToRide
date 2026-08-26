@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 03: Gymnasium Environment & POMDP - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item active"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 3</span>
+      <span class="badge badge-level">Fondamenti di Reinforcement Learning</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 03: Formalizzazione POMDP, Gymnasium Environment e Action Masking</h1>
+
+    <p>
+      Nelle lezioni precedenti abbiamo implementato il motore di gioco e gli agenti euristici. Ora affrontiamo il passaggio cruciale: trasformare <em>Ticket to Ride</em> in un ambiente conforme allo standard <strong>Farama Gymnasium (<code>gym.Env</code>)</strong>, definendo lo spazio di osservazione e gestendo la parziale osservabilità.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: La Nebbia di Guerra e la Prospettiva in Prima Persona</div>
+      <p>
+        In una partita reale di <em>Ticket to Ride</em>, tu <strong>non puoi vedere</strong> le carte segrete che l'avversario stringe in mano, né i suoi biglietti obiettivo nascosti, né la sequenza delle carte nel mazzo coperto.
+      </p>
+      <p>
+        Vedi solo ciò che è pubblico (le carte scoperte sul tavolo, le tratte occupate sulla mappa, il numero di carte e vagoni dell'avversario) e le tue carte personali.
+      </p>
+      <ul>
+        <li><strong>Stato Globale (Vista di Dio)</strong>: la configurazione assoluta di tutte le carte dell'universo.</li>
+        <li><strong>Osservazione Parziale (Il Tuo Occhio)</strong>: un vettore compatto di numeri reali in $[0, 1]$ che contiene <em>esclusivamente</em> le informazioni lecite a tua disposizione.</li>
+        <li><strong>Maschera delle Azioni (Action Mask)</strong>: un filtro booleano istantaneo che impedisce all'agente di tentare azioni illegali (come comprare tratte per cui non ha abbastanza carte o vagoni).</li>
+      </ul>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalizzazione Matematica del POMDP</h2>
+
+    <p>
+      Formuliamo <em>Ticket to Ride</em> come un <strong>Partially Observable Markov Decision Process (POMDP)</strong> a tempo discreto:
+    </p>
+
+    $$\mathcal{M} = \langle \mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \Omega, \mathcal{O}, \gamma \rangle$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché la 7-tupla POMDP e cosa risolve?</div>
+      <p><strong>Obiettivo:</strong> Nei problemi a osservabilità totale (MDP), l'osservazione $o_t$ coincide con lo stato reale $s_t$. Nei giochi da tavolo a carte coperte, $o_t \neq s_t$: l'agente deve prendere decisioni strategiche sotto incertezza stocastica. La 7-tupla formalizza rigorosamente la separazione tra la realtà oggettiva del simulatore $\mathcal{S}$ e la percezione sensoriale dell'agente $\Omega$.</p>
+      <p><strong>Scomposizione Termine per Termine:</strong></p>
+      <ul>
+        <li>$\mathcal{S}$ (Stato Globale Onnisciente): tupla completa $s = (\mathbf{p}_0, \dots, \mathbf{p}_{N-1}, \mathbf{c}_{\text{visible}}, \mathbf{d}_{\text{train}}, \mathbf{d}_{\text{discard}}, \mathbf{d}_{\text{ticket}}, \mathbf{B}, \tau, k, \text{phase})$ contenente tutti i dati, visibili e invisibili.</li>
+        <li>$\mathcal{A}$ (Spazio Azioni Discrete): insieme di tutte le mosse codificate $\{0, 1, \dots, |\mathcal{A}| - 1\}$ ($|\mathcal{A}| = 142$ su mappa USA).</li>
+        <li>$\mathcal{T}(s' \mid s, a)$ (Transizione Stocastica): probabilità di transizione allo stato $s'$ condizionata dall'azione $a$ nello stato $s$. È stocastica per via dei rimescolamenti dei mazzi e delle reazioni avversarie.</li>
+        <li>$\mathcal{R}(s, a, s')$ (Funzione di Ricompensa): segnale scalare $r_t \in \mathbb{R}$ emesso al termine del passo.</li>
+        <li>$\Omega$ (Spazio delle Osservazioni): compatto continuo $[0, 1]^D \subset \mathbb{R}^D$ ($D = 464$ su mappa USA).</li>
+        <li>$\mathcal{O}(s, i)$ (Funzione di Emissione / Proiezione): funzione che proietta lo stato globale $s$ nel vettore visibile $o_t \in \Omega$ dal punto di vista del giocatore $i$.</li>
+        <li>$\gamma \in [0, 1)$ (Fattore di Sconto Temporale): parametro per ponderare i premi futuri rispetto al guadagno immediato (tipicamente $\gamma = 0.99$).</li>
+      </ul>
+    </div>
+
+    <h3>2.1 Teorema di Non-Leakage (Fairness dell'Osservazione)</h3>
+    <p>
+      Per garantire che la rete neurale non apprenda strategie illegittime sfruttando informazioni nascoste, la funzione di proiezione $\mathcal{O}$ deve soddisfare il <strong>Teorema di Non-Leakage</strong>:
+    </p>
+
+    $$\forall s_1, s_2 \in \mathcal{S}, \quad s_1 \sim_i s_2 \implies \mathcal{O}(s_1, i) \equiv \mathcal{O}(s_2, i)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Significato e Conseguenze Operative</div>
+      <p><strong>Cosa significa $s_1 \sim_i s_2$?</strong> Due stati globali sono equivalenti rispetto al giocatore $i$ ($s_1 \sim_i s_2$) se differiscono <em>esclusivamente</em> per i colori delle carte nascoste nella mano dell'avversario o per l'ordine interno del mazzo coperto. La formula impone che i vettori numerici passati alla rete neurale siano identici al $100\%$, impedendo qualsiasi "cheat" informativo.</p>
+    </div>
+
+    <!-- 3. ARCHITETTURA DEL VETTORE OBSERVATION V1 -->
+    <h2>3. Architettura Vettoriale: <code>ObservationV1</code> (464 Dimensioni)</h2>
+
+    <p>
+      Il vettore compatto $o_t \in [0, 1]^{464}$ viene costruito concatenando 8 sottovettori specializzati:
+    </p>
+
+    $$o = \left[ \mathbf{v}_{\text{hand}} \,\|\, \mathbf{v}_{\text{visible}} \,\|\, \mathbf{v}_{\text{player}} \,\|\, \mathbf{v}_{\text{routes}} \,\|\, \mathbf{v}_{\text{tickets}} \,\|\, \mathbf{v}_{\text{opponents}} \,\|\, \mathbf{v}_{\text{decks}} \,\|\, \mathbf{v}_{\text{phase}} \right]$$
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Sottovettore</th>
+            <th>Dimensione (USA)</th>
+            <th>Codifica Matematica e Normalizzazione</th>
+            <th>Range</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{hand}}$</strong></td>
+            <td>9</td>
+            <td>Conteggio carte in mano normalizzato: $v_c = \min\left(\frac{\text{count}(c)}{12}, 1.0\right)$ per gli 8 colori + Locomotiva</td>
+            <td>$[0, 1]$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{visible}}$</strong></td>
+            <td>50</td>
+            <td>5 slot visibili $\times$ 10 canali One-Hot (8 colori + Locomotiva + Slot Vuoto)</td>
+            <td>$\{0, 1\}$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{player}}$</strong></td>
+            <td>2</td>
+            <td>$\left[ \frac{\text{trains}}{45}, \min\left(\frac{\text{score}}{150}, 1.0\right) \right]$</td>
+            <td>$[0, 1]$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{routes}}$</strong></td>
+            <td>$3 \times 100 = 300$</td>
+            <td>Per ogni tratta: One-Hot su 3 stati: $[1,0,0]$ (libera), $[0,1,0]$ (propria), $[0,0,1]$ (avversaria)</td>
+            <td>$\{0, 1\}$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{tickets}}$</strong></td>
+            <td>$3 \times 30 = 90$</td>
+            <td>Per ogni biglietto: $[\mathbb{I}_{\text{owned}}, \mathbb{I}_{\text{completed}}, \frac{\text{points}}{25}]$</td>
+            <td>$[0, 1]$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{opponents}}$</strong></td>
+            <td>4</td>
+            <td>Per ogni avversario: $\left[ \frac{|\text{hand}|}{30}, \frac{\text{trains}}{45}, \frac{|\text{routes}|}{30}, \frac{\text{score}}{150} \right]$</td>
+            <td>$[0, 1]$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{decks}}$</strong></td>
+            <td>5</td>
+            <td>$\left[ \frac{|\mathbf{d}_{\text{train}}|}{110}, \frac{|\mathbf{d}_{\text{discard}}|}{110}, \frac{|\mathbf{d}_{\text{ticket}}|}{30}, \frac{k}{100}, \mathbb{I}_{\text{last\_round}} \right]$</td>
+            <td>$[0, 1]$</td>
+          </tr>
+          <tr>
+            <td><strong>$\mathbf{v}_{\text{phase}}$</strong></td>
+            <td>4</td>
+            <td>One-Hot su 4 stati di turno FSM (<code>NORMAL</code>, <code>DRAWING_SECOND_CARD</code>, etc.)</td>
+            <td>$\{0, 1\}$</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. ACTION MASKING & LOGIT MASKING -->
+    <h2>4. Spazio delle Azioni Discrete & Action Masking</h2>
+
+    <p>
+      In ogni stato $s$, la rete neurale produce un vettore di logit $z \in \mathbb{R}^{|\mathcal{A}|}$. Il vettore maschera booleano $M(s) \in \{0, 1\}^{|\mathcal{A}|}$ filtra le azioni illegali impostando i logit a $-\infty$:
+    </p>
+
+    $$\tilde{z}_a = \begin{cases} z_a & \text{se } M(s)_a = 1 \\ -\infty & \text{se } M(s)_a = 0 \end{cases}$$
+
+    $$\pi(a \mid s) = \frac{\exp(\tilde{z}_a)}{\sum_{b \in \mathcal{A}} \exp(\tilde{z}_b)} = \frac{\exp(z_a) \cdot M(s)_a}{\sum_{b \in \mathcal{A}} \exp(z_b) \cdot M(s)_b}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Perché Action Masking tramite Logits e non tramite Penalità?</div>
+      <p><strong>Il Problema delle Penalità Negative:</strong> Nei primi approcci al RL, tentare un'azione illegale restituiva un reward punitivo (es. $-10$). Questo rallenta drammaticamente l'addestramento: l'agente spende milioni di passi solo per imparare le regole grammaticali di base prima di iniziare a sviluppare una strategia.</p>
+      <p><strong>La Soluzione Matematica dell'Action Masking:</strong></p>
+      <ul>
+        <li>$\tilde{z}_a = -\infty$ per le azioni con $M(s)_a = 0$: poiché $\exp(-\infty) = 0$, la probabilità assegnata dalla Softmax a tali azioni diventa <em>esattamente $0.0$</em>.</li>
+        <li>La somma al denominatore normalizza la distribuzione unicamente sull'insieme delle azioni consentite $\mathcal{A}_{\text{valid}}(s)$, rendendo impossibile il campionamento di mosse vietate.</li>
+        <li>Durante la backpropagation, il gradiente $\frac{\partial \mathcal{L}}{\partial z_a}$ per le azioni mascherate è nullo, proteggendo i pesi della rete da perturbazioni distruttive.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Il Ciclo <code>step()</code> con Auto-Stepping dell'Avversario in Gymnasium</div>
+      <pre><code>class TicketToRideEnv(gym.Env):
+    def step(self, action_idx: int):
+        # 1. Decodifica l'indice intero nell'azione di dominio
+        domain_action = self.action_space_mapper.to_action(action_idx)
+        prev_state = self.game.state.clone()
+
+        # 2. Esegui la mossa del Player 0 (Agente RL)
+        self.game.step(domain_action)
+
+        # 3. Auto-Stepping: Esegui le mosse dell'avversario finché non tocca di nuovo al Player 0
+        while self.game.state.current_player_index != 0 and not self.game.state.is_game_over:
+            valid_actions = self.game.valid_actions()
+            opp_action = self.opponent.act(self.game.state, valid_actions, self.board)
+            self.game.step(opp_action)
+
+        # 4. Calcola Reward, Terminazione e Nuova Osservazione con Maschera
+        reward = self.reward_calculator.calculate(prev_state, domain_action, self.game.state, player_index=0)
+        terminated = self.game.state.is_game_over
+        truncated = self.game.state.turn_number >= self.max_turns
+        
+        obs = self.observation_encoder.encode(self.game.state, player_index=0)
+        mask = self.action_masker.compute_mask(self.game.valid_actions())
+        info = {"action_mask": mask}
+
+        return obs, reward, terminated, truncated, info</code></pre>
+    </div>
+
+    <!-- 6. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Fare Leakage di Informazioni</div>
+      <ul>
+        <li><strong>Non inserire i colori segreti dell'avversario nell'osservazione:</strong> Se passi alla rete neurale i colori precisi delle carte in mano all'avversario, il modello funzionerà nel simulatore ma fallirà miseramente in ambiente reale parzialmente osservabile.</li>
+        <li><strong>Non passare l'ordine delle carte nel mazzo:</strong> La rete deve conoscere solo la quantità numerica $|\mathbf{d}_{\text{train}}|$, mai l'ordine interno delle carte future.</li>
+      </ul>
+    </div>
+
+    <!-- 7. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Mettiti alla prova su POMDP, codifica vettoriale delle osservazioni e tecniche di action masking.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Funzione del Vettore di Action Masking</div>
+      <p>Se un'azione di acquisto tratta richiede 4 vagoni e 4 carte blu, ma il giocatore possiede solo 2 carte blu e 1 locomotiva Jolly nella propria mano, quale valore assume l'elemento $M(s)_a$ nel vettore maschera e perché?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l03_q1" value="a">
+          <span>A) $M(s)_a = 1$, ma l'ambiente assegnerà una ricompensa di $-10$ al termine dello step per disincentivare la scelta.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q1" value="b">
+          <span>B) $M(s)_a = 0$, perché le risorse spendibili ($2 \text{ blu} + 1 \text{ jolly} = 3$) sono inferiori alle 4 carte richieste dalle regole.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q1" value="c">
+          <span>C) $M(s)_a = 0.75$, corrispondente alla percentuale esatta di risorse possedute rispetto al costo complessivo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q1" value="d">
+          <span>D) $M(s)_a = 1$, perché la presenza di almeno una locomotiva jolly consente di surrogare qualsiasi deficit di carte.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l03_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l03_q1_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> L'action mask è rigorosamente booleana $\{0, 1\}$. Con sole 3 carte idonee (2 blu + 1 jolly), l'azione è fisicamente illegale secondo il regolamento, quindi il bit della maschera è impostato a $0$ esatto.</li>
+          <li><strong>Perché A è errata:</strong> L'action masking previene a monte la scelta della mossa illegale anziché punirla con ricompense negative.</li>
+          <li><strong>Perché C e D sono errate:</strong> La maschera non ammette valori frazionari continui e una sola locomotiva copre solo 1 carta mancante, non l'intero deficit.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Teorema di Non-Leakage nei POMDP</div>
+      <p>Cosa prescrive rigorosamente il Teorema di Non-Leakage applicato alla funzione di proiezione $\mathcal{O}(s, i)$ dell'ambiente Gymnasium?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l03_q2" value="a">
+          <span>A) Se due stati globali differiscono unicamente per l'ordine interno del mazzo coperto o per i colori delle carte nascoste nella mano avversaria, le osservazioni generate per il giocatore devono essere identiche.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q2" value="b">
+          <span>B) La somma di tutte le osservazioni generate per entrambi i giocatori deve essere uguale a zero per preservare la proprietà a somma zero del gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q2" value="c">
+          <span>C) Tutte le informazioni sul tabellone devono essere rese invisibili ad entrambi i giocatori finché non inizia l'ultimo round di gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q2" value="d">
+          <span>D) La rete neurale deve prevedere l'esatto colore della prossima carta nel mazzo con accuratezza superiore al 90% prima di poter calcolare la loss.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l03_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l03_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Il principio di non-leakage stabilisce che l'osservazione $\mathcal{O}(s, i)$ non deve contenere alcuna traccia numerica di informazioni private dell'avversario o del futuro ordine del mazzo.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> I vettori di osservazione non sono a somma zero, il tabellone è sempre pubblico e non è richiesto di predire carte future per addestrare la policy.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Mascheramento dei Logits tramite $-\infty$</div>
+      <p>Per quale motivo teorico applichiamo la maschera ai logits impostando $\tilde{z}_a = -\infty$ per le azioni non consentite prima della funzione Softmax?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l03_q3" value="a">
+          <span>A) Perché $\exp(-\infty) = 0$, annullando rigorosamente la probabilità $\pi(a \mid s) = 0$ e azzerando il gradiente di backpropagation sulle azioni illegali.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q3" value="b">
+          <span>B) Perché impostare valori negativi trasforma automaticamente una policy discreta in uno spazio di azioni continuo gaussiano.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q3" value="c">
+          <span>C) Perché in questo modo la loss del Value Network si riduce a zero durante tutti i turni di pesca delle carte visibili.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q3" value="d">
+          <span>D) Perché la libreria Gymnasium richiede che tutte le azioni vietate siano convertite in numeri immaginari per evitare divisioni per zero.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l03_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l03_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La Softmax calcola $\frac{\exp(\tilde{z}_a)}{\sum \exp(\tilde{z}_b)}$. Assegnando $-\infty$, l'esponenziale è $0$, garantendo che la probabilità campionata sia $0.0$ e che il gradiente associato non perturbi i parametri della rete.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Lo spazio rimane discreto, la value loss non dipende dalla maschera dei logit e non intervengono numeri complessi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Meccanismo di Auto-Stepping nel ciclo <code>step()</code></div>
+      <p>Cosa accade all'interno del metodo <code>step()</code> di <code>TicketToRideEnv</code> dopo che il Giocatore 0 ha completato la propria azione?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l03_q4" value="a">
+          <span>A) L'ambiente si mette in pausa e restituisce il controllo al chiamante, che deve istanziare un secondo ambiente per calcolare il turno dell'avversario.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q4" value="b">
+          <span>B) L'ambiente esegue internamente le mosse del modello/euristica avversaria finché il turno di gioco non torna al Giocatore 0 o la partita si conclude.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q4" value="c">
+          <span>C) L'ambiente annulla l'ultima mossa del Giocatore 0 e costringe entrambi i giocatori a pescare contemporaneamente dal mazzo coperto.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q4" value="d">
+          <span>D) L'ambiente scarta automaticamente tutte le carte visibili sul tabellone per impedire all'avversario di usufruirne.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l03_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l03_q4_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Per incapsulare la partita a due giocatori nell'interfaccia standard single-agent di Gymnasium, l'ambiente esegue un ciclo while interno (auto-stepping) che fa agire l'avversario fino a quando non tocca nuovamente al Player 0 (o il gioco termina).</li>
+          <li><strong>Perché A, C e D sono errate:</strong> L'ambiente Gymnasium gestisce la transizione in un unico step atomico senza creare ambienti multipli o violare le regole del gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Composizione del Vettore <code>ObservationV1</code></div>
+      <p>Quale delle seguenti informazioni relative agli avversari è inclusa legittimamente nel vettore $\mathbf{v}_{\text{opponents}}$ dell'osservazione a 464 dimensioni?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l03_q5" value="a">
+          <span>A) Il conteggio esatto delle carte rosse e blu possedute segretamente nella mano privata dell'avversario.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q5" value="b">
+          <span>B) Le caratteristiche pubbliche: numero totale di carte in mano $|\text{hand}|$, vagoni fisici residui, numero di tratte possedute e punteggio corrente.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q5" value="c">
+          <span>C) La lista dei biglietti destinazione segreti che l'avversario ha tenuto all'inizio della partita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l03_q5" value="d">
+          <span>D) La matrice dei pesi della rete neurale o dell'algoritmo decisionale utilizzato dall'avversario.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l03_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l03_q5_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Nel regolamento, il numero totale di carte tenute dall'avversario, i vagoni rimanenti, le tratte reclamate e il punteggio sono informazioni visibili a vista a tutti i giocatori al tavolo.</li>
+          <li><strong>Perché A e C sono errate:</strong> I colori specifici delle carte in mano e le città dei biglietti sono informazioni segrete protette dal teorema di non-leakage.</li>
+          <li><strong>Perché D è errata:</strong> L'architettura interna del decisore avversario non fa parte dello stato di gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_02_baseline_agents.html" class="btn-nav-lesson">← Lezione 02: Baseline, Dijkstra & Elo</a>
+      <a href="lesson_04_first_rl_dqn_ppo.html" class="btn-nav-lesson">Lezione 04: First Deep RL: Double DQN →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

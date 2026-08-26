@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 05: Web Lab & Ottimizzazioni High-Performance - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item active"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 5</span>
+      <span class="badge badge-level">Ingegneria dei Sistemi & Introspezione</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 05: Web Lab, Introspezione Neurale, Telemetria Streaming e Ottimizzazioni ad Alte Prestazioni</h1>
+
+    <p>
+      In questa lezione affrontiamo un doppio tema fondamentale: come <strong>aprire la scatola nera</strong> delle reti neurali attraverso un'interfaccia web di introspezione visiva in tempo reale, e come <strong>ottimizzare le prestazioni del motore di simulazione</strong> per passare da centinaia a migliaia di passi per secondo (Steps Per Second - SPS).
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: La Risonanza Magnetica del Cervello dell'AI</div>
+      <p>
+        Addestrare un modello di Reinforcement Learning guardando solo un numero nel terminale (la <em>loss</em>) è come cercare di diagnosticare un paziente misurandogli solo la temperatura: non vedi cosa sta accadendo negli organi interni.
+      </p>
+      <p>
+        Il <strong>Web Lab</strong> funziona come una risonanza magnetica interattiva (<strong>BrainView</strong>):
+      </p>
+      <ul>
+        <li>Ti mostra i neuroni che si attivano nei layer intermedi quando l'agente osserva il tabellone.</li>
+        <li>Evidenzia le incertezze decisionali: ad esempio, quando la policy è in bilico al 48% tra pescare carte o bloccare una tratta strategica avversaria.</li>
+        <li>Fornisce un <strong>Replay Scrubber</strong> per riavvolgere la partita frame-by-frame e analizzare ogni singola decisione tattica.</li>
+      </ul>
+    </div>
+
+    <!-- 2. ARCHITETTURA DEL WEB LAB -->
+    <h2>2. Architettura del Web Lab & Invariante Headless</h2>
+
+    <p>
+      Un principio ingegneristico assoluto del laboratorio è il <strong>Disaccoppiamento Headless</strong>: il motore di simulazione e gli script CLI (<code>scripts/train.py</code>) operano alla massima velocità hardware possibile, senza dipendenze obbligatorie dal browser o dal server web.
+    </p>
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">📐 Schema Architetturale Full-Stack & Telemetria</div>
+      <pre style="background: var(--bg-secondary); border: none; margin: 0; color: var(--text-primary);">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       REACT 18 + VITE FRONTEND                              │
+│  - BoardCanvas (SVG Reattivo)       - BrainInspectorPane (Logits/Values)   │
+│  - TrainingView (Live Charts)       - ReplayScrubber (Player temporale)    │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ WebSocket (/ws/telemetry) & REST API
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          FASTAPI ASYNC BACKEND                              │
+│  - TrainerService (Worker background con Adaptive Telemetry Throttler)     │
+│  - BrainService (Estrazione hook layer PyTorch & attivazioni)               │
+│  - GameSessionManager & ReplayService                                       │
+└─────────────────────────────────────────────────────────────────────────────┘</pre>
+    </div>
+
+    <!-- 3. OTTIMIZZAZIONE KERNEL AD ALTE PRESTAZIONI -->
+    <h2>3. Anatomia delle Ottimizzazioni ad Alte Prestazioni (Profiling)</h2>
+
+    <p>
+      Nel passaggio dalla prima implementazione di test al training su larga scala, abbiamo rimosso 4 colli di bottiglia computazionali critici:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th>Causa del Rallentamento (Bottleneck)</th>
+            <th>Soluzione Ingegneristica Adottata</th>
+            <th>Guadagno Prestazionale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Replay Buffer (DQN)</strong></td>
+            <td>Creazione dinamica di tensori PyTorch da liste di tuple Python a ogni campionamento</td>
+            <td>Pre-allocazione di array NumPy contigui circolari con indicizzazione vettoriale diretta</td>
+            <td><strong>+150% FPS</strong> (da 315 a > 800 steps/s)</td>
+          </tr>
+          <tr>
+            <td><strong>Controllo Connettività Biglietti</strong></td>
+            <td>Visite BFS ripetute su grafi con nomi di città stringa ad ogni singolo step dell'ambiente</td>
+            <td>Mappatura a interi e struttura <strong>Disjoint Set Union (Union-Find)</strong> con connettività in $O(1)$</td>
+            <td><strong>+65% Throughput</strong> nella codifica dell'osservazione</td>
+          </tr>
+          <tr>
+            <td><strong>WebSocket Live Telemetry</strong></td>
+            <td>Broadcast di pacchetti a ogni step ($>1000$ msg/s) con saturazione del thread JS e blocco del browser</td>
+            <td><strong>Adaptive Telemetry Throttling</strong> a max 20 FPS (ogni 50ms) indipendente dal training</td>
+            <td>CPU browser scesa da 100% a <strong>&lt; 15%</strong> stabile</td>
+          </tr>
+          <tr>
+            <td><strong>Rollout Buffer (PPO)</strong></td>
+            <td>Riallocazione di array e conversioni di tipo all'interno delle sotto-epoche</td>
+            <td>Buffer multidimensionale pre-allocato $(T_{\text{steps}} \times N_{\text{envs}} \times D_{\text{obs}})$ con GAE vettorizzato</td>
+            <td><strong>+50% FPS</strong> (oltre 1.500 steps/s)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. ALGORITMO DSU: UNION-FIND PER I GRAFI -->
+    <h2>4. Connettività Istantanea con Disjoint Set Union (DSU)</h2>
+
+    <p>
+      Anziché ricalcolare una visita BFS completa ogni volta che l'ambiente deve verificare se una coppia di città $(u, v)$ è connessa, manteniamo una struttura ad insiemi disgiunti (<strong>Union-Find con Path Compression e Union by Rank</strong>):
+    </p>
+
+    $$\text{Find}(u) = O(\alpha(|V|)) \approx O(1)$$
+    $$\text{Union}(u, v) = O(\alpha(|V|)) \approx O(1)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché DSU batte la BFS nella simulazione RL?</div>
+      <p><strong>Obiettivo:</strong> Ad ogni azione di acquisto tratta, dobbiamo verificare la connettività di tutti i $30$ biglietti destinazione. Con una BFS classica, il costo per step è $O(K \cdot (|V| + |E|))$. Con la DSU, l'aggiornamento di una tratta è una singola operazione $\text{Union}(u, v)$, e ogni test di connettività è una semplice uguaglianza $\text{Find}(u) == \text{Find}(v)$.</p>
+      <p><strong>Scomposizione dei Termini:</strong></p>
+      <ul>
+        <li>$u, v \in V$: indici interi identificativi delle città collegate dalla tratta.</li>
+        <li>$\text{Find}(u)$: risale l'albero fino alla radice canonica della componente connessa, collegando direttamente tutti i nodi visitati alla radice (<em>Path Compression</em>).</li>
+        <li>$\text{Union}(u, v)$: unisce gli insiemi agganciando l'albero di rango inferiore sotto la radice dell'albero di rango superiore (<em>Union by Rank</em>).</li>
+        <li>$\alpha(|V|)$: la <em>funzione inversa di Ackermann</em>. Per qualsiasi dimensione dell'universo conosciuto ($|V| \le 10^{80}$), $\alpha(|V|) \le 4$. L'algoritmo opera in tempo praticamente costante $O(1)$.</li>
+      </ul>
+    </div>
+
+    <h3>4.1 Throughput di Training e Legge di Amdahl</h3>
+    <p>
+      Il throughput di simulazione $SPS$ (Steps Per Second) determina il tempo di addestramento complessivo:
+    </p>
+
+    $$\text{SPS} = \frac{N_{\text{steps}}}{\Delta t_{\text{env}} + \Delta t_{\text{inference}} + \Delta t_{\text{train}}}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione dei Tempi di Ciclo</div>
+      <ul>
+        <li>$\Delta t_{\text{env}}$: tempo speso nel motore Python (logica regole, action masking, step FSM).</li>
+        <li>$\Delta t_{\text{inference}}$: tempo speso nel forward pass PyTorch per calcolare la policy $\pi(a|s)$.</li>
+        <li>$\Delta t_{\text{train}}$: tempo speso nel backward pass e aggiornamento dei pesi tramite l'ottimizzatore.</li>
+        <li><em>Principio di Amdahl:</em> Accelerare la GPU con batch enormi non serve se $\Delta t_{\text{env}}$ domina il ciclo. Pre-allocare buffer ed eliminare le allocazioni dinamiche riduce $\Delta t_{\text{env}}$ del 70%.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del Disjoint Set Union in Python</div>
+      <pre><code>class DisjointSetUnion:
+    def __init__(self, num_nodes: int):
+        self.parent = list(range(num_nodes))
+        self.rank = [0] * num_nodes
+
+    def find(self, i: int) -> int:
+        """Restituisce la radice della componente con Path Compression ricorsiva."""
+        if self.parent[i] == i:
+            return i
+        self.parent[i] = self.find(self.parent[i])  # Path compression!
+        return self.parent[i]
+
+    def union(self, i: int, j: int) -> bool:
+        """Unisce due componenti con Union by Rank."""
+        root_i = self.find(i)
+        root_j = self.find(j)
+        if root_i == root_j:
+            return False  # Già connesse
+        if self.rank[root_i] < self.rank[root_j]:
+            self.parent[root_i] = root_j
+        elif self.rank[root_i] > self.rank[root_j]:
+            self.parent[root_j] = root_i
+        else:
+            self.parent[root_j] = root_i
+            self.rank[root_i] += 1
+        return True
+
+    def is_connected(self, i: int, j: int) -> bool:
+        """Query di connettività in tempo ammortizzato O(1)."""
+        return self.find(i) == self.find(j)</code></pre>
+    </div>
+
+    <!-- 6. TRAPPOLE COMUNI -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Introdurre <code>time.sleep</code> nel Training</div>
+      <ul>
+        <li><strong>L'Errore del Falso Throttling:</strong> Rallentare il loop di addestramento inserendo sleep forzati per non sovraccaricare il frontend WebSocket rallenta inutilmente la ricerca.</li>
+        <li><strong>L'Approccio Corretto:</strong> L'ambiente gira alla massima frequenza di clock. Il backend FastAPI campiona l'ultimo frame telemetrico disponibile e invia pacchetti a frequenza fissa (es. 20 FPS con intervallo di 50ms) in un thread asincrono non bloccante.</li>
+      </ul>
+    </div>
+
+    <!-- 7. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica le tue competenze sulle architetture di telemetria, algoritmi di DSU e ottimizzazione delle pipeline di RL.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Vantaggio Prestazionale della Struttura DSU</div>
+      <p>Per quale motivo teorico la struttura Disjoint Set Union (Union-Find) con Path Compression è superiore a una ricerca in ampiezza (BFS) per verificare il completamento dei biglietti destinazione ad ogni step?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l05_q1" value="a">
+          <span>A) Perché la DSU risponde a ciascuna query di connettività in tempo ammortizzato $O(\alpha(|V|)) \approx O(1)$, evitando di riesplorare l'intero grafo con complessità $O(|V| + |E|)$ ad ogni azione di gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q1" value="b">
+          <span>B) Perché la DSU calcola automaticamente la lunghezza del cammino continuo più lungo senza necessità di backtracking.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q1" value="c">
+          <span>C) Perché la DSU alloca automaticamente la memoria dei grafi sulla VRAM della scheda video riducendo l'uso della CPU.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q1" value="d">
+          <span>D) Perché la DSU impedisce all'avversario di occupare le tratte a doppio binario a due giocatori.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l05_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l05_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Eseguire una BFS per ciascun biglietto posseduto ad ogni step ha costo $O(K(|V|+|E|))$. Con la DSU, quando una tratta viene acquistata basta una singola operazione $\text{Union}(u, v)$, e ogni test di connettività su un biglietto richiede due chiamate $\text{Find}$ in tempo quasi istantaneo $O(1)$.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> La DSU non trova il cammino più lungo aciclico, non è un costrutto VRAM e non governa le regole di gioco.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Pre-allocazione di Array Contigui NumPy nel Replay Buffer</div>
+      <p>Perché l'uso di un array NumPy circolare pre-allocato è nettamente più performante rispetto a una lista Python o <code>collections.deque</code> di tuple $(s, a, r, s', d)$ nel Replay Buffer?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l05_q2" value="a">
+          <span>A) Perché un blocco di memoria contiguo C evita il sovraccarico di puntatori sparsi nell'heap e permette il campionamento di interi batch tramite indicizzazione vettoriale senza istanziare decine di oggetti intermedi.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q2" value="b">
+          <span>B) Perché le liste Python convertono tutti i valori decimali in stringhe di testo rallentando il calcolo della loss.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q2" value="c">
+          <span>C) Perché la pre-allocazione garantisce che il gradiente dell'ottimizzatore converga a zero in meno di 10 epoche di training.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q2" value="d">
+          <span>D) Perché gli array NumPy non possono essere salvati su disco prevenendo fughe di memoria nei checkpoint.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l05_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l05_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Una lista di tuple in Python alloca centinaia di migliaia di piccoli oggetti separati. Estrarre un batch richiede di iterare sui puntatori e creare nuovi oggetti. L'array contiguo pre-allocato in C di NumPy consente il campionamento istantaneo tramite slicing vettoriale.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Le liste non convertono float in testo, la convergenza della loss dipende dall'algoritmo di RL e i checkpoint su disco sono pienamente supportati.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Gestione della Telemetria WebSocket ad Alto Throughput</div>
+      <p>Quando il motore di simulazione produce oltre $1500$ steps al secondo, quale strategia architetturale previene il blocco del frontend React nel browser?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l05_q3" value="a">
+          <span>A) Inserire un'istruzione <code>time.sleep(0.05)</code> nel ciclo di calcolo del motore di gioco per abbassare il throughput globale a 20 steps/s.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q3" value="b">
+          <span>B) Utilizzare un meccanismo asincrono di Adaptive Throttling che campiona e invia pacchetti WebSocket a frequenza controllata (es. 20 FPS), lasciando il training alla massima velocità.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q3" value="c">
+          <span>C) Inviare tutti i frame generati via email al termine dell'addestramento anziché usare i WebSocket.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q3" value="d">
+          <span>D) Disabilitare permanentemente la funzione di loss del Critic durante tutte le sessioni visive.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l05_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l05_q3_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> L'Adaptive Throttling disaccoppia la velocità di elaborazione numerica (backend a piena potenza) dalla frequenza di rendering dell'interfaccia utente (limitata a 20-30 FPS per non saturare il thread JavaScript del browser).</li>
+          <li><strong>Perché A è errata:</strong> Rallentare artificialmente il training distrugge l'efficienza della pipeline.</li>
+          <li><strong>Perché C e D sono errate:</strong> La telemetria deve rimanere in tempo reale e il Critic non deve essere disabilitato.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Principio di Disaccoppiamento Headless</div>
+      <p>Cosa stabilisce l'invariante di disaccoppiamento Headless implementata nel laboratorio di simulazione?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l05_q4" value="a">
+          <span>A) Il motore di gioco e gli script di addestramento CLI devono poter essere eseguiti in modo completamente autonomo e performante anche in assenza del server FastAPI o di display grafici.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q4" value="b">
+          <span>B) La rete neurale deve funzionare rimuovendo il primo layer di input (la testa della rete) ad ogni inizio turno.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q4" value="c">
+          <span>C) Il simulatore deve avviare obbligatoriamente un'istanza headless di Google Chrome per ogni ambiente parallelo attivo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q4" value="d">
+          <span>D) Le osservazioni vettoriali devono essere calcolate solo quando un utente umano clicca con il mouse sul tabellone.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l05_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l05_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> L'esecuzione headless assicura che il core matematico e gli script di benchmark/training su cluster o terminale non abbiano dipendenze bloccanti da server web, browser o interfacce grafiche.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Headless significa "senza interfaccia grafica utente", non rimozione di layer della rete neurale né dipendenza forzata da browser.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Significato della Funzione Inversa di Ackermann $\alpha(N)$</div>
+      <p>Nel contesto della complessità temporale della DSU con Path Compression e Union by Rank, cosa comporta che $\alpha(|V|) \le 4$ per ogni valore pratico di nodi?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l05_q5" value="a">
+          <span>A) Che il costo di ogni singola operazione di ricerca radice $\text{Find}$ o unione $\text{Union}$ richiede al massimo 4 operazioni elementari, risultando computazionalmente indistinguibile da un tempo costante $O(1)$.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q5" value="b">
+          <span>B) Che il tabellone di gioco non può contenere più di 4 città connesse contemporaneamente.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q5" value="c">
+          <span>C) Che l'agente impiegherà esattamente 4 secondi per completare ciascun turno di gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l05_q5" value="d">
+          <span>D) Che la memoria RAM occupata dalla struttura DSU raddoppia ad ogni multiplo di 4 turni.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l05_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l05_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La funzione inversa di Ackermann $\alpha(n)$ cresce così lentamente che per qualsiasi dimensione realistica (anche superiore al numero di atomi dell'universo), il suo valore non supera mai $4$. In termini pratici, la DSU ha complessità costante $O(1)$.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> $\alpha$ è una funzione di complessità asintotica e non limita il numero di città, i tempi fisici o l'occupazione di memoria della mappa.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_04_first_rl_dqn_ppo.html" class="btn-nav-lesson">← Lezione 04: First Deep RL: Double DQN</a>
+      <a href="lesson_06_ppo_from_scratch.html" class="btn-nav-lesson">Lezione 06: CleanRL PPO from Scratch →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

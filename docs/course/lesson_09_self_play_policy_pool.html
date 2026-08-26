@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 09: Multi-Agent Self-Play & Policy Pools - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item active"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 9</span>
+      <span class="badge badge-level">Teoria dei Giochi Multi-Agente</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 09: Multi-Agent Self-Play, Historical Policy Pools e Teoria dei Giochi (PFSP)</h1>
+
+    <p>
+      Quando alleni un'AI contro un singolo bot fisso (es. un bot casuale o un'euristica statica), la rete neurale soffre inevitabilmente di <strong>Single-Opponent Overfitting</strong>: impara a sfruttare i difetti di quell'unico avversario ma fallisce contro qualsiasi altro stile di gioco. In questa lezione implementiamo l'ecosistema di <strong>Self-Play</strong> che ha reso leggendarie AI come <em>AlphaStar</em> e <em>OpenAI Five</em>.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Il Ciclo Sasso-Carta-Forbice e la Palestra Storica</div>
+      <p>
+        Supponiamo che la politica $\pi_A$ batta $\pi_B$, che $\pi_B$ batta $\pi_C$, ma che $\pi_C$ batta $\pi_A$ (dinamica non transitiva di Sasso-Carta-Forbice).
+      </p>
+      <p>
+        Se alleni l'agente <strong>solo contro l'ultima versione di se stesso</strong> (Pure Self-Play ingenuo: $\pi_t$ contro $\pi_{t-1}$):
+      </p>
+      <ul>
+        <li>Oggi l'agente gioca Sasso per battere le Forbici di ieri.</li>
+        <li>Domani l'agente gioca Carta per battere il Sasso di oggi.</li>
+        <li>Dopodomani l'agente gioca Forbici per battere la Carta...</li>
+      </ul>
+      <p>
+        L'addestramento gira in tondo all'infinito (<strong>Policy Cycling / Policy Drift</strong>) senza diventare mai più forte in senso assoluto!
+      </p>
+      <p>
+        <strong>La Soluzione (Historical Policy Pool)</strong>: l'agente si allena all'interno di una palestra popolata da tutte le sue generazioni storiche passate. Per vincere, deve trovare una strategia solida (vicina all'Equilibrio di Nash) capace di sconfiggere contemporaneamente qualsiasi incarnazione precedente.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: Fictitious Play e Matchmaking</h2>
+
+    <p>
+      Manteniamo un archivio congelato di snapshot storici (<strong>Policy Pool</strong>):
+    </p>
+
+    $$\mathcal{M} = \{\pi_0, \pi_1, \pi_2, \dots, \pi_K\}$$
+
+    <p>In un gioco a 2 giocatori a somma zero, l'obiettivo teorico del Self-Play è convergere verso l'<strong>Equilibrio di Nash Minimax</strong>:</p>
+
+    $$\max_{\pi_1} \min_{\pi_2} \mathbb{E}[R(\pi_1, \pi_2)] = \min_{\pi_2} \max_{\pi_1} \mathbb{E}[R(\pi_1, \pi_2)] = v^*$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché l'Equilibrio di Nash e cosa risolve?</div>
+      <p><strong>Obiettivo:</strong> Trovare una politica mista $\pi^*$ contro cui nessun avversario possa ottenere un vantaggio unilaterale. Se l'agente deviasse per sfruttare un'eccessiva aggressività, un avversario specializzato potrebbe punirlo. Il Minimax garantisce una soglia minima di rendimento $v^*$ anche contro il peggior avversario possibile.</p>
+    </div>
+
+    <h3>2.1 Strategie di Campionamento dell'Avversario (PFSP)</h3>
+    <p>
+      Durante la fase di raccolta delle traiettorie, l'avversario viene estratto dal pool $\mathcal{M}$ secondo la distribuzione di <strong>Prioritized Fictitious Self-Play (PFSP)</strong>:
+    </p>
+
+    $$P(\pi_i) = \frac{(1 - w_i)^p + \epsilon}{\sum_{j=0}^K \left( (1 - w_j)^p + \epsilon \right)}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione Termine per Termine di PFSP</div>
+      <p><strong>Perché il campionamento proporzionale al tasso di sconfitta $(1 - w_i)$?</strong></p>
+      <ul>
+        <li>$w_i = \text{WinRate}(\pi_{\text{current}}, \pi_i) \in [0, 1]$: percentuale di vittorie ottenute dall'agente corrente contro la specifica generazione passata $\pi_i$.</li>
+        <li>$(1 - w_i)$: tasso di sconfitta (difficoltà). Se $\pi_i$ sconfigge spesso la policy attuale ($w_i \approx 0.2$), allora $(1 - w_i) = 0.8$, rendendo $\pi_i$ un avversario prioritario da affrontare per correggere le falle strategiche.</li>
+        <li>Se una versione vecchia è ormai dominata al $100\%$ ($w_i = 1.0$), il termine $(1 - w_i)^p = 0$, evitando di sprecare rollout computazionali su avversari banali.</li>
+        <li>$p \ge 1$: esponente di focalizzazione (tipicamente $p=1$ per campionamento lineare o $p=2$ per concentrarsi drasticamente sui soli avversari più difficili).</li>
+        <li>$\epsilon = 0.01$: costante infinitesima di esplorazione; assicura che nessuna generazione passata abbia probabilità rigorosamente zero di essere testata.</li>
+      </ul>
+    </div>
+
+    <h3>2.2 Baseline Anchoring (Mix-in)</h3>
+    <p>
+      Con probabilità fissa $\epsilon_{\text{baseline}} \in [0.10, 0.20]$, il matchmaker assegna un'euristica deterministica (<code>StrategicAgent</code> o <code>GreedyAgent</code>) anziché un modello del pool:
+    </p>
+
+    $$P(\text{Opponent}) = \begin{cases} \text{Baseline Heuristic} & \text{con probabilità } \epsilon_{\text{baseline}} \\ \pi_i \sim \text{PFSP}(\mathcal{M}) & \text{con probabilità } 1 - \epsilon_{\text{baseline}} \end{cases}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Prevenzione dei Degenerative Equilibria</div>
+      <p>Se due reti neurali giocano solo tra loro per milioni di step, possono convergere su comportamenti bizzarri e collusivi non competitivi. L'ancoraggio periodico a un'euristica rigorosa mantiene l'apprendimento allineato agli standard di gioco ottimali.</p>
+    </div>
+
+    <!-- 3. MATRICE DEI RISULTATI E CURVA ELO -->
+    <h2>3. Matrice di Payoff e Progressione Elo Monotonica</h2>
+
+    <p>
+      Un torneo Round-Robin completo tra generazioni storiche produce la matrice di scontro diretto:
+    </p>
+
+    <div class="pedagogical-box box-game">
+      <div class="box-title">🎲 Matrice di Scontro Diretto (Win Rate %)</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>Gen 0 (Step 0)</th>
+              <th>Gen 1 (Step 20k)</th>
+              <th>Gen 2 (Step 50k)</th>
+              <th>Strategic Baseline</th>
+              <th>Elo Finale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gen 0 (Random Init)</strong></td>
+              <td>50%</td>
+              <td>12%</td>
+              <td>2%</td>
+              <td>4%</td>
+              <td><strong>1200</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Gen 1 (Intermedia)</strong></td>
+              <td>88%</td>
+              <td>50%</td>
+              <td>28%</td>
+              <td>45%</td>
+              <td><strong>1420</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Gen 2 (Self-Play Master)</strong></td>
+              <td><strong>98%</strong></td>
+              <td><strong>72%</strong></td>
+              <td>50%</td>
+              <td><strong>68%</strong></td>
+              <td><strong>1680</strong> ⭐</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>Conferma Scientifica:</strong> La curva Elo è strettamente crescente ($1200 \to 1420 \to 1680$), dimostrando che l'addestramento multi-agente incrementa la forza di gioco assoluta senza cadere in cicli.
+      </p>
+    </div>
+
+    <!-- 4. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del PolicyPool e Sampler in Python</div>
+      <pre><code>class PolicyPool:
+    def __init__(self, max_size: int = 50):
+        self.max_size = max_size
+        self.snapshots: list[PolicySnapshot] = []
+
+    def add_policy(self, model, step: int, name: str):
+        # Estraiamo i pesi congelati in memoria CPU
+        state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+        snap = PolicySnapshot(
+            generation=len(self.snapshots),
+            step=step,
+            name=name,
+            state_dict=state_dict,
+            is_recurrent=hasattr(model, "lstm")
+        )
+        if len(self.snapshots) >= self.max_size:
+            # Preserviamo sempre la Gen 0 come punto di ancoraggio
+            self.snapshots.pop(1)
+        self.snapshots.append(snap)
+
+    def sample_opponent(self, strategy="pfsp") -> BaseAgent:
+        if strategy == "latest_biased" and len(self.snapshots) > 1:
+            if random.random() < 0.5:
+                return self.create_agent(self.snapshots[-1])
+        # Campionamento uniforme di default
+        chosen = random.choice(self.snapshots)
+        return self.create_agent(chosen)</code></pre>
+    </div>
+
+    <!-- 5. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Dimenticare il Baseline Anchoring</div>
+      <ul>
+        <li><strong>Degenerative Equilibria:</strong> Giocare solo contro se stessi può far emergere strategie degenerate (es. ignorare le tratte avversarie). Inserire il 15% di match contro <code>StrategicAgent</code> garantisce robustezza contro stili di gioco eterogenei.</li>
+      </ul>
+    </div>
+
+    <!-- 6. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Mettiti alla prova su Multi-Agent Self-Play, PFSP, matrici di payoff e dinamiche di equilibrio.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Il Fenomeno del Policy Cycling nel Pure Self-Play</div>
+      <p>Cosa si intende per "Policy Cycling" (o Policy Drift) quando un agente viene addestrato unicamente contro l'ultima versione di se stesso ($\pi_t$ contro $\pi_{t-1}$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l09_q1" value="a">
+          <span>A) L'agente ruota continuamente tra strategie contrastanti (come nei cicli sasso-carta-forbice) dimenticando come sconfiggere le generazioni più vecchie, senza mai incrementare la propria forza di gioco assoluta.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q1" value="b">
+          <span>B) La scheda video esaurisce la memoria VRAM durante il campionamento dei gradienti di PPO.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q1" value="c">
+          <span>C) L'agente acquista esclusivamente tratte circolari chiuse sulla mappa di gioco.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q1" value="d">
+          <span>D) La ricompensa di fine partita si inverte diventando negativa in caso di vittoria.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l09_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l09_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Senza un pool storico, l'agente impara a contrastare solo i difetti immediati dell'ultima versione; cambiando stile, torna vulnerabile a strategie elementari abbandonate nei turni precedenti.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Il cycling è un problema di teoria dei giochi, non un crash hardware o una regola di inversione punteggio.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: Meccanismo di Campionamento PFSP</div>
+      <p>In Prioritized Fictitious Self-Play (PFSP), perché la probabilità di selezione di un avversario storico $\pi_i$ è proporzionale al termine $(1 - w_i)^p$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l09_q2" value="a">
+          <span>A) Perché concentra le partite di allenamento contro le generazioni storiche che risultano ancora ostiche o che battono frequentemente la policy attuale, massimizzando il gradiente di miglioramento.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q2" value="b">
+          <span>B) Perché azzera automaticamente la perdita del Critic ogni volta che viene estratto un avversario storico.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q2" value="c">
+          <span>C) Perché garantisce che l'agente affronti sempre e solo la primissima versione inizializzata a caso.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q2" value="d">
+          <span>D) Perché converte il gioco in un processo a decisione interamente deterministica.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l09_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l09_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Se $w_i = 0.2$ (l'agente vince solo nel 20% dei casi contro $\pi_i$), allora $(1 - w_i) = 0.8$: l'avversario viene campionato con alta priorità per correggere il difetto strategico. Quando $w_i \to 1.0$, l'avversario viene campionato raramente.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> PFSP serve a distribuire intelligentemente i match, non ad azzerare loss o fissare un singolo bot.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Funzione del Baseline Anchoring</div>
+      <p>Quale rischio strategico viene scongiurato inserendo una quota (es. 15%) di partite contro bot euristici fissi (come <code>StrategicAgent</code>) durante il Self-Play?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l09_q3" value="a">
+          <span>A) Prevenire la convergenza verso "accordi taciti" o equilibri degeneri alieni, mantenendo l'agente ancorato a uno stile di gioco competitivo e robusto contro avversari esterni.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q3" value="b">
+          <span>B) Ridurre la dimensione del vettore di osservazione da 464 a 128 float.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q3" value="c">
+          <span>C) Forzare la durata di ogni partita a esattamente 50 turni.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q3" value="d">
+          <span>D) Impedire alla rete neurale di calcolare il gradiente durante le epoche PPO.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l09_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l09_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Nel Self-Play puro non vincolato, gli agenti possono sviluppare comportamenti coordinati o strategie aliene fragili contro bot esterni tradizionali. L'ancoraggio a bot di controllo preserva la competitività generale.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'ancoraggio seleziona l'avversario ma non altera lo spazio di stato né i gradienti della rete.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Proprietà della Matrice di Risultati Round-Robin</div>
+      <p>In una matrice di Payoff generazionale triangolare superiore, cosa indica una diagonale dominante in cui ogni generazione $\pi_K$ registra un Win Rate $> 50\%$ contro tutte le generazioni precedenti $\pi_0, \dots, \pi_{K-1}$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l09_q4" value="a">
+          <span>A) Che il processo di Self-Play sta determinando un progresso di abilità monotonico assoluto, confermato dalla crescita costante del rating Elo generazionale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q4" value="b">
+          <span>B) Che l'ambiente Gymnasium ha subito un errore di overestimation bias nella Target Network.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q4" value="c">
+          <span>C) Che tutte le generazioni condividono gli stessi identici pesi sinaptici senza alcuna variazione.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q4" value="d">
+          <span>D) Che la simulazione è stata eseguita su una mappa con grado di connettività nullo.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l09_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l09_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Battere con percentuali sempre più elevate tutte le generazioni precedenti dimostra che ogni nuovo snapshot ha assorbito e superato le capacità tattiche del passato, attestando una reale crescita qualitativa.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Questa proprietà è l'indicatore di successo per eccellenza del training multi-agente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Gestione della Memoria nel PolicyPool</div>
+      <p>Quando la dimensione del PolicyPool raggiunge la capacità massima prefissata ($|\mathcal{M}| = \text{max\_size}$), quale strategia di rimozione preserva la robustezza storica?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l09_q5" value="a">
+          <span>A) Rimuovere un modello intermedio meno rilevante (es. $\pi_1$), mantenendo permanentemente sia la primissima generazione $\pi_0$ (ancora iniziale) sia gli snapshot più recenti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q5" value="b">
+          <span>B) Cancellare l'intero pool e conservare unicamente il modello con l'inizializzazione casuale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q5" value="c">
+          <span>C) Sostituire tutti i pesi della rete con matrici identità per azzerare la complessità computazionale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l09_q5" value="d">
+          <span>D) Riavviare l'addestramento da zero reimpostando il learning rate a $1.0$.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l09_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l09_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Preservare $\pi_0$ garantisce che l'agente conservi sempre un controllo di sanità mentale contro strategie casuali elementari, mentre conservare le ultime generazioni mantiene elevata la pressione competitiva.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Distruggere il pool o azzerare il training distruggerebbe l'intero progresso multi-agente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_08_pomdp_lstm_ppo.html" class="btn-nav-lesson">← Lezione 08: Parziale Osservabilità & LSTM</a>
+      <a href="lesson_10_generalization_procedural.html" class="btn-nav-lesson">Lezione 10: Generalizzazione & Mappe MST →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

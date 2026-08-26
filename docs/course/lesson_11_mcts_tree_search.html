@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 11: Monte Carlo Tree Search (MCTS) & Determinizzazione - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item active"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 11</span>
+      <span class="badge badge-level">Pianificazione & Ricerca ad Albero</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 11: Monte Carlo Tree Search (MCTS), Determinizzazione SO-MCTS ed Euristiche Foglia</h1>
+
+    <p>
+      Fino a questo momento abbiamo esplorato algoritmi di <em>Model-Free Reinforcement Learning</em> (DQN, PPO) che richiedono ore di addestramento e centinaia di migliaia di partite simulate per apprendere una politica. In questa lezione introduciamo la famiglia degli algoritmi di <strong>Pianificazione Online con Ricerca ad Albero</strong>: il <strong>Monte Carlo Tree Search (MCTS)</strong>.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione: Simulare i Futuri Alternativi nel Tempo di un Secondo</div>
+      <p>
+        Pensa a un maestro di scacchi che prima di eseguire una mossa immagina nella propria mente decine di possibili sviluppi futuri:
+      </p>
+      <ul>
+        <li><em>"Se compro adesso la tratta Chicago $\to$ Saint Louis, l'avversario risponderà occupando Pittsburgh? E se lui occupa Pittsburgh, quale sarà la mia migliore contromossa?"</em></li>
+      </ul>
+      <p>
+        <strong>MCTS opera senza bisogno di addestramento preventivo (Zero-Training Baseline)</strong>: utilizza direttamente il motore di simulazione per simulare partite virtuali in tempo reale, costruendo un albero decisionale e scegliendo la mossa che conduce al maggior tasso di vittoria statistica.
+      </p>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. I 4 Stadi del Monte Carlo Tree Search</h2>
+
+    <p>
+      Dato lo stato iniziale $s_0$, MCTS itera per un budget di simulazioni $N_{\text{simulations}}$ eseguendo ciclicamente 4 fasi:
+    </p>
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">📐 Il Ciclo di Ricerca MCTS a 4 Fasi</div>
+      <ol>
+        <li><strong>Selection (Selezione):</strong> Partendo dalla radice $s_0$, discende l'albero selezionando l'azione che massimizza la formula UCT finché non raggiunge un nodo non completamente espanso.</li>
+        <li><strong>Expansion (Espansione):</strong> Se il nodo non è terminale, genera uno o più nodi figli corrispondenti ad azioni lecite inesplorate $\mathcal{A}_{\text{unexplored}}(s)$.</li>
+        <li><strong>Simulation / Rollout (Simulazione):</strong> Conduce una partita rapida fino a una profondità prefissata $D$ (es. $D = 10$) per valutare lo stato raggiunto.</li>
+        <li><strong>Backpropagation (Retropropagazione):</strong> Risale l'albero fino alla radice, incrementando le visite $N(s) \leftarrow N(s) + 1$ e accumulando il valore $W(s) \leftarrow W(s) + v$.</li>
+      </ol>
+    </div>
+
+    <h3>2.1 La Formula UCT (Upper Confidence Bounds applied to Trees)</h3>
+    <p>
+      Durante la fase di discesa, la scelta dell'arco $(s, a)$ massimizza il criterio di bilanciamento tra sfruttamento ed esplorazione:
+    </p>
+
+    $$\text{UCT}(s, a) = Q(s, a) + c_{\text{puct}} \cdot \sqrt{\frac{\ln N(s)}{N(s, a) + \epsilon}}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione della Formula UCT</div>
+      <p><strong>Come si bilanciano Exploitation ed Exploration?</strong></p>
+      <ul>
+        <li>$Q(s, a) = \frac{W(s, a)}{N(s, a)}$ (Termine di Sfruttamento / Exploitation): valore medio empirico dei rollout passati attraverso l'azione $a$. Spinge l'albero a scegliere mosse con alta percentuale storica di successo.</li>
+        <li>$c_{\text{puct}} \cdot \sqrt{\frac{\ln N(s)}{N(s, a) + \epsilon}}$ (Termine di Esplorazione / Exploration): incertezza sulla stima.
+          <ul>
+            <li>Al numeratore, $\ln N(s)$ cresce lentamente ogni volta che il genitore viene visitato, aumentando la curiosità per i rami trascurati.</li>
+            <li>Al denominatore, $N(s, a)$ misura quante volte l'azione $a$ è stata provata. Se $N(s, a) \approx 0$, il denominatore è piccolo e il termine esplorativo esplode verso l'alto, costringendo l'albero a testare l'azione!</li>
+          </ul>
+        </li>
+        <li>$c_{\text{puct}} = \sqrt{2} \approx 1.4142$: costante teorica derivata dal principio UCB1 di Auer et al.</li>
+      </ul>
+    </div>
+
+    <h3>2.2 Criterio di Scelta Finale: La Regola del Robust Child</h3>
+    <p>
+      Terminato il budget di simulazioni, la mossa reale da giocare sul tabellone non è quella con il massimo $Q(s, a)$, bensì quella con il <strong>maggior numero di visite alla radice</strong>:
+    </p>
+
+    $$a^* = \arg\max_{a \in \mathcal{A}(s_0)} N(s_0, a)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Perché il Robust Child batte il Max-Q?</div>
+      <p>Un singolo rollout fortunato può assegnare un valore $Q(s_0, a) = 1.0$ con una sola visita ($N=1$). Il conteggio delle visite $N(s_0, a)$ sintetizza centinaia di iterazioni ed è asintoticamente molto più robusto e immune alla varianza stocastica dei rollout.</p>
+    </div>
+
+    <!-- 3. DETERMINIZZAZIONE POMDP -->
+    <h2>3. Determinizzazione Information-Set (SO-MCTS)</h2>
+
+    <p>
+      In <em>Ticket to Ride</em>, le carte segrete dell'avversario e l'ordine del mazzo coperto sono ignoti. La tecnica <strong>Single-Observer MCTS (SO-MCTS)</strong> risolve la parziale osservabilità campionando "mondi determinizzati":
+    </p>
+    
+    <div class="pedagogical-box box-game">
+      <div class="box-title">🎲 Protocollo di Determinizzazione ad ogni Simulazione</div>
+      <ol>
+        <li>Clona lo stato visibile del gioco (<code>game.clone()</code>).</li>
+        <li>Raccoglie in un unico insieme tutte le carte non visibili all'agente (la mano avversaria + il mazzo coperto).</li>
+        <li>Rimescola uniformemente il mazzo di carte non visibili.</li>
+        <li>Distribuisce all'avversario esattamente la stessa quantità di carte in mano e riposiziona le restanti nel mazzo di pesca.</li>
+        <li>Esegue la simulazione MCTS su questa configurazione deterministica.</li>
+      </ol>
+    </div>
+
+    <!-- 4. VALUTAZIONE EURISTICA DEI NODI FOGLIA -->
+    <h2>4. Funzione Euristica Continua per Nodi Foglia</h2>
+
+    <p>
+      Quando la profondità del rollout raggiunge $D_{\max} = 10$, lo stato foglia $s_{\text{leaf}}$ viene valutato tramite combinazione lineare normalizzata:
+    </p>
+
+    $$V(s) = 0.50 \cdot \tanh\left(\frac{\Delta\text{Score}}{30}\right) + 0.30 \cdot \Delta\text{Tickets} + 0.15 \cdot \Delta\text{Routes} + 0.05 \cdot \Delta\text{Trains}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione dei Pesi della Valutazione Foglia</div>
+      <ul>
+        <li>$0.50 \cdot \tanh(\Delta\text{Score}/30)$: componente dominante legata al differenziale di punti tabellare, compressa in $[-1, 1]$.</li>
+        <li>$0.30 \cdot \Delta\text{Tickets}$: vantaggio relativo nei biglietti già completati con successo rispetto all'avversario.</li>
+        <li>$0.15 \cdot \Delta\text{Routes}$: frazione di tratte totali occupate sulla mappa.</li>
+        <li>$0.05 \cdot \Delta\text{Trains}$: riserva di vagoni disponibili per il finale di partita.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del Nodo MCTS in Python</div>
+      <pre><code>class MCTSNode:
+    def __init__(self, state: GameState, parent=None, action=None, player_id="player_0"):
+        self.state = state
+        self.parent = parent
+        self.action = action
+        self.player_id = player_id
+        self.children: dict[Action, MCTSNode] = {}
+        self.visits = 0
+        self.total_value = 0.0
+
+    @property
+    def q_value(self) -> float:
+        return self.total_value / self.visits if self.visits > 0 else 0.0
+
+    def select_best_child(self, c_puct: float = 1.4142) -> tuple[Action, "MCTSNode"]:
+        best_uct = -float("inf")
+        best_pair = None
+        log_parent_visits = math.log(self.visits + 1)
+
+        for action, child in self.children.items():
+            u = c_puct * math.sqrt(log_parent_visits / (child.visits + 1e-6))
+            uct_val = child.q_value + u
+            if uct_val > best_uct:
+                best_uct = uct_val
+                best_pair = (action, child)
+
+        return best_pair</code></pre>
+    </div>
+
+    <!-- 6. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Non Usare <code>deepcopy</code> per la Clonazione</div>
+      <ul>
+        <li><strong>Collo di Bottiglia di Clonazione:</strong> L'uso di <code>copy.deepcopy()</code> su oggetti complessi riduce il throughput a 30 simulazioni al secondo. Con metodi dedicati <code>Game.clone()</code> in-memory, la velocità supera le <strong>10.000 clonazioni/sec</strong>.</li>
+      </ul>
+    </div>
+
+    <!-- 7. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Verifica le tue competenze sui 4 stadi MCTS, formula UCT, determinizzazione SO-MCTS ed euristiche foglia.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: Comportamento del Termine di Esplorazione UCT</div>
+      <p>Nella formula UCT $\text{UCT}(s, a) = Q(s, a) + c_{\text{puct}} \sqrt{\frac{\ln N(s)}{N(s, a) + \epsilon}}$, cosa accade quando un'azione $a$ non è ancora mai stata selezionata ($N(s, a) = 0$)?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l11_q1" value="a">
+          <span>A) Il termine di esplorazione assume un valore elevatissimo a causa del denominatore infinitesimo $\epsilon$, costringendo l'algoritmo a visitare l'azione inesplorata prima di ri-visitare rami già noti (Optimism in the Face of Uncertainty).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q1" value="b">
+          <span>B) Il punteggio UCT si azzera automaticamente, escludendo l'azione da qualsiasi simulazione futura.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q1" value="c">
+          <span>C) La radice dell'albero viene azzerata e il motore lancia un'eccezione di overflow.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q1" value="d">
+          <span>D) La costante $c_{\text{puct}}$ viene impostata a zero per disabilitare l'esplorazione.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l11_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l11_q1_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> Quando $N(s, a) = 0$, la quantità $\sqrt{\ln N(s) / \epsilon}$ domina il valore $Q$, garantendo che ogni mossa legale venga provata almeno una volta prima di approfondire i rami già esplorati.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> L'esplorazione serve ad aprire nuovi nodi e non azzera l'albero né genera errori.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: La Regola di Decisione del Robust Child</div>
+      <p>Per quale motivo al termine del budget di simulazioni $N_{\text{simulations}}$ la mossa finale da giocare sul tabellone reale viene scelta con $a^* = \arg\max N(s_0, a)$ anziché con $\arg\max Q(s_0, a)$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l11_q2" value="a">
+          <span>A) Perché il conteggio delle visite $N(s_0, a)$ aggrega l'esperienza di centinaia di iterazioni risultando asintoticamente robusto, mentre il valore $Q$ di un ramo poco visitato può essere distorto da un singolo rollout stocastico fortunato.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q2" value="b">
+          <span>B) Perché l'algoritmo PPO non permette di leggere le stime $Q$ dei nodi radice.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q2" value="c">
+          <span>C) Perché la memoria RAM non può memorizzare numeri con la virgola durante la selezione.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q2" value="d">
+          <span>D) Perché la libreria Gymnasium richiede che l'azione finale sia un numero pari.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l11_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l11_q2_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La frequenza di visita riflette sia la qualità media sia la confidenza statistica dell'algoritmo; scegliere l'azione più visitata (Robust Child) protegge da rami anomali con $Q=1.0$ basati su una sola simulazione isolata.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> MCTS puro non dipende da PPO e non ha limitazioni di tipo sui float o parità di interi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: La Tecnica di Determinizzazione SO-MCTS</div>
+      <p>Come gestisce l'algoritmo SO-MCTS la presenza di informazioni nascoste (carte in mano all'avversario e ordine del mazzo coperto) durante la ricerca?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l11_q3" value="a">
+          <span>A) Ad ogni singola simulazione clona lo stato di gioco e ridistribuisce in modo pseudo-casuale e uniforme tutte le carte non visibili, simulando la partita su un mondo perfettamente determinizzato e conforme alle informazioni pubbliche.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q3" value="b">
+          <span>B) Legge direttamente le carte segrete dell'avversario violando il Teorema di Non-Leakage.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q3" value="c">
+          <span>C) Rimuove tutte le carte dal mazzo e consente ai giocatori di posare vagoni senza spendere carte.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q3" value="d">
+          <span>D) Termina immediatamente l'albero di ricerca assegnando la vittoria all'avversario.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l11_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l11_q3_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La determinizzazione converte un POMDP in un insieme di MDP campionati: rimescolando le carte invisibili prima di ciascuna discesa dell'albero, MCTS pianifica su scenari realistici compatibili con lo stato pubblico.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> Non-Leakage viene rispettato, le regole non vengono violate e la ricerca prosegue regolarmente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: La Fase di Backpropagation nell'Albero</div>
+      <p>Cosa accade durante lo stadio di Backpropagation al termine di una simulazione che ha prodotto un valore di utilità $v \in [-1.0, 1.0]$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l11_q4" value="a">
+          <span>A) L'algoritmo risale tutti i nodi antenati dal nodo foglia fino alla radice, incrementando il conteggio visite $N(s) \leftarrow N(s) + 1$ e sommando il valore $W(s) \leftarrow W(s) + v$ lungo il percorso.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q4" value="b">
+          <span>B) La radice dell'albero viene eliminata e sostituita con un nuovo nodo figlio casuale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q4" value="c">
+          <span>C) I gradienti vengono calcolati tramite PyTorch e i pesi della rete vengono aggiornati tramite l'ottimizzatore Adam.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q4" value="d">
+          <span>D) La partita sul tabellone reale avanza di 10 turni senza attendere la mossa dell'avversario.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l11_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l11_q4_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La retropropagazione trasferisce l'esito della simulazione a tutti i nodi che hanno contribuito a raggiungerla, aggiornando le medie $Q(s, a) = W/N$ per guidare le successive selezioni.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> MCTS puro è un algoritmo di ricerca ad albero senza backpropagation di gradienti neurali né salti di turno nel gioco reale.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Valutazione Continua dello Stato Foglia</div>
+      <p>Nella funzione di valutazione euristica per nodi foglia $V(s) = 0.50 \tanh(\Delta\text{Score}/30) + 0.30 \Delta\text{Tickets} + 0.15 \Delta\text{Routes} + 0.05 \Delta\text{Trains}$, perché il differenziale di punteggio viene passato attraverso la funzione $\tanh$?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l11_q5" value="a">
+          <span>A) Per comprimere in modo continuo e non lineare qualsiasi divario di punti nell'intervallo standard $[-1.0, 1.0]$, evitando che vantaggi di punteggio enormi schiaccino le altre componenti strategiche.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q5" value="b">
+          <span>B) Per convertire il punteggio in una matrice complessa bidimensionale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q5" value="c">
+          <span>C) Per forzare il valore a essere sempre strettamente uguale a zero.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l11_q5" value="d">
+          <span>D) Per eliminare la necessità di eseguire la fase di espansione dell'albero.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l11_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l11_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La funzione $\tanh(x)$ satura dolcemente a $\pm 1$, garantendo che un divario di $+60$ punti dia un valore vicino a $+0.96$ senza produrre overflow o sbilanciare l'impatto dei biglietti completati.</li>
+          <li><strong>Perché B, C e D sono errate:</strong> $\tanh$ restituisce un numero reale scalare compreso in $[-1, 1]$ e non modifica la struttura dell'albero MCTS.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="lesson_10_generalization_procedural.html" class="btn-nav-lesson">← Lezione 10: Generalizzazione & Mappe MST</a>
+      <a href="lesson_12_alphazero_advanced.html" class="btn-nav-lesson">Lezione 12: Neural MCTS & AlphaZero →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

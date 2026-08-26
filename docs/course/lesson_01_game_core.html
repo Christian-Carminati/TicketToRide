@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 01: Game Core Deterministico, FSM & Teoria dei Grafi - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span>TicketToRide AI Lab: Corso Universitario</span>
+    </a>
+    <div class="header-actions">
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">Programma del Corso</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item active"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 1</span>
+      <span class="badge badge-level">Fondamenti Ingegneristici</span>
+      <span class="badge badge-time">Tempo di Studio: 35 min</span>
+    </div>
+
+    <h1>Lezione 01: Il Motore di Gioco Deterministico, FSM e Teoria dei Grafi</h1>
+
+    <p>
+      Benvenuto alla prima lezione del corso. Nel <strong>Reinforcement Learning applicato a giochi strategici complessi</strong>, l'errore più fatale è tentare di addestrare modelli su un simulatore ambiguo, instabile o rallentato da dipendenze esterne. Se il motore commette un errore nelle regole o cambia stato in modo non deterministico, l'agente apprenderà artefatti errati e divergerà.
+    </p>
+
+    <!-- 1. INTUIZIONE -->
+    <div class="pedagogical-box box-intuition">
+      <div class="box-title">💡 1. L'Intuizione Fondamentale: Il Simulatore come Orologio Meccanico</div>
+      <p>
+        Immagina una partita di <em>Ticket to Ride</em> registrata mossa dopo mossa su un foglio di carta. Se ricominci la partita dallo stesso identico punto di partenza (lo stesso seed) ed esegui la medesima sequenza di 80 azioni, il tabellone alla fine <strong>deve trovarsi nello stesso identico stato al singolo bit</strong>.
+      </p>
+      <p>
+        Nel nostro laboratorio, il simulatore è un <strong>motore puro in Python privo di librerie esterne</strong>:
+      </p>
+      <ul>
+        <li><strong>Nessun framework ML nel core</strong>: zero dipendenze da PyTorch o Gymnasium dentro il motore di gioco puro.</li>
+        <li><strong>Sottostati Atomici</strong>: se pescare 2 carte richiede due decisioni separate, il motore modella due micro-passi distinti anziché un unico macro-blocco opaco.</li>
+        <li><strong>Conservazione Totale</strong>: nessuna carta o vagone può sparire nel vuoto o moltiplicarsi per errore di arrotondamento o logica.</li>
+      </ul>
+    </div>
+
+    <!-- 2. FORMALISMO MATEMATICO -->
+    <h2>2. Formalismo Matematico: Macchine a Stati Finiti e Invarianti</h2>
+    <p>
+      Formalizziamo il motore di gioco come una <strong>Macchina a Stati Finiti Deterministica (DFA)</strong> parametrizzata da un generatore pseudo-casuale con seme $S_{\text{seed}}$:
+    </p>
+    
+    $$\mathcal{G} = \langle \mathcal{S}_{\text{game}}, \mathcal{A}_{\text{game}}, \mathcal{T}_{\text{rule}}, s_0, \mathcal{I} \rangle$$
+    
+    <div class="pedagogical-box box-math">
+      <div class="box-title">💡 Perché questa formula e cosa risolve?</div>
+      <p>
+        In informatica teorica e teoria dei giochi, descrivere un gioco tramite una 5-tupla $\mathcal{G}$ garantisce che il dominio sia <strong>ben posto</strong>: dato uno stato valido $s \in \mathcal{S}_{\text{game}}$ e un'azione legale $a \in \mathcal{A}_{\text{game}}$, esiste una e una sola transizione possibile verso il nuovo stato $s' = \mathcal{T}_{\text{rule}}(s, a)$.
+      </p>
+      <p><strong>Scomposizione Termine per Termine:</strong></p>
+      <ul>
+        <li>$\mathcal{S}_{\text{game}}$: lo spazio di tutti i possibili stati globali completi del gioco (mani dei giocatori, mazzi, scarti, tratte occupate sul tabellone).</li>
+        <li>$\mathcal{A}_{\text{game}}$: lo spazio di tutte le azioni di dominio consentite dalle regole ufficiali.</li>
+        <li>$\mathcal{T}_{\text{rule}}: \mathcal{S}_{\text{game}} \times \mathcal{A}_{\text{game}} \to \mathcal{S}_{\text{game}}$: la funzione di transizione deterministica che applica le regole del gioco.</li>
+        <li>$s_0$: lo stato iniziale generato al turno 0 tramite il seed deterministico $S_{\text{seed}}$.</li>
+        <li>$\mathcal{I}$: l'insieme dei predicati logici di invarianza che ogni stato valido deve obbligatoriamente soddisfare.</li>
+      </ul>
+    </div>
+
+    <h3>2.1 Invariante di Conservazione delle Carte Vagone</h3>
+    <p>
+      In qualsiasi istante temporale $t$ della partita, la somma di tutte le carte presenti nel sistema deve rimanere rigorosamente costante:
+    </p>
+
+    $$\sum_{i=0}^{N-1} \left( \sum_{c \in \mathcal{C}} \text{Hand}_i(c) \right) + |\mathbf{d}_{\text{train}}| + |\mathbf{d}_{\text{discard}}| + \sum_{k=0}^{4} \mathbb{I}(\mathbf{c}_{\text{visible}}[k] \neq \emptyset) = 110$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Anatomia e Scomposizione della Formula di Conservazione</div>
+      <p><strong>Perché questa equazione è cruciale?</strong> Nelle simulazioni di RL, bug silenziosi come carte perse durante il rimescolamento degli scarti distruggono la credibilità dei gradienti. Questa uguaglianza viene verificata tramite asserzioni al termine di ogni transizione.</p>
+      <ul>
+        <li>$N$: numero totale di giocatori partecipanti alla partita (ad es. $N=2$).</li>
+        <li>$\sum_{i=0}^{N-1} \left( \sum_{c \in \mathcal{C}} \text{Hand}_i(c) \right)$: la somma di tutte le carte di ogni colore $c \in \mathcal{C}$ (8 colori da 12 carte + 14 locomotive = 110) tenute nelle mani private di tutti gli $N$ giocatori.</li>
+        <li>$|\mathbf{d}_{\text{train}}|$: cardinalità del mazzo di pesca coperto.</li>
+        <li>$|\mathbf{d}_{\text{discard}}|$: cardinalità della pila degli scarti (carte utilizzate per rivendicare tratte).</li>
+        <li>$\sum_{k=0}^{4} \mathbb{I}(\mathbf{c}_{\text{visible}}[k] \neq \emptyset)$: conteggio delle carte scoperte presenti sui 5 slot del tabellone. $\mathbb{I}(\cdot)$ è la funzione indicatrice che vale 1 se lo slot non è vuoto, 0 se il mazzo è esaurito.</li>
+        <li>$110$: la costante universale del mazzo di <em>Ticket to Ride</em>. Se la somma differisce da 110 anche solo di 1, il simulatore lancia immediatamente un'eccezione critica.</li>
+      </ul>
+    </div>
+
+    <h3>2.2 Invariante di Conservazione dei Pezzi Vagone per Giocatore</h3>
+    <p>
+      Ogni giocatore inizia con 45 miniature di vagoni. Il totale dei vagoni rimasti nella riserva privata più la somma delle lunghezze delle tratte occupate sul tabellone deve essere esattamente 45:
+    </p>
+
+    $$\text{TrainsRemaining}_i + \sum_{r \in \mathcal{E}_i} \text{Length}(r) = 45 \quad \forall i \in \{0, \dots, N-1\}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Scomposizione e Significato</div>
+      <ul>
+        <li>$\text{TrainsRemaining}_i$: miniature di vagoni fisici ancora disponibili nella riserva personale del giocatore $i$.</li>
+        <li>$\mathcal{E}_i$: insieme di tutti gli archi (tratte) reclamati e colorati dal giocatore $i$ sulla mappa.</li>
+        <li>$\text{Length}(r)$: numero di segmenti della tratta $r$ (valore intero compreso tra 1 e 6).</li>
+        <li>$45$: dotazione iniziale obbligatoria per ciascun giocatore.</li>
+      </ul>
+      <p><strong>Casi limite:</strong> Quando $\text{TrainsRemaining}_i \le 2$, il motore attiva il round finale di gioco (ultimo turno per tutti i giocatori).</p>
+    </div>
+
+    <!-- 3. LA MACCHINA A SOTTOSTATI ATOMICI -->
+    <h2>3. La Macchina a Sottostati Atomici (Sub-step FSM)</h2>
+    <p>
+      Un turno in <em>Ticket to Ride</em> non può essere compresso in una singola macro-azione. Se un agente pesca una carta scoperta dal tavolo, il tabellone viene ricaricato immediatamente; la scelta della seconda carta dipende dallo stato ricaricato. Pertanto la FSM gestisce i seguenti sottostati:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Stato del Turno (<code>TurnState</code>)</th>
+            <th>Azioni Legali Permesse</th>
+            <th>Transizione di Stato Successiva</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CHOOSING_INITIAL_TICKETS</code></td>
+            <td><code>KEEP_TICKETS(subset)</code> con $|subset| \ge 2$</td>
+            <td>Se tutti hanno scelto $\to$ <code>NORMAL</code> (Giocatore 0)</td>
+          </tr>
+          <tr>
+            <td><code>NORMAL</code></td>
+            <td>
+              1. <code>DRAW_HIDDEN_CARD</code><br>
+              2. <code>DRAW_VISIBLE_CARD(idx)</code><br>
+              3. <code>CLAIM_ROUTE(route_id, color)</code><br>
+              4. <code>DRAW_TICKETS</code>
+            </td>
+            <td>
+              1 $\to$ <code>DRAWING_SECOND_CARD</code><br>
+              2 (Colore standard) $\to$ <code>DRAWING_SECOND_CARD</code><br>
+              2 (Locomotiva) $\to$ <code>NORMAL</code> (Passa al giocatore succ.)<br>
+              3 $\to$ <code>NORMAL</code> (Passa al giocatore succ.)<br>
+              4 $\to$ <code>CHOOSING_TICKETS</code>
+            </td>
+          </tr>
+          <tr>
+            <td><code>DRAWING_SECOND_CARD</code></td>
+            <td>
+              1. <code>DRAW_HIDDEN_CARD</code><br>
+              2. <code>DRAW_VISIBLE_CARD(idx)</code> <em>(Solo Non-Locomotive)</em>
+            </td>
+            <td>$\to$ <code>NORMAL</code> (Passa al giocatore successivo)</td>
+          </tr>
+          <tr>
+            <td><code>CHOOSING_TICKETS</code></td>
+            <td><code>KEEP_TICKETS(subset)</code> con $|subset| \ge 1$</td>
+            <td>$\to$ <code>NORMAL</code> (Passa al giocatore successivo)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. ALGORITMI SU GRAFI: CONNETTIVITÀ E CAMMINO PIÙ LUNGO -->
+    <h2>4. Algoritmi su Grafi: Connettività Biglietti e Cammino più Lungo</h2>
+
+    <p>
+      Il grafo del tabellone è un multigrafo non orientato $\mathcal{G} = (V, \mathcal{E})$. A fine partita, il calcolo del punteggio finale richiede due algoritmi:
+    </p>
+
+    <h3>4.1 Connettività dei Destination Tickets (BFS / Raggiungibilità)</h3>
+    <p>
+      Dato un biglietto $T = (u_{\text{start}}, v_{\text{target}}, p)$, definiamo la funzione di raggiungibilità su $\mathcal{G}_i = (V, \mathcal{E}_i)$:
+    </p>
+
+    $$\Delta \text{Score}_i(T) = \begin{cases} +p & \text{se } v_{\text{target}} \in \text{ConnectedComponent}(u_{\text{start}}, \mathcal{G}_i) \\ -p & \text{altrimenti} \end{cases}$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Logica e Scomposizione della Connettività</div>
+      <p><strong>Perché questa funzione?</strong> I Destination Tickets premiano il raggiungimento degli obiettivi con $+p$ punti ma penalizzano severamente il fallimento con $-p$ punti. Un giocatore non può "tentare a vuoto" senza rischiare la sconfitta.</p>
+      <ul>
+        <li>$\mathcal{G}_i = (V, \mathcal{E}_i)$: sottografo indotto formato unicamente dalle tratte $\mathcal{E}_i$ possedute dal giocatore $i$.</li>
+        <li>$\text{ConnectedComponent}(u, \mathcal{G}_i)$: l'insieme di tutti i nodi raggiungibili da $u$ tramite archi in $\mathcal{E}_i$, calcolato con una visita in ampiezza (BFS) in tempo $O(|V| + |\mathcal{E}_i|)$.</li>
+      </ul>
+    </div>
+
+    <h3>4.2 Bonus Cammino Continuo più Lungo (Longest Simple Trail)</h3>
+    <p>
+      Il bonus di 10 punti (Globetrotter) viene assegnato al giocatore con il cammino continuo di treni più lungo su archi distinti:
+    </p>
+
+    $$\text{LongestTrail}_i = \max_{P \in \mathcal{P}_{\text{simple-trails}}(\mathcal{G}_i)} \sum_{e \in P} \text{Length}(e)$$
+
+    <div class="pedagogical-box box-math">
+      <div class="box-title">🔍 Perché la ricerca del Cammino su Archi è NP-difficile</div>
+      <p><strong>Perché non usiamo Dijkstra?</strong> Dijkstra calcola il cammino di costo <em>minimo</em>. La ricerca del cammino di lunghezza <em>massima</em> aciclico (senza ripercorrere lo stesso arco) è una variante del problema del commesso viaggiatore. Poiché in una partita reale ogni giocatore possiede raramente più di 15-20 tratte, l'algoritmo esatto tramite <strong>DFS con Backtracking</strong> termina in pochi millisecondi.</p>
+      <ul>
+        <li>$\mathcal{P}_{\text{simple-trails}}(\mathcal{G}_i)$: l'insieme di tutti i cammini continui nel sottografo $\mathcal{G}_i$ che non contengono archi duplicati (i vertici possono essere riattraversati, ma ogni tratta può essere percorsa una sola volta).</li>
+        <li>$\sum_{e \in P} \text{Length}(e)$: somma delle lunghezze dei singoli archi $e$ che compongono il percorso $P$.</li>
+      </ul>
+    </div>
+
+    <!-- 5. CODICE PYTHON -->
+    <div class="pedagogical-box box-code">
+      <div class="box-title">💻 Implementazione del Calcolo del Cammino più Lungo in Python</div>
+      <pre><code>def find_longest_trail(player_routes: list[Route]) -> int:
+    """Calcola la lunghezza massima del cammino continuo su archi unici (DFS Backtracking)."""
+    # Costruiamo il grafo come lista di adiacenza: città -> (città_vicina, route_id, lunghezza)
+    adj: dict[str, list[tuple[str, str, int]]] = {}
+    for r in player_routes:
+        adj.setdefault(r.city_a, []).append((r.city_b, r.id, r.length))
+        adj.setdefault(r.city_b, []).append((r.city_a, r.id, r.length))
+
+    max_length = 0
+    visited_routes: set[str] = set()
+
+    def dfs(current_city: str, current_len: int):
+        nonlocal max_length
+        if current_len > max_length:
+            max_length = current_len
+
+        for neighbor, route_id, length in adj.get(current_city, []):
+            if route_id not in visited_routes:
+                visited_routes.add(route_id)
+                dfs(neighbor, current_len + length)
+                visited_routes.remove(route_id)  # Backtracking essenziale!
+
+    # Avviamo la DFS da ciascun nodo presente nella rete del giocatore
+    for start_city in adj.keys():
+        dfs(start_city, 0)
+
+    return max_length</code></pre>
+    </div>
+
+    <!-- 6. TRAPPOLE E COSA NON FARE -->
+    <div class="pedagogical-box box-warning">
+      <div class="box-title">⚠️ Le Trappole Comuni: Cosa NON Fare nella Fase 1</div>
+      <ul>
+        <li><strong>Non usare <code>random.random()</code> globale:</strong> Usare il generatore globale di Python causa race condition e impedisce la riproducibilità tra ambienti paralleli. Incapsula sempre <code>random.Random(seed)</code> nell'oggetto <code>Game</code>.</li>
+        <li><strong>Non dimenticare il blocco delle tratte doppie:</strong> Nelle partite a 2 o 3 giocatori, quando una tratta tra due città viene occupata, la tratta parallela diventa <em>permanentemente inaccessibile</em> a tutti i giocatori.</li>
+        <li><strong>Non mutare oggetti statici:</strong> Le definizioni di <code>City</code> e <code>Route</code> sulla mappa devono essere immutabili. Lo stato dinamico (chi possiede cosa) deve risiedere unicamente in <code>GameState</code>.</li>
+      </ul>
+    </div>
+
+    <!-- 7. CHECKPOINT DI AUTOVERIFICA: 5 DOMANDE -->
+    <h2>🧠 Checkpoint di Autoverifica: 5 Domande di Valutazione</h2>
+    <p>Rispondi alle seguenti 5 domande per testare la tua comprensione dell'architettura del Game Core, della FSM e delle invarianti di stato.</p>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 1 di 5: La Regola Speciale della Locomotiva Visibile</div>
+      <p>All'inizio del proprio turno in stato <code>NORMAL</code>, un giocatore decide di pescare una <strong>Locomotiva scoperta</strong> presente tra i 5 slot visibili del tabellone. Quale transizione di stato viene eseguita correttamente dalla FSM del motore di gioco?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l01_q1" value="a">
+          <span>A) La locomotiva viene aggiunta alla mano del giocatore e lo stato del turno passa a <code>DRAWING_SECOND_CARD</code>, consentendogli di pescare una seconda carta non-locomotiva.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q1" value="b">
+          <span>B) La locomotiva viene aggiunta alla mano, lo slot scoperto viene ricaricato e il turno passa immediatamente al giocatore successivo tornando in stato <code>NORMAL</code>.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q1" value="c">
+          <span>C) La locomotiva viene aggiunta alla mano solo se il giocatore paga una penale di 1 vagone dalla propria riserva, altrimenti l'azione viene rigettata come illegale.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q1" value="d">
+          <span>D) La locomotiva viene scartata nella pila degli scarti e il giocatore è costretto a scegliere immediatamente l'azione <code>DRAW_TICKETS</code>.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l01_q1_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l01_q1_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Nel regolamento ufficiale di <em>Ticket to Ride</em>, pescare una locomotiva a faccia in su impegna l'intero turno di pesca del giocatore (equivale al valore di due carte standard). Lo slot viene ricaricato dal mazzo coperto e il turno termina subito, passando all'avversario in stato <code>NORMAL</code>.</li>
+          <li><strong>Perché A è errata:</strong> Consentire una seconda pesca dopo aver preso una locomotiva scoperta viola il regolamento (la seconda pesca è consentita solo se la prima carta pescata era un colore standard o una locomotiva pescata alla cieca dal mazzo coperto).</li>
+          <li><strong>Perché C e D sono errate:</strong> Non esistono penali in vagoni né conversioni forzate verso la pesca di biglietti.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 2 di 5: La Regola delle 3 Locomotive Scoperte</div>
+      <p>Durante la fase di ricarica del tabellone, sul tavolo compaiono 3 carte Locomotiva scoperte tra i 5 slot visibili. Quale sequenza atomica deve eseguire obbligatoriamente il motore di gioco?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l01_q2" value="a">
+          <span>A) Il motore di gioco rimuove unicamente le 3 locomotive scoperte rimettendole in fondo al mazzo coperto e riempiendo i soli 3 slot vuoti.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q2" value="b">
+          <span>B) Il motore di gioco sposta tutte e 5 le carte visibili nella pila degli scarti (<code>discard_pile</code>) e pesca 5 nuove carte dal mazzo coperto per ripopolare il tavolo.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q2" value="c">
+          <span>C) Il motore di gioco blocca immediatamente la possibilità di pescare carte per entrambi i giocatori finché uno di essi non dichiara una tratta sul tabellone.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q2" value="d">
+          <span>D) Il motore di gioco assegna d'ufficio una locomotiva a ciascun giocatore attivo per ripristinare il numero di locomotive scoperte a 1.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l01_q2_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l01_q2_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> La regola ufficiale stabilisce che se in qualunque momento si trovano 3 o più locomotive scoperte sul tavolo, tutte e 5 le carte scoperte vengono immediatamente scartate nella pila degli scarti e sostituite con 5 nuove carte pescate dal mazzo coperto. Se la condizione si ripete, l'operazione viene reiterata.</li>
+          <li><strong>Perché A è errata:</strong> Le carte scartate non vanno in fondo al mazzo coperto e non si scartano solo le locomotive, ma l'intero set di 5 carte.</li>
+          <li><strong>Perché C e D sono errate:</strong> Nessuna regola blocca il gioco o distribuisce carte arbitrarie ai giocatori.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 3 di 5: Invariante di Conservazione dello Stato</div>
+      <p>Quale delle seguenti condizioni descrive un'infrazione dell'invariante di conservazione delle carte in una partita a 2 giocatori con 110 carte totali?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l01_q3" value="a">
+          <span>A) Il mazzo coperto ha 0 carte, la pila degli scarti ha 42 carte, le carte visibili sul tavolo sono 5 e le mani dei giocatori contengono rispettivamente 35 e 28 carte.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q3" value="b">
+          <span>B) Il mazzo coperto ha 40 carte, la pila degli scarti ha 20 carte, le carte visibili sono 5 e le mani contengono 22 e 23 carte (totale 110).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q3" value="c">
+          <span>C) Il mazzo coperto ha 10 carte, la pila degli scarti ha 50 carte, le carte visibili sono 5 e le mani contengono 15 e 31 carte (totale 111).</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q3" value="d">
+          <span>D) Il mazzo coperto ha 80 carte, la pila degli scarti ha 0 carte, le carte visibili sono 5 e le mani contengono 13 e 12 carte (totale 110).</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l01_q3_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l01_q3_sol">
+        <strong>Risposta Corretta: C</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché C è corretta:</strong> La somma $10 + 50 + 5 + 15 + 31 = 111 \neq 110$. Questo indica la duplicazione spuria di una carta nel sistema, violando l'invariante di conservazione.</li>
+          <li><strong>Perché A, B e D sono errate come violazioni:</strong> In A la somma è $0 + 42 + 5 + 35 + 28 = 110$, in B è $40 + 20 + 5 + 22 + 23 = 110$, in D è $80 + 0 + 5 + 13 + 12 = 110$. Tutte queste configurazioni sono perfettamente lecite e conformi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 4 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 4 di 5: Gestione delle Tratte Parallele nelle Partite a 2 Giocatori</div>
+      <p>Sulla mappa standard USA, tra New York e Boston esistono due tratte parallele (una rossa e una gialla, entrambe di lunghezza 2). Se il Giocatore 0 occupa la tratta rossa, cosa accade alla tratta gialla in una partita a 2 giocatori?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l01_q4" value="a">
+          <span>A) La tratta gialla rimane disponibile solo per il Giocatore 1, che può occuparla al suo turno pagando 2 carte gialle o locomotive.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q4" value="b">
+          <span>B) La tratta gialla diventa permanentemente bloccata per tutti i giocatori per l'intera durata della partita.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q4" value="c">
+          <span>C) La tratta gialla rimane utilizzabile da chiunque, ma il costo per occuparla raddoppia passando da 2 a 4 carte.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q4" value="d">
+          <span>D) La tratta gialla viene assegnata gratuitamente al Giocatore 1 come compensazione territoriale immediata.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l01_q4_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l01_q4_sol">
+        <strong>Risposta Corretta: B</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché B è corretta:</strong> Nelle regole ufficiali di <em>Ticket to Ride</em> per partite a 2 o 3 giocatori, quando una delle due tratte doppie viene occupata, la tratta gemella parallela viene chiusa e non può più essere reclamata da nessuno. Solo nelle partite a 4 o 5 giocatori entrambe le tratte doppie possono essere occupate (da due giocatori diversi).</li>
+          <li><strong>Perché A è errata:</strong> Permettere all'avversario di occupare la tratta parallela è consentito solo con 4 o 5 giocatori al tavolo.</li>
+          <li><strong>Perché C e D sono errate:</strong> Non esistono aumenti di costo né cessioni automatiche di tratte.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Domanda 5 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">Domanda 5 di 5: Algoritmo per il Calcolo del Longest Continuous Trail</div>
+      <p>Qual è la ragione teorica fondamentale per cui il calcolo del cammino più lungo continuo (Longest Simple Trail) richiede una ricerca con Backtracking (DFS) anziché l'algoritmo di Dijkstra?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l01_q5" value="a">
+          <span>A) Dijkstra calcola cammini minimi su grafi con pesi non negativi, mentre trovare il cammino semplice massimo senza archi ripetuti è un problema NP-difficile che richiede l'esplorazione esaustiva dei rami.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q5" value="b">
+          <span>B) Dijkstra funziona solo su grafi orientati aciclici (DAG), mentre la rete ferroviaria di Ticket to Ride contiene cicli orientati con pesi negativi.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q5" value="c">
+          <span>C) Dijkstra richiede che il grafo sia bipartito e privo di biforcazioni multiple, mentre il tabellone di gioco ha grado medio superiore a 10.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l01_q5" value="d">
+          <span>D) La DFS con Backtracking garantisce complessità temporale $O(|V|)$ in qualsiasi grafo, risultando asintoticamente più veloce della coda con priorità di Dijkstra.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l01_q5_sol">Verifica & Mostra Soluzione</button>
+      <div class="quiz-solution" id="l01_q5_sol">
+        <strong>Risposta Corretta: A</strong><br>
+        <em>Spiegazione dettagliata:</em>
+        <ul>
+          <li><strong>Perché A è corretta:</strong> La ricerca del cammino più lungo senza cicli sugli archi è un problema NP-difficile (strettamente correlato all'Hamiltonian Path). L'algoritmo di Dijkstra sfrutta la sottostruttura ottima dei cammini minimi (principio di ottimalità di Bellman); massimizzare la lunghezza senza ripassare dagli stessi archi non possiede tale proprietà greedy e necessita del backtracking.</li>
+          <li><strong>Perché B è errata:</strong> Il grafo di Ticket to Ride non è orientato e non ha pesi negativi.</li>
+          <li><strong>Perché C è errata:</strong> Dijkstra non richiede grafi bipartiti.</li>
+          <li><strong>Perché D è errata:</strong> La DFS con backtracking su cammini semplici ha complessità esponenziale nel caso peggiore $O(d^k)$, non lineare $O(|V|)$.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Navigazione Footer -->
+    <div class="lesson-nav-footer">
+      <a href="index.html" class="btn-nav-lesson">← Torna all'Indice del Corso</a>
+      <a href="lesson_02_baseline_agents.html" class="btn-nav-lesson">Lezione 02: Baseline, Dijkstra & Elo →</a>
+    </div>
+
+  </main>
+
+</body>
+</html>
