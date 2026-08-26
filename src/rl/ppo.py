@@ -8,16 +8,15 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from src.environment.env import TicketToRideEnv
 from src.rl.advantage import compute_gae
 from src.rl.networks import MaskedActorCritic
 from src.rl.rollout import RolloutBuffer
 
 
 class MaskedPPOTrainer:
-    """Trainer for Masked Proximal Policy Optimization with CleanRL standard enhancements."""
+    """Proximal Policy Optimization (PPO) trainer with explicit categorical action masking."""
 
-    def __init__(self, env: TicketToRideEnv, config: dict[str, Any] | None = None) -> None:
+    def __init__(self, env: Any, config: dict[str, Any] | None = None) -> None:
         self.env = env
         self.config = config or {}
 
@@ -43,8 +42,9 @@ class MaskedPPOTrainer:
         if self.device == "cpu" and torch.get_num_threads() > 2:
             torch.set_num_threads(2)
 
-        obs_dim = self.env.observation_space.shape[0]
-        action_dim = int(self.env.action_space.n)
+        obs_shape = self.env.observation_space.shape
+        obs_dim = obs_shape[0] if obs_shape is not None else 180
+        action_dim = int(getattr(self.env.action_space, "n", 150))
 
         self.actor_critic = MaskedActorCritic(
             input_dim=obs_dim,
@@ -77,8 +77,10 @@ class MaskedPPOTrainer:
         current_ep_reward = 0.0
 
         for _ in range(self.rollout_steps):
-            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
-            mask_tensor = torch.from_numpy(self.current_info["action_mask"]).unsqueeze(0).to(device=self.device)
+            obs_tensor = torch.as_tensor(self.current_obs, device=self.device).unsqueeze(0)
+            mask_tensor = torch.as_tensor(
+                self.current_info["action_mask"], device=self.device
+            ).unsqueeze(0)
 
             with torch.no_grad():
                 action, log_prob, _, value = self.actor_critic.get_action_and_value(
@@ -117,7 +119,7 @@ class MaskedPPOTrainer:
         """Perform PPO optimization on collected rollout with CleanRL stability features."""
         # Estimate next state value for GAE boundary
         with torch.no_grad():
-            obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
+            obs_tensor = torch.as_tensor(self.current_obs, device=self.device).unsqueeze(0)
             _, next_val = self.actor_critic(obs_tensor)
             next_value = float(next_val.item())
 
@@ -175,7 +177,9 @@ class MaskedPPOTrainer:
                 if self.clip_vloss and "values" in mb:
                     old_v = mb["values"]
                     v_loss_unclipped = (new_val_flat - mb["returns"]) ** 2
-                    v_clipped = old_v + torch.clamp(new_val_flat - old_v, -self.vf_clip_eps, self.vf_clip_eps)
+                    v_clipped = old_v + torch.clamp(
+                        new_val_flat - old_v, -self.vf_clip_eps, self.vf_clip_eps
+                    )
                     v_loss_clipped = (v_clipped - mb["returns"]) ** 2
                     v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
                     value_loss = v_loss_max.mean()
@@ -204,10 +208,13 @@ class MaskedPPOTrainer:
                     clip_fractions.append(clip_frac.item())
 
             epochs_completed += 1
-            if self.target_kl is not None and len(epoch_kls) > 0:
-                if float(np.mean(epoch_kls)) > self.target_kl:
-                    early_stopped = True
-                    break
+            if (
+                self.target_kl is not None
+                and len(epoch_kls) > 0
+                and float(np.mean(epoch_kls)) > self.target_kl
+            ):
+                early_stopped = True
+                break
 
         y_true = returns
         y_pred = self.rollout_buffer.values_buf[:n_steps]
@@ -284,4 +291,3 @@ class MaskedPPOTrainer:
 
 # Backwards compatibility alias
 PPOTrainer = MaskedPPOTrainer
-
