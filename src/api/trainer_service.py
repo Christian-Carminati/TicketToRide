@@ -6,12 +6,14 @@ import time
 import traceback
 import uuid
 from pathlib import Path
-from typing import Any
+
 import numpy as np
 import torch
 import yaml
 
+from src.agents.base_agent import BaseAgent
 from src.agents.greedy_agent import GreedyAgent
+from src.agents.mixed_agent import MixedOpponentAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.strategic_agent import StrategicAgent
 from src.api.schemas import TelemetryEventDTO, TrainingStartRequest, TrainingStatusDTO
@@ -20,11 +22,7 @@ from src.environment.env import TicketToRideEnv
 from src.experiments.config import AlgorithmConfig, EnvironmentConfig, ExperimentConfig
 from src.experiments.registry import ExperimentRecord, ExperimentRegistry
 from src.game.maps import create_synthetic_mini_board, load_usa_board
-from src.rl.alphazero_trainer import AlphaZeroTrainer
-from src.rl.dqn import MaskedDQNTrainer
-from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer
-from src.rl.policy_value_net import PolicyValueNetwork
-from src.rl.ppo import MaskedPPOTrainer
+from src.rl.factory import TrainerFactory
 from src.rl.self_play import PolicyPool, SelfPlayOpponentSampler, SelfPlayPPOTrainer
 
 
@@ -51,15 +49,21 @@ class TrainerService:
             algo_req = "recurrent_ppo"
         elif "alphazero" in request.config_name.lower():
             algo_req = "alphazero"
-        elif "self_play" in request.config_name.lower() or "selfplay" in request.config_name.lower():
+        elif (
+            "self_play" in request.config_name.lower() or "selfplay" in request.config_name.lower()
+        ):
             algo_req = "self_play_ppo"
         elif "dqn" in request.config_name.lower():
             algo_req = "dqn"
 
+        effective_seed = (
+            request.seed if request.seed is not None else int(np.random.randint(1, 1_000_000))
+        )
+
         # Load or create ExperimentConfig
         config_path = Path("experiments/configs") / request.config_name
         if config_path.exists():
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 raw_cfg = yaml.safe_load(f)
             config = ExperimentConfig.model_validate(raw_cfg)
         else:
@@ -67,13 +71,13 @@ class TrainerService:
                 name=f"exp_{algo_req}_{uuid.uuid4().hex[:6]}",
                 algorithm=AlgorithmConfig(name=algo_req),
                 environment=EnvironmentConfig(board=request.map_name or "usa", players=2),
-                seed=request.seed or 42,
+                seed=effective_seed,
             )
 
         if request.override_timesteps:
             config.training.total_timesteps = request.override_timesteps
 
-        config.seed = request.seed or 42
+        config.seed = effective_seed
         algo_name = algo_req.lower()
         exp_id = f"{config.name}_{uuid.uuid4().hex[:4]}"
 
@@ -91,7 +95,14 @@ class TrainerService:
 
         self._thread = threading.Thread(
             target=self._run_training,
-            args=(config, exp_id, request.opponent_type, algo_req, request.num_simulations, request.map_name),
+            args=(
+                config,
+                exp_id,
+                request.opponent_type,
+                algo_req,
+                request.num_simulations,
+                request.map_name,
+            ),
             daemon=True,
         )
         self._thread.start()
@@ -122,10 +133,13 @@ class TrainerService:
                 board, tickets = load_usa_board()
 
             opp_clean = opponent_type.lower()
+            opponent_agent: BaseAgent
             if opp_clean == "greedy":
                 opponent_agent = GreedyAgent(name="GreedyBot")
             elif opp_clean == "strategic":
                 opponent_agent = StrategicAgent(name="StrategicBot")
+            elif opp_clean in ("mixed", "random_pool", "casuale", "pool"):
+                opponent_agent = MixedOpponentAgent(seed=config.seed)
             else:
                 opponent_agent = RandomAgent(name="RandomBot", seed=config.seed)
 
@@ -142,7 +156,9 @@ class TrainerService:
                     "type": "training_started",
                     "experiment_id": exp_id,
                     "algorithm": algo.upper(),
-                    "opponent": opponent_agent.name if "self" not in algo and "alpha" not in algo else "Self-Play",
+                    "opponent": opponent_agent.name
+                    if "self" not in algo and "alpha" not in algo
+                    else "Self-Play",
                     "total_timesteps": config.training.total_timesteps,
                 }
             )
@@ -168,7 +184,9 @@ class TrainerService:
                     "minibatch_chunks": 4,
                     "num_epochs": 4,
                 }
-                trainer_rec = MaskedRecurrentPPOTrainer(env=env, config=rec_config, seed=config.seed)
+                trainer_rec = TrainerFactory.create(
+                    "recurrent_ppo", env=env, config=rec_config, seed=config.seed
+                )
 
                 step = 0
                 while step < total_steps and not self._stop_requested:
@@ -184,7 +202,9 @@ class TrainerService:
 
                     elapsed = time.time() - start_time
                     fps = float(step / elapsed) if elapsed > 0 else 0.0
-                    smooth_reward = float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    smooth_reward = (
+                        float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    )
 
                     self._status.current_step = min(step, total_steps)
                     self._status.episodes = episode_count
@@ -210,18 +230,17 @@ class TrainerService:
                         self.connection_manager.broadcast_sync(telemetry.model_dump())
 
                 trainer_rec.save(ckpt_path)
-                trainer_rec.save(os.path.join(config.training.checkpoint_dir, "recurrent_ppo_live_latest.pt"))
+                trainer_rec.save(
+                    os.path.join(config.training.checkpoint_dir, "recurrent_ppo_live_latest.pt")
+                )
 
             elif algo in ("alphazero", "neural_mcts"):
                 # Lesson 12: AlphaZero Policy-Value Dual Head + PUCT MCTS Self-Play Trainer
-                obs_dim = env.observation_space.shape[0] if hasattr(env, "observation_space") else 180
-                act_dim = env.action_space.n if hasattr(env, "action_space") else 150
-                pv_net = PolicyValueNetwork(obs_dim=obs_dim, action_dim=act_dim, hidden_dim=64, num_res_blocks=1)
-                az_trainer = AlphaZeroTrainer(
-                    net=pv_net,
+                az_trainer = TrainerFactory.create(
+                    "alphazero",
+                    env=env,
+                    config={"c_puct": 1.5, "batch_size": 16, "hidden_dim": 64, "num_res_blocks": 1},
                     num_simulations=num_simulations,
-                    c_puct=1.5,
-                    batch_size=16,
                 )
 
                 # In AlphaZero, total_timesteps represents self-play games * turns
@@ -267,7 +286,9 @@ class TrainerService:
                         self.connection_manager.broadcast_sync(telemetry.model_dump())
 
                 az_trainer.save_checkpoint(ckpt_path)
-                az_trainer.save_checkpoint(os.path.join(config.training.checkpoint_dir, "alphazero_live_latest.pt"))
+                az_trainer.save_checkpoint(
+                    os.path.join(config.training.checkpoint_dir, "alphazero_live_latest.pt")
+                )
 
             elif algo in ("self_play", "self_play_ppo"):
                 # Lesson 9: Self-Play Policy Pool PPO Trainer with PFSP Matchmaking
@@ -309,7 +330,9 @@ class TrainerService:
 
                     elapsed = time.time() - start_time
                     fps = float(step / elapsed) if elapsed > 0 else 0.0
-                    smooth_reward = float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    smooth_reward = (
+                        float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    )
 
                     self._status.current_step = min(step, total_steps)
                     self._status.episodes = episode_count
@@ -337,7 +360,9 @@ class TrainerService:
                         self.connection_manager.broadcast_sync(telemetry.model_dump())
 
                 sp_trainer.save(ckpt_path)
-                sp_trainer.save(os.path.join(config.training.checkpoint_dir, "self_play_live_latest.pt"))
+                sp_trainer.save(
+                    os.path.join(config.training.checkpoint_dir, "self_play_live_latest.pt")
+                )
 
             elif algo == "dqn":
                 # Lesson 4: DQN Trainer
@@ -351,11 +376,13 @@ class TrainerService:
                     "epsilon_end": getattr(config.algorithm, "epsilon_end", 0.05),
                     "epsilon_decay_steps": getattr(config.algorithm, "epsilon_decay_steps", 5000),
                     "learning_starts": getattr(config.algorithm, "learning_starts", 50),
+                    "train_frequency": getattr(config.algorithm, "train_frequency", 4),
                 }
-                trainer_dqn = MaskedDQNTrainer(env=env, config=dqn_config)
+                trainer_dqn = TrainerFactory.create("dqn", env=env, config=dqn_config)
 
                 episode_rewards: list[float] = []
                 current_ep_reward = 0.0
+                metrics = {"loss": 0.0, "epsilon": 1.0}
 
                 for step in range(1, total_steps + 1):
                     if self._stop_requested:
@@ -369,10 +396,15 @@ class TrainerService:
                         episode_rewards.append(current_ep_reward)
                         current_ep_reward = 0.0
 
-                    metrics = trainer_dqn.train_step()
+                    if step % trainer_dqn.train_frequency == 0:
+                        metrics = trainer_dqn.train_step()
 
                     now = time.time()
-                    if now - last_broadcast_time >= broadcast_interval or step == total_steps or done:
+                    if (
+                        now - last_broadcast_time >= broadcast_interval
+                        or step == total_steps
+                        or done
+                    ):
                         last_broadcast_time = now
                         mean_r = float(np.mean(episode_rewards[-20:])) if episode_rewards else 0.0
                         elapsed = time.time() - start_time
@@ -414,7 +446,7 @@ class TrainerService:
                     "ent_coef": getattr(config.algorithm, "entropy_coef", 0.01),
                     "vf_coef": getattr(config.algorithm, "value_coef", 0.5),
                 }
-                trainer_ppo = MaskedPPOTrainer(env=env, config=ppo_config)
+                trainer_ppo = TrainerFactory.create("ppo", env=env, config=ppo_config)
 
                 step = 0
                 while step < total_steps and not self._stop_requested:
@@ -430,7 +462,9 @@ class TrainerService:
 
                     elapsed = time.time() - start_time
                     fps = float(step / elapsed) if elapsed > 0 else 0.0
-                    smooth_reward = float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    smooth_reward = (
+                        float(np.mean(rolling_rewards[-10:])) if rolling_rewards else mean_r
+                    )
 
                     self._status.current_step = min(step, total_steps)
                     self._status.episodes = episode_count
@@ -499,4 +533,3 @@ class TrainerService:
                     "error": str(exc),
                 }
             )
-

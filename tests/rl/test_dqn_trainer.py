@@ -2,8 +2,6 @@ import os
 import tempfile
 
 import numpy as np
-import torch
-
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
 from src.game.maps import create_synthetic_mini_board
@@ -69,3 +67,23 @@ def test_dqn_trainer_epsilon_decay_and_save_load() -> None:
         new_trainer = MaskedDQNTrainer(env=env, config=config)
         new_trainer.load(ckpt_path)
         assert new_trainer.total_timesteps == trainer.total_timesteps
+
+
+def test_dqn_train_frequency_decoupling() -> None:
+    board, tickets = create_synthetic_mini_board()
+    env = TicketToRideEnv(board=board, tickets_deck=tickets, opponent=RandomAgent(seed=42))
+
+    config = {
+        "train_frequency": 4,
+        "batch_size": 8,
+        "learning_starts": 10,
+    }
+
+    trainer = MaskedDQNTrainer(env=env, config=config)
+    assert trainer.train_frequency == 4
+
+    for _ in range(12):
+        trainer.step()
+
+    assert trainer.total_timesteps == 12
+

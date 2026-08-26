@@ -8,7 +8,6 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from src.environment.env import TicketToRideEnv
 from src.rl.networks import MaskedQNetwork
 from src.rl.replay_buffer import ReplayBuffer
 
@@ -16,7 +15,7 @@ from src.rl.replay_buffer import ReplayBuffer
 class MaskedDQNTrainer:
     """Double Deep Q-Network Trainer with Action Masking."""
 
-    def __init__(self, env: TicketToRideEnv, config: dict[str, Any] | None = None) -> None:
+    def __init__(self, env: Any, config: dict[str, Any] | None = None) -> None:
         self.env = env
         self.config = config or {}
 
@@ -29,14 +28,16 @@ class MaskedDQNTrainer:
         self.epsilon_end: float = self.config.get("epsilon_end", 0.05)
         self.epsilon_decay_steps: int = self.config.get("epsilon_decay_steps", 20000)
         self.learning_starts: int = self.config.get("learning_starts", 500)
+        self.train_frequency: int = self.config.get("train_frequency", 4)
         self.max_grad_norm: float = self.config.get("max_grad_norm", 1.0)
         self.device: str = self.config.get("device", "cpu")
 
         if self.device == "cpu" and torch.get_num_threads() > 2:
             torch.set_num_threads(2)
 
-        obs_dim = self.env.observation_space.shape[0]
-        action_dim = int(self.env.action_space.n)
+        obs_shape = self.env.observation_space.shape
+        obs_dim = obs_shape[0] if obs_shape is not None else 180
+        action_dim = int(getattr(self.env.action_space, "n", 150))
 
         self.policy_net = MaskedQNetwork(input_dim=obs_dim, action_dim=action_dim).to(self.device)
         self.target_net = MaskedQNetwork(input_dim=obs_dim, action_dim=action_dim).to(self.device)
