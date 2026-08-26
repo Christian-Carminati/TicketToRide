@@ -1,0 +1,36 @@
+{
+  "AlphaZero": {
+    "steps": 55,
+    "sim_time_s": 0.4411,
+    "train_time_s": 0.0465,
+    "fps": 124.7,
+    "mcts_sims_per_sec": 2493.9,
+    "train_loss": 3.849520683288574
+  },
+  "PPO": {
+    "steps": 256,
+    "sim_time_s": 0.2995,
+    "train_time_s": 0.1524,
+    "fps": 854.6,
+    "policy_loss": -0.018023837881628424
+  },
+  "Recurrent_PPO": {
+    "steps": 128,
+    "sim_time_s": 0.1843,
+    "train_time_s": 0.226,
+    "fps": 694.5,
+    "policy_loss": -0.0029290125239640474
+  },
+  "DQN": {
+    "steps": 200,
+    "total_time_s": 0.5856,
+    "fps": 341.5
+  },
+  "SelfPlay_PPO": {
+    "steps": 128,
+    "sim_time_s": 0.2295,
+    "train_time_s": 0.1095,
+    "fps": 557.6,
+    "policy_loss": -0.026183597510680556
+  }
+}
