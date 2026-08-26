@@ -126,6 +126,22 @@ def run_all_benchmarks():
     print(f"4. RewardCalculator ({n_rewards} calls):")
     print(f"   Duration: {duration:.3f}s | Throughput: {rewards_per_sec:.1f} calls/s | {results['reward_calculator']['us_per_calc']:.2f} µs/call")
 
+    # 4b. State Cloning Latency (Pure Python game.clone())
+    n_clones = 5000
+    start = time.perf_counter()
+    for _ in range(n_clones):
+        _ = game.clone()
+    duration = time.perf_counter() - start
+    clones_per_sec = n_clones / duration
+    results["state_cloning"] = {
+        "n_clones": n_clones,
+        "duration_sec": duration,
+        "clones_per_sec": clones_per_sec,
+        "us_per_clone": (duration / n_clones) * 1e6,
+    }
+    print(f"4b. State Cloning ({n_clones} clones):")
+    print(f"   Duration: {duration:.3f}s | Throughput: {clones_per_sec:.1f} clones/s | {results['state_cloning']['us_per_clone']:.2f} µs/clone")
+
     # 5. PPO Training (2000 steps rollout & train epochs)
     env_ppo = TicketToRideEnv(board=board, tickets_deck=tickets, opponent=GreedyAgent(name="GreedyBot"), num_players=2)
     ppo_config = {

@@ -2,44 +2,50 @@
   "game_core": {
     "num_games": 100,
     "total_steps": 12661,
-    "duration_sec": 1.325428281000086,
-    "games_per_sec": 75.44731120762431,
-    "steps_per_sec": 9552.384071997314,
-    "ms_per_step": 0.10468590798515803
+    "duration_sec": 1.3802745819994016,
+    "games_per_sec": 72.44935268977036,
+    "steps_per_sec": 9172.812544051825,
+    "ms_per_step": 0.10901781707601307
   },
   "observation_encoder": {
     "n_encodes": 5000,
-    "duration_sec": 0.0938548259999834,
-    "encodes_per_sec": 53273.765591988675,
-    "us_per_encode": 18.77096519999668
+    "duration_sec": 0.0892916039992997,
+    "encodes_per_sec": 55996.30621529897,
+    "us_per_encode": 17.85832079985994
   },
   "action_masker": {
     "n_masks": 10000,
-    "duration_sec": 0.04513844300004166,
-    "masks_per_sec": 221540.64995088047,
-    "us_per_mask": 4.513844300004166
+    "duration_sec": 0.06241516100271838,
+    "masks_per_sec": 160217.48304974282,
+    "us_per_mask": 6.241516100271838
   },
   "reward_calculator": {
     "n_rewards": 10000,
-    "duration_sec": 0.04336822300001586,
-    "rewards_per_sec": 230583.57728875225,
-    "us_per_calc": 4.336822300001586
+    "duration_sec": 0.007076562000293052,
+    "rewards_per_sec": 1413115.5778167257,
+    "us_per_calc": 0.7076562000293052
+  },
+  "state_cloning": {
+    "n_clones": 5000,
+    "duration_sec": 0.575056041998323,
+    "clones_per_sec": 8694.804740464897,
+    "us_per_clone": 115.01120839966461
   },
   "ppo_training": {
     "steps": 2048,
-    "duration_sec": 1.978980014000058,
-    "fps": 1034.8765452463736,
-    "ms_per_step": 0.9662988349609658
+    "duration_sec": 1.6081377980008256,
+    "fps": 1273.522705918606,
+    "ms_per_step": 0.7852235341800906
   },
   "dqn_training": {
     "steps": 2000,
-    "duration_sec": 6.345491395000067,
-    "fps": 315.18441606837587,
-    "ms_per_step": 3.1727456975000337
+    "duration_sec": 4.6673645509981725,
+    "fps": 428.50734673645235,
+    "ms_per_step": 2.3336822754990862
   },
   "tournament": {
     "games": 300,
-    "duration_sec": 5.007403795999949,
-    "games_per_sec": 59.91128581235015
+    "duration_sec": 4.202978852998058,
+    "games_per_sec": 71.37794656901612
   }
 }

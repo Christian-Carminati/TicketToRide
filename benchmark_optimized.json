@@ -1,45 +1,38 @@
 {
-  "game_core": {
-    "num_games": 100,
-    "total_steps": 12661,
-    "duration_sec": 1.3393497320000733,
-    "games_per_sec": 74.66309777855282,
-    "steps_per_sec": 9453.094809742573,
-    "ms_per_step": 0.105785461811869
+  "native_vector_batch": {
+    "num_envs": 64,
+    "total_steps": 320000,
+    "duration_sec": 0.22213929599820403,
+    "steps_per_sec": 1440537.5625327774,
+    "games_per_sec": 20579.108036182533
+  },
+  "state_cloning": {
+    "n_clones": 500000,
+    "duration_sec": 0.5135626810006215,
+    "clones_per_sec": 973590.9919034691,
+    "ns_per_clone": 1027.125362001243
   },
   "observation_encoder": {
-    "n_encodes": 5000,
-    "duration_sec": 0.09102665499995055,
-    "encodes_per_sec": 54928.96558708783,
-    "us_per_encode": 18.20533099999011
+    "n_encodes": 10000,
+    "duration_sec": 0.15618453299975954,
+    "encodes_per_sec": 64026.82652331134,
+    "us_per_encode": 15.618453299975954
   },
   "action_masker": {
-    "n_masks": 10000,
-    "duration_sec": 0.050748582000096576,
-    "masks_per_sec": 197049.84072226824,
-    "us_per_mask": 5.074858200009658
+    "n_masks": 20000,
+    "duration_sec": 0.054897396999876946,
+    "masks_per_sec": 364315.9984442401,
+    "us_per_mask": 2.7448698499938473
   },
   "reward_calculator": {
-    "n_rewards": 10000,
-    "duration_sec": 0.002965519999861499,
-    "rewards_per_sec": 3372089.886585502,
-    "us_per_calc": 0.2965519999861499
-  },
-  "ppo_training": {
-    "steps": 2048,
-    "duration_sec": 1.503789045000076,
-    "fps": 1361.8931503786134,
-    "ms_per_step": 0.7342719946289433
-  },
-  "dqn_training": {
-    "steps": 2000,
-    "duration_sec": 4.275527237999995,
-    "fps": 467.77856593320627,
-    "ms_per_step": 2.1377636189999976
+    "n_rewards": 20000,
+    "duration_sec": 0.014103599001828115,
+    "rewards_per_sec": 1418077.754295736,
+    "us_per_calc": 0.7051799500914058
   },
   "tournament": {
     "games": 300,
-    "duration_sec": 4.026119838999875,
-    "games_per_sec": 74.51343029931337
+    "duration_sec": 4.28668258000107,
+    "games_per_sec": 69.98418809911628
   }
 }
