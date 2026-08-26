@@ -196,6 +196,19 @@ class TournamentRunRequest(BaseModel):
     seed: int = 42
 
 
+class TournamentProgressDTO(BaseModel):
+    is_running: bool
+    current_match: int = 0
+    total_matches: int = 0
+    current_agent_a: str = ""
+    current_agent_b: str = ""
+    status: str = "idle"
+    percentage: float = 0.0
+    elapsed_seconds: float = 0.0
+    estimated_remaining_seconds: float = 0.0
+    recent_matchup: TournamentMatchupDTO | None = None
+
+
 # --- Replay DTOs ---
 class ReplayFrameDTO(BaseModel):
     step_index: int

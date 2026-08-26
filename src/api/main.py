@@ -24,6 +24,7 @@ from src.api.schemas import (
     ReportItemDTO,
     TournamentLeaderboardDTO,
     TournamentParticipantOptionDTO,
+    TournamentProgressDTO,
     TournamentRunRequest,
     TrainingStartRequest,
     TrainingStatusDTO,
@@ -40,7 +41,7 @@ brain_service = BrainService()
 replay_service = ReplayService()
 report_service = ReportService()
 trainer_service = TrainerService(connection_manager=connection_manager)
-tournament_service = TournamentService()
+tournament_service = TournamentService(connection_manager=connection_manager)
 registry = ExperimentRegistry()
 
 
@@ -139,6 +140,11 @@ def get_available_tournament_participants() -> list[TournamentParticipantOptionD
 @app.get("/api/tournament/leaderboard", response_model=TournamentLeaderboardDTO)
 def get_tournament_leaderboard() -> TournamentLeaderboardDTO:
     return tournament_service.get_leaderboard()
+
+
+@app.get("/api/tournament/progress", response_model=TournamentProgressDTO)
+def get_tournament_progress() -> TournamentProgressDTO:
+    return tournament_service.get_progress()
 
 
 @app.post("/api/tournament/run", response_model=TournamentLeaderboardDTO)

@@ -98,6 +98,8 @@ class GameService:
             elif request.model_checkpoint:
                 ckpt_path = request.model_checkpoint
 
+            ckpt_label = os.path.splitext(os.path.basename(ckpt_path))[0] if ckpt_path else None
+
             if p_type_clean == "human":
                 agents.append(HumanAgent(name=f"Human Conductor ({idx+1})"))
             elif p_type_clean == "random":
@@ -111,7 +113,8 @@ class GameService:
             elif p_type_clean == "bayesian_mcts":
                 agents.append(BayesianOpponentMCTSAgent(name=f"Bayesian MCTS ({idx+1})", num_simulations=20, seed=agent_seed, board=board, tickets=tickets))
             elif p_type_clean == "alphazero":
-                agent_az = NeuralMCTSAgent(name=f"AlphaZero ({idx+1})", num_simulations=20, seed=agent_seed, board=board, tickets=tickets)
+                agent_name = f"AlphaZero: {ckpt_label}" if ckpt_label else f"AlphaZero ({idx+1})"
+                agent_az = NeuralMCTSAgent(name=agent_name, num_simulations=20, seed=agent_seed, board=board, tickets=tickets)
                 if ckpt_path and os.path.exists(ckpt_path):
                     try:
                         agent_az.net.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
@@ -119,8 +122,9 @@ class GameService:
                         print(f"Failed to load AlphaZero checkpoint {ckpt_path}: {e}")
                 agents.append(agent_az)
             elif p_type_clean in ("recurrent_ppo", "lstm_ppo"):
+                agent_name = f"Recurrent PPO: {ckpt_label}" if ckpt_label else f"Recurrent PPO ({idx+1})"
                 agent_rec = RecurrentPPOAgent(
-                    name=f"Recurrent PPO ({idx+1})",
+                    name=agent_name,
                     board=board,
                     tickets=tickets,
                     num_players=len(request.player_types),
@@ -128,13 +132,6 @@ class GameService:
                 )
                 agents.append(agent_rec)
             elif p_type_clean == "dqn":
-                agent_dqn = DQNAgent(
-                    name=f"DQN Trained ({idx+1})",
-                    input_dim=encoder.observation_shape[0],
-                    action_dim=action_space.n,
-                    encoder=encoder,
-                    discrete_actions=action_space,
-                )
                 if not ckpt_path and os.path.exists("experiments/checkpoints"):
                     ckpts = sorted(
                         [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "dqn" in f.lower() and f.endswith(".pt")],
@@ -143,6 +140,16 @@ class GameService:
                     )
                     if ckpts:
                         ckpt_path = ckpts[0]
+                        ckpt_label = os.path.splitext(os.path.basename(ckpt_path))[0]
+
+                agent_name = f"DQN: {ckpt_label}" if ckpt_label else f"DQN Trained ({idx+1})"
+                agent_dqn = DQNAgent(
+                    name=agent_name,
+                    input_dim=encoder.observation_shape[0],
+                    action_dim=action_space.n,
+                    encoder=encoder,
+                    discrete_actions=action_space,
+                )
 
                 if ckpt_path and os.path.exists(ckpt_path):
                     try:
@@ -150,14 +157,7 @@ class GameService:
                     except Exception as e:
                         print(f"Failed to load DQN checkpoint {ckpt_path}: {e}")
                 agents.append(agent_dqn)
-            elif p_type_clean == "ppo":
-                agent_ppo = PPOAgent(
-                    name=f"PPO Trained ({idx+1})",
-                    input_dim=encoder.observation_shape[0],
-                    action_dim=action_space.n,
-                    encoder=encoder,
-                    discrete_actions=action_space,
-                )
+            elif p_type_clean in ("ppo", "self_play_ppo"):
                 if not ckpt_path and os.path.exists("experiments/checkpoints"):
                     ckpts = sorted(
                         [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "ppo" in f.lower() and f.endswith(".pt")],
@@ -166,6 +166,16 @@ class GameService:
                     )
                     if ckpts:
                         ckpt_path = ckpts[0]
+                        ckpt_label = os.path.splitext(os.path.basename(ckpt_path))[0]
+
+                agent_name = f"PPO: {ckpt_label}" if ckpt_label else f"PPO Trained ({idx+1})"
+                agent_ppo = PPOAgent(
+                    name=agent_name,
+                    input_dim=encoder.observation_shape[0],
+                    action_dim=action_space.n,
+                    encoder=encoder,
+                    discrete_actions=action_space,
+                )
 
                 if ckpt_path and os.path.exists(ckpt_path):
                     try:
@@ -183,6 +193,9 @@ class GameService:
             seed=request.seed,
         )
         game.reset(seed=request.seed)
+        for idx, ag in enumerate(agents):
+            if idx < len(game.state.players):
+                game.state.players[idx].name = ag.name
 
         session = ActiveGameSession(
             session_id=session_id,

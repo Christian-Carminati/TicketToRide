@@ -20,6 +20,7 @@ from src.api.schemas import (
     TournamentLeaderboardDTO,
     TournamentMatchupDTO,
     TournamentParticipantOptionDTO,
+    TournamentProgressDTO,
 )
 from src.environment.action_space import DiscreteActionSpace
 from src.environment.observation import ObservationV1
@@ -30,11 +31,21 @@ from src.game.maps import create_synthetic_mini_board, load_usa_board
 class TournamentService:
     """Manages tournament executions, customizable participants, and calculates live Elo rankings."""
 
-    def __init__(self) -> None:
+    def __init__(self, connection_manager: Any = None) -> None:
         self._lock = threading.Lock()
         self._cached_leaderboard: TournamentLeaderboardDTO | None = self._create_baseline_cache()
+        self.connection_manager = connection_manager
+        self._progress_lock = threading.Lock()
+        self._progress = TournamentProgressDTO(is_running=False, status="idle")
 
-    def get_available_participants(self) -> list[TournamentParticipantOptionDTO]:
+    def get_progress(self) -> TournamentProgressDTO:
+        with self._progress_lock:
+            return self._progress.model_copy()
+
+    def set_connection_manager(self, connection_manager: Any) -> None:
+        self.connection_manager = connection_manager
+
+    def get_available_participants(self, ckpt_dir: str | None = None) -> list[TournamentParticipantOptionDTO]:
         """Discover all baseline bots and saved model checkpoints available for tournament play."""
         options: list[TournamentParticipantOptionDTO] = [
             TournamentParticipantOptionDTO(
@@ -88,15 +99,15 @@ class TournamentService:
             ),
         ]
 
-        ckpt_dir = os.path.join("experiments", "checkpoints")
-        if os.path.exists(ckpt_dir):
+        target_dir = ckpt_dir or os.path.join("experiments", "checkpoints")
+        if os.path.exists(target_dir):
             files = sorted(
-                [f for f in os.listdir(ckpt_dir) if f.endswith(".pt")],
-                key=lambda x: os.path.getmtime(os.path.join(ckpt_dir, x)),
+                [f for f in os.listdir(target_dir) if f.endswith(".pt")],
+                key=lambda x: os.path.getmtime(os.path.join(target_dir, x)) if os.path.exists(os.path.join(target_dir, x)) else 0,
                 reverse=True,
             )
             for fname in files:
-                full_path = os.path.join(ckpt_dir, fname)
+                full_path = os.path.join(target_dir, fname)
                 lower = fname.lower()
                 if "alphazero" in lower:
                     algo = "alphazero"
@@ -246,26 +257,97 @@ class TournamentService:
         map_name: str = "usa",
         seed: int = 42,
     ) -> TournamentLeaderboardDTO:
-        with self._lock:
-            all_available = self.get_available_participants()
+        all_available = self.get_available_participants()
 
-            if participant_ids and len(participant_ids) >= 2:
-                selected_options = [p for p in all_available if p.id in participant_ids]
-            else:
-                selected_options = [p for p in all_available if p.category == "baseline" or "live_latest" in p.id]
-                if len(selected_options) < 2:
-                    selected_options = all_available[:6]
+        if participant_ids and len(participant_ids) >= 2:
+            selected_options = [p for p in all_available if p.id in participant_ids]
+        else:
+            selected_options = [p for p in all_available if p.category == "baseline" or "live_latest" in p.id]
+            if len(selected_options) < 2:
+                selected_options = all_available[:6]
 
-            if map_name == "mini":
-                board, tickets = create_synthetic_mini_board()
-            else:
-                board, tickets = load_usa_board()
+        if map_name == "mini":
+            board, tickets = create_synthetic_mini_board()
+        else:
+            board, tickets = load_usa_board()
 
-            agents: list[BaseAgent] = [
-                self._build_agent(opt, board=board, tickets=tickets)
-                for opt in selected_options
-            ]
+        agents: list[BaseAgent] = [
+            self._build_agent(opt, board=board, tickets=tickets)
+            for opt in selected_options
+        ]
 
+        total_pairings = (len(agents) * (len(agents) - 1)) // 2
+        start_time = datetime.datetime.now()
+
+        with self._progress_lock:
+            self._progress = TournamentProgressDTO(
+                is_running=True,
+                current_match=0,
+                total_matches=total_pairings,
+                status="running",
+                percentage=0.0,
+                elapsed_seconds=0.0,
+                estimated_remaining_seconds=0.0,
+            )
+
+        if self.connection_manager:
+            self.connection_manager.broadcast_sync({
+                "type": "tournament_progress",
+                **self._progress.model_dump(),
+            })
+
+        def on_progress(ev: dict[str, Any]) -> None:
+            now = datetime.datetime.now()
+            elapsed = (now - start_time).total_seconds()
+            cur_m = ev.get("current_match", 0)
+            tot_m = ev.get("total_matches", total_pairings)
+            pct = ev.get("percentage", 0.0)
+
+            est_rem = 0.0
+            if cur_m > 0 and tot_m > 0:
+                avg_time_per_match = elapsed / cur_m
+                est_rem = max(0.0, avg_time_per_match * (tot_m - cur_m))
+
+            recent_dto: TournamentMatchupDTO | None = None
+            if ev.get("status") == "completed":
+                w_a = ev.get("wins_a", 0)
+                w_b = ev.get("wins_b", 0)
+                d = ev.get("draws", 0)
+                g_played = w_a + w_b + d
+                wr_a = (w_a / g_played) if g_played > 0 else 0.0
+                recent_dto = TournamentMatchupDTO(
+                    agent_a=ev.get("agent_a", ""),
+                    agent_b=ev.get("agent_b", ""),
+                    wins_a=w_a,
+                    wins_b=w_b,
+                    draws=d,
+                    win_rate_a=round(wr_a, 3),
+                    avg_score_a=0.0,
+                    avg_score_b=0.0,
+                    games_played=g_played,
+                )
+
+            with self._progress_lock:
+                self._progress = TournamentProgressDTO(
+                    is_running=True,
+                    current_match=cur_m,
+                    total_matches=tot_m,
+                    current_agent_a=ev.get("agent_a", ""),
+                    current_agent_b=ev.get("agent_b", ""),
+                    status=ev.get("status", "running"),
+                    percentage=pct,
+                    elapsed_seconds=round(elapsed, 1),
+                    estimated_remaining_seconds=round(est_rem, 1),
+                    recent_matchup=recent_dto,
+                )
+
+            if self.connection_manager:
+                self.connection_manager.broadcast_sync({
+                    "type": "tournament_progress",
+                    **self._progress.model_dump(),
+                })
+
+        try:
             tourney = Tournament(
                 agents=agents,
                 games_per_pair=games_per_pair,
@@ -275,7 +357,7 @@ class TournamentService:
                 tickets_deck=tickets,
             )
 
-            raw_results = tourney.run(seed=seed)
+            raw_results = tourney.run(seed=seed, progress_callback=on_progress)
 
             leaderboard_dtos: list[TournamentAgentDTO] = []
             for item in raw_results["leaderboard"]:
@@ -325,5 +407,22 @@ class TournamentService:
                 map_name=map_name,
                 available_participants=all_available,
             )
-            self._cached_leaderboard = res
+            with self._lock:
+                self._cached_leaderboard = res
             return res
+        finally:
+            with self._progress_lock:
+                self._progress = TournamentProgressDTO(
+                    is_running=False,
+                    current_match=total_pairings,
+                    total_matches=total_pairings,
+                    status="idle",
+                    percentage=100.0,
+                    elapsed_seconds=round((datetime.datetime.now() - start_time).total_seconds(), 1),
+                    estimated_remaining_seconds=0.0,
+                )
+            if self.connection_manager:
+                self.connection_manager.broadcast_sync({
+                    "type": "tournament_progress",
+                    **self._progress.model_dump(),
+                })
