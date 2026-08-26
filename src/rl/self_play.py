@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import copy
 import json
 import os
 import random
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 from src.agents.base_agent import BaseAgent
 from src.agents.ppo_agent import PPOAgent
@@ -76,9 +75,7 @@ class PolicyPool:
         is_recurrent = isinstance(model, RecurrentMaskedActorCritic) or hasattr(model, "lstm")
 
         # Clone state_dict to CPU
-        cpu_state_dict = {
-            k: v.detach().cpu().clone() for k, v in model.state_dict().items()
-        }
+        cpu_state_dict = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
         hidden_dim = getattr(model, "hidden_dim", 128)
         lstm_hidden_dim = getattr(model, "lstm_hidden_dim", 128)
@@ -127,7 +124,9 @@ class PolicyPool:
         if isinstance(index_or_name, int):
             if 0 <= index_or_name < len(self._snapshots):
                 return self._snapshots[index_or_name]
-            raise IndexError(f"Snapshot index {index_or_name} out of bounds (size {len(self._snapshots)})")
+            raise IndexError(
+                f"Snapshot index {index_or_name} out of bounds (size {len(self._snapshots)})"
+            )
 
         for snap in self._snapshots:
             if snap.name == index_or_name:
@@ -144,16 +143,16 @@ class PolicyPool:
     ) -> BaseAgent:
         snapshot = self.get_snapshot(index_or_name)
         if snapshot.is_recurrent:
-            model = RecurrentMaskedActorCritic(
+            rec_model = RecurrentMaskedActorCritic(
                 input_dim=snapshot.input_dim,
                 action_dim=snapshot.action_dim,
                 hidden_dim=snapshot.hidden_dim,
                 lstm_hidden_dim=snapshot.lstm_hidden_dim,
             )
-            model.load_state_dict(snapshot.state_dict)
-            model.eval()
+            rec_model.load_state_dict(snapshot.state_dict)
+            rec_model.eval()
             return RecurrentPPOAgent(
-                model=model,
+                model=rec_model,
                 board=board,
                 tickets=tickets,
                 deterministic=deterministic,
@@ -161,15 +160,15 @@ class PolicyPool:
                 name=snapshot.name,
             )
         else:
-            model = MaskedActorCritic(
+            ff_model = MaskedActorCritic(
                 input_dim=snapshot.input_dim,
                 action_dim=snapshot.action_dim,
                 hidden_dim=snapshot.hidden_dim,
             )
-            model.load_state_dict(snapshot.state_dict)
-            model.eval()
+            ff_model.load_state_dict(snapshot.state_dict)
+            ff_model.eval()
             return PPOAgent(
-                model=model,
+                actor_critic=ff_model,
                 board=board,
                 tickets=tickets,
                 device=device,
@@ -197,18 +196,20 @@ class PolicyPool:
                 },
                 snap_path,
             )
-            manifest.append({
-                "name": snap.name,
-                "generation": snap.generation,
-                "step": snap.step,
-                "file": snap_file,
-            })
+            manifest.append(
+                {
+                    "name": snap.name,
+                    "generation": snap.generation,
+                    "step": snap.step,
+                    "file": snap_file,
+                }
+            )
         with open(os.path.join(directory, "pool_manifest.json"), "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2)
 
     def load_pool(self, directory: str) -> None:
         manifest_path = os.path.join(directory, "pool_manifest.json")
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
         self._snapshots.clear()
         for item in manifest:
@@ -290,7 +291,7 @@ class SelfPlayOpponentSampler:
                 else:
                     win_rate = rec["trainee_wins"] / rec["total_games"]
                 loss_rate = 1.0 - win_rate
-                score = (loss_rate ** self.pfsp_exponent) + 0.05
+                score = (loss_rate**self.pfsp_exponent) + 0.05
                 raw_weights.append(score)
             total = sum(raw_weights)
             return {name: raw_weights[i] / total for i, name in enumerate(names)}
@@ -321,7 +322,9 @@ class SelfPlayOpponentSampler:
         probs = [weights_dict[name] for name in names]
 
         chosen_name = self.rng.choices(names, weights=probs, k=1)[0]
-        return pool.create_agent(chosen_name, board=board, tickets=tickets, deterministic=deterministic)
+        return pool.create_agent(
+            chosen_name, board=board, tickets=tickets, deterministic=deterministic
+        )
 
 
 class SelfPlayPPOTrainer(MaskedPPOTrainer):
@@ -333,7 +336,7 @@ class SelfPlayPPOTrainer(MaskedPPOTrainer):
         config: dict[str, Any] | None = None,
         pool: PolicyPool | None = None,
         sampler: SelfPlayOpponentSampler | None = None,
-        seed: int = 42,
+        seed: int | None = 42,
     ) -> None:
         super().__init__(env=env, config=config)
         self.seed = seed
@@ -342,7 +345,7 @@ class SelfPlayPPOTrainer(MaskedPPOTrainer):
             strategy=self.config.get("sampling_strategy", "latest_biased"),
             baseline_mix_rate=self.config.get("baseline_mix_rate", 0.15),
             pfsp_exponent=self.config.get("pfsp_exponent", 1.0),
-            seed=seed,
+            seed=seed if seed is not None else 42,
         )
         self.snapshot_interval: int = self.config.get("snapshot_interval", 5000)
         self.last_snapshot_step: int = 0
@@ -367,7 +370,11 @@ class SelfPlayPPOTrainer(MaskedPPOTrainer):
 
         for _ in range(self.rollout_steps):
             obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
-            mask_tensor = torch.from_numpy(self.current_info["action_mask"]).unsqueeze(0).to(device=self.device)
+            mask_tensor = (
+                torch.from_numpy(self.current_info["action_mask"])
+                .unsqueeze(0)
+                .to(device=self.device)
+            )
 
             with torch.no_grad():
                 action, log_prob, _, value = self.actor_critic.get_action_and_value(
@@ -394,7 +401,7 @@ class SelfPlayPPOTrainer(MaskedPPOTrainer):
             if done:
                 episode_rewards.append(current_ep_reward)
                 # Record result for PFSP
-                trainee_won = (next_info.get("winner_id") == 0)
+                trainee_won = next_info.get("winner_id") == 0
                 opp_name = getattr(self.env.opponent, "name", "Opponent")
                 self.sampler.record_match(opp_name, trainee_won=trainee_won)
 
@@ -429,7 +436,7 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
         config: dict[str, Any] | None = None,
         pool: PolicyPool | None = None,
         sampler: SelfPlayOpponentSampler | None = None,
-        seed: int = 42,
+        seed: int | None = 42,
     ) -> None:
         super().__init__(env=env, config=config, seed=seed)
         self.pool = pool or PolicyPool(max_size=self.config.get("pool_max_size", 50))
@@ -437,7 +444,7 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
             strategy=self.config.get("sampling_strategy", "latest_biased"),
             baseline_mix_rate=self.config.get("baseline_mix_rate", 0.15),
             pfsp_exponent=self.config.get("pfsp_exponent", 1.0),
-            seed=seed,
+            seed=seed if seed is not None else 42,
         )
         self.snapshot_interval: int = self.config.get("snapshot_interval", 5000)
         self.last_snapshot_step: int = 0
@@ -463,7 +470,7 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
             obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
             mask_np = self.current_info.get("action_mask")
             if mask_np is None:
-                mask_np = np.ones(self.env.action_space.n, dtype=bool)
+                mask_np = np.ones(int(getattr(self.env.action_space, "n", 150)), dtype=bool)
             mask_tensor = torch.from_numpy(mask_np).unsqueeze(0).to(device=self.device)
 
             h_step = self.current_hidden[0][0, 0].cpu().numpy().copy()
@@ -502,14 +509,16 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
 
             if done:
                 episode_rewards.append(current_ep_reward)
-                trainee_won = (next_info.get("winner_id") == 0)
+                trainee_won = next_info.get("winner_id") == 0
                 opp_name = getattr(self.env.opponent, "name", "Opponent")
                 self.sampler.record_match(opp_name, trainee_won=trainee_won)
 
                 current_ep_reward = 0.0
                 self._switch_opponent_for_new_episode()
                 self.current_obs, self.current_info = self.env.reset()
-                self.current_hidden = self.actor_critic.get_initial_hidden(batch_size=1, device=self.device)
+                self.current_hidden = self.actor_critic.get_initial_hidden(
+                    batch_size=1, device=self.device
+                )
             else:
                 self.current_obs = next_obs
                 self.current_info = next_info
@@ -529,9 +538,13 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
             last_val_tensor, _ = self.actor_critic.get_value(last_obs_tensor, self.current_hidden)
             last_value = float(last_val_tensor.item())
 
-        rewards = np.array(self.rollout_buffer.rewards_buf[:self.rollout_buffer.size], dtype=np.float32)
-        values = np.array(self.rollout_buffer.values_buf[:self.rollout_buffer.size], dtype=np.float32)
-        dones = np.array(self.rollout_buffer.dones_buf[:self.rollout_buffer.size], dtype=bool)
+        rewards = np.array(
+            self.rollout_buffer.rewards_buf[: self.rollout_buffer.size], dtype=np.float32
+        )
+        values = np.array(
+            self.rollout_buffer.values_buf[: self.rollout_buffer.size], dtype=np.float32
+        )
+        dones = np.array(self.rollout_buffer.dones_buf[: self.rollout_buffer.size], dtype=bool)
 
         from src.rl.advantage import compute_gae
 
@@ -549,5 +562,3 @@ class SelfPlayRecurrentPPOTrainer(MaskedRecurrentPPOTrainer):
             "mean_reward": float(np.mean(episode_rewards)) if episode_rewards else 0.0,
             "episodes_completed": len(episode_rewards),
         }
-
-

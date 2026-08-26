@@ -1,7 +1,5 @@
 """Tests for GeneralizationEvaluator and GeneralizationBenchmarkRunner."""
 
-import pytest
-from src.agents.greedy_agent import GreedyAgent
 from src.agents.heuristic_agent import StrategicAgent
 from src.agents.random_agent import RandomAgent
 from src.evaluation.generalization import (

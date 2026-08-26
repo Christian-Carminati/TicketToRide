@@ -59,7 +59,7 @@ class Game:
         for i in range(self.num_players):
             p = Player(
                 id=f"player_{i}",
-                name=f"Player {i+1}",
+                name=f"Player {i + 1}",
                 trains_remaining=self.rules.INITIAL_TRAINS_PER_PLAYER,
                 score=0,
             )
@@ -243,10 +243,7 @@ class Game:
         player.score += self.rules.points_for_route_length(route.length)
 
         # Check end game trigger (2 or fewer trains remaining)
-        if (
-            player.trains_remaining <= 2
-            and not self.state.is_last_round
-        ):
+        if player.trains_remaining <= 2 and not self.state.is_last_round:
             self.state.is_last_round = True
             self.state.final_turn_player_id = player.id
 
@@ -267,7 +264,10 @@ class Game:
         next_idx = (current_idx + 1) % self.num_players
 
         # If last round is active and the next player is the one who triggered final round: GAME OVER
-        if self.state.is_last_round and self.state.players[next_idx].id == self.state.final_turn_player_id:
+        if (
+            self.state.is_last_round
+            and self.state.players[next_idx].id == self.state.final_turn_player_id
+        ):
             self._end_game()
             return
 
@@ -328,7 +328,9 @@ class Game:
         max_flushes = 10
         while self.rules.should_flush_visible_cards(visible_cards) and flush_count < max_flushes:
             flush_count += 1
-            non_locos = sum(1 for c in visible_cards + train_deck + discard_pile if not c.is_locomotive())
+            non_locos = sum(
+                1 for c in visible_cards + train_deck + discard_pile if not c.is_locomotive()
+            )
             if non_locos < 3:
                 break
 
@@ -360,4 +362,3 @@ class Game:
         cloned_game.rng = SeededRNG(seed_val)
         cloned_game.state = self.state.clone()
         return cloned_game
-

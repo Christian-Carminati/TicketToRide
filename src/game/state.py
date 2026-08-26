@@ -1,7 +1,7 @@
 """Explicit, serializable Game State representation."""
 
 import json
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from src.game.card import CardColor, TrainCard
@@ -9,7 +9,7 @@ from src.game.player import Player
 from src.game.ticket import DestinationTicket
 
 
-class TurnState(str, Enum):
+class TurnState(StrEnum):
     CHOOSING_INITIAL_TICKETS = "choosing_initial_tickets"
     NORMAL = "normal"
     DRAWING_SECOND_CARD = "drawing_second_card"
@@ -118,9 +118,9 @@ class GameState:
             players=[p.clone() for p in self.players],
             current_player_index=self.current_player_index,
             turn_state=self.turn_state,
-            visible_cards=[TrainCard(color=c.color) for c in self.visible_cards],
-            train_deck=[TrainCard(color=c.color) for c in self.train_deck],
-            discard_pile=[TrainCard(color=c.color) for c in self.discard_pile],
+            visible_cards=list(self.visible_cards),
+            train_deck=list(self.train_deck),
+            discard_pile=list(self.discard_pile),
             ticket_deck=list(self.ticket_deck),
             turn_number=self.turn_number,
             is_last_round=self.is_last_round,
@@ -129,4 +129,3 @@ class GameState:
             winner_id=self.winner_id,
             num_players=self.num_players,
         )
-

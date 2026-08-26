@@ -1,11 +1,9 @@
 """Comparative POMDP Benchmark Runner evaluating Stateless MLP vs Recurrent LSTM policies."""
 
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
-import numpy as np
-import torch
 
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.heuristic_agent import StrategicAgent
@@ -89,32 +87,66 @@ class POMDPBenchmarkRunner:
         # Baselines
         random_agent = RandomAgent()
         greedy_agent = GreedyAgent()
-        strategic_agent = StrategicAgent()
+        StrategicAgent()
 
-        lstm_vs_random = evaluator.evaluate(lstm_agent, random_agent, num_games=self.eval_games, seed=self.seed)
-        mlp_vs_random = evaluator.evaluate(mlp_agent, random_agent, num_games=self.eval_games, seed=self.seed)
+        lstm_vs_random = evaluator.evaluate(
+            lstm_agent, random_agent, num_games=self.eval_games, seed=self.seed
+        )
+        mlp_vs_random = evaluator.evaluate(
+            mlp_agent, random_agent, num_games=self.eval_games, seed=self.seed
+        )
 
-        lstm_vs_greedy = evaluator.evaluate(lstm_agent, greedy_agent, num_games=self.eval_games, seed=self.seed)
-        mlp_vs_greedy = evaluator.evaluate(mlp_agent, greedy_agent, num_games=self.eval_games, seed=self.seed)
+        lstm_vs_greedy = evaluator.evaluate(
+            lstm_agent, greedy_agent, num_games=self.eval_games, seed=self.seed
+        )
+        mlp_vs_greedy = evaluator.evaluate(
+            mlp_agent, greedy_agent, num_games=self.eval_games, seed=self.seed
+        )
 
         # Behavioral Profiles
-        lstm_profile = behavioral_evaluator.profile_agent(lstm_agent, random_agent, num_games=self.eval_games)
-        mlp_profile = behavioral_evaluator.profile_agent(mlp_agent, random_agent, num_games=self.eval_games)
+        lstm_profile = behavioral_evaluator.profile_agent(
+            lstm_agent, random_agent, num_games=self.eval_games
+        )
+        mlp_profile = behavioral_evaluator.profile_agent(
+            mlp_agent, random_agent, num_games=self.eval_games
+        )
 
         elapsed = time.time() - start_time
 
         # Extract training metrics safely
         mlp_reward = 0.0
         if isinstance(mlp_logs, list) and mlp_logs:
-            mlp_reward = float(mlp_logs[-1].get("mean_reward", mlp_logs[-1].get("mean_rollout_reward", 0.0)))
+            last_entry = mlp_logs[-1]
+            val = (
+                last_entry.get("mean_reward")
+                if last_entry.get("mean_reward") is not None
+                else last_entry.get("mean_rollout_reward", 0.0)
+            )
+            mlp_reward = float(val or 0.0)
         elif isinstance(mlp_logs, dict):
-            mlp_reward = float(mlp_logs.get("mean_reward", mlp_logs.get("mean_rollout_reward", 0.0)))
+            val = (
+                mlp_logs.get("mean_reward")
+                if mlp_logs.get("mean_reward") is not None
+                else mlp_logs.get("mean_rollout_reward", 0.0)
+            )
+            mlp_reward = float(val or 0.0)
 
         lstm_reward = 0.0
         if isinstance(lstm_logs, list) and lstm_logs:
-            lstm_reward = float(lstm_logs[-1].get("mean_reward", lstm_logs[-1].get("mean_rollout_reward", 0.0)))
+            last_entry = lstm_logs[-1]
+            val = (
+                last_entry.get("mean_reward")
+                if last_entry.get("mean_reward") is not None
+                else last_entry.get("mean_rollout_reward", 0.0)
+            )
+            lstm_reward = float(val or 0.0)
         elif isinstance(lstm_logs, dict):
-            lstm_reward = float(lstm_logs.get("mean_reward", lstm_logs.get("mean_rollout_reward", 0.0)))
+            val = (
+                lstm_logs.get("mean_reward")
+                if lstm_logs.get("mean_reward") is not None
+                else lstm_logs.get("mean_rollout_reward", 0.0)
+            )
+            lstm_reward = float(val or 0.0)
 
         results = {
             "metadata": {
@@ -170,13 +202,13 @@ class POMDPBenchmarkRunner:
 
         md_content = f"""# Relazione Scientifica: Studio Comparativo Parziale Osservabilità (MLP vs LSTM PPO)
 
-**Versione Studio:** Fase 8  
-**Data:** 2026-08-21  
-**Mappa:** Official USA Board  
-**Seed Deterministico:** {meta['seed']}  
-**Timestep di Addestramento:** {meta['training_steps']}  
-**Partite di Valutazione:** {meta['eval_games']}  
-**Tempo di Calcolo:** {meta['elapsed_seconds']:.2f}s  
+**Versione Studio:** Fase 8
+**Data:** 2026-08-21
+**Mappa:** Official USA Board
+**Seed Deterministico:** {meta["seed"]}
+**Timestep di Addestramento:** {meta["training_steps"]}
+**Partite di Valutazione:** {meta["eval_games"]}
+**Tempo di Calcolo:** {meta["elapsed_seconds"]:.2f}s
 
 ---
 
@@ -184,8 +216,8 @@ class POMDPBenchmarkRunner:
 
 | Metrica | LSTM PPO (Ricorrente) | MLP PPO (Stateless) | Vantaggio / Differenziale |
 | :--- | :--- | :--- | :--- |
-| **Win Rate Diretto** | **{h2h['lstm_win_rate']*100:.1f}%** | {h2h['mlp_win_rate']*100:.1f}% | {'+'+str(round((h2h['lstm_win_rate']-h2h['mlp_win_rate'])*100, 1))+'%' if h2h['lstm_win_rate'] >= h2h['mlp_win_rate'] else str(round((h2h['lstm_win_rate']-h2h['mlp_win_rate'])*100, 1))+'%'} |
-| **Score Differential Medio** | **{h2h['score_differential']:+.2f}** | {-h2h['score_differential']:+.2f} | {h2h['score_differential']:+.2f} pts |
+| **Win Rate Diretto** | **{h2h["lstm_win_rate"] * 100:.1f}%** | {h2h["mlp_win_rate"] * 100:.1f}% | {"+" + str(round((h2h["lstm_win_rate"] - h2h["mlp_win_rate"]) * 100, 1)) + "%" if h2h["lstm_win_rate"] >= h2h["mlp_win_rate"] else str(round((h2h["lstm_win_rate"] - h2h["mlp_win_rate"]) * 100, 1)) + "%"} |
+| **Score Differential Medio** | **{h2h["score_differential"]:+.2f}** | {-h2h["score_differential"]:+.2f} | {h2h["score_differential"]:+.2f} pts |
 
 ---
 
@@ -193,8 +225,8 @@ class POMDPBenchmarkRunner:
 
 | Agente | Win Rate vs Random | Win Rate vs Greedy |
 | :--- | :--- | :--- |
-| **LSTM PPO (Memory)** | **{vs_r['lstm_win_rate']*100:.1f}%** | **{vs_g['lstm_win_rate']*100:.1f}%** |
-| **MLP PPO (Stateless)** | {vs_r['mlp_win_rate']*100:.1f}% | {vs_g['mlp_win_rate']*100:.1f}% |
+| **LSTM PPO (Memory)** | **{vs_r["lstm_win_rate"] * 100:.1f}%** | **{vs_g["lstm_win_rate"] * 100:.1f}%** |
+| **MLP PPO (Stateless)** | {vs_r["mlp_win_rate"] * 100:.1f}% | {vs_g["mlp_win_rate"] * 100:.1f}% |
 
 ---
 
@@ -202,9 +234,9 @@ class POMDPBenchmarkRunner:
 
 | Indicatore Strategico | LSTM PPO | MLP PPO |
 | :--- | :--- | :--- |
-| **Ticket Completion Rate** | {beh['lstm'].get('ticket_completion_rate', 0.0)*100:.1f}% | {beh['mlp'].get('ticket_completion_rate', 0.0)*100:.1f}% |
-| **Lunghezza Media Tratta** | {beh['lstm'].get('avg_route_length', 0.0):.2f} segmenti | {beh['mlp'].get('avg_route_length', 0.0):.2f} segmenti |
-| **Numero Medio di Turni** | {beh['lstm'].get('avg_game_length_turns', beh['lstm'].get('avg_game_turns', 0.0)):.1f} turni | {beh['mlp'].get('avg_game_length_turns', beh['mlp'].get('avg_game_turns', 0.0)):.1f} turni |
+| **Ticket Completion Rate** | {beh["lstm"].get("ticket_completion_rate", 0.0) * 100:.1f}% | {beh["mlp"].get("ticket_completion_rate", 0.0) * 100:.1f}% |
+| **Lunghezza Media Tratta** | {beh["lstm"].get("avg_route_length", 0.0):.2f} segmenti | {beh["mlp"].get("avg_route_length", 0.0):.2f} segmenti |
+| **Numero Medio di Turni** | {beh["lstm"].get("avg_game_length_turns", beh["lstm"].get("avg_game_turns", 0.0)):.1f} turni | {beh["mlp"].get("avg_game_length_turns", beh["mlp"].get("avg_game_turns", 0.0)):.1f} turni |
 
 ---
 

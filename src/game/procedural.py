@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import math
 import random
-from collections import deque
 from dataclasses import dataclass
-from typing import Any
 
 from src.game.board import Board, City
 from src.game.card import CardColor
@@ -95,9 +93,7 @@ class ProceduralMapGenerator:
 
         return cities
 
-    def _generate_routes(
-        self, cities: list[City], rng: random.Random
-    ) -> list[Route]:
+    def _generate_routes(self, cities: list[City], rng: random.Random) -> list[Route]:
         n = len(cities)
         all_edges: list[tuple[float, int, int]] = []
         for i in range(n):
@@ -137,14 +133,14 @@ class ProceduralMapGenerator:
 
         # Construct Route objects
         routes: list[Route] = []
-        sorted_pairs = sorted(list(selected_pairs))
+        sorted_pairs = sorted(selected_pairs)
 
         for idx, (u, v) in enumerate(sorted_pairs):
             c_a = cities[u]
             c_b = cities[v]
             dist = math.hypot(c_a.x - c_b.x, c_a.y - c_b.y)
             # Map distance [0.15, 1.0] to length [1..6]
-            length = max(1, min(6, int(round(dist * 6.5))))
+            length = max(1, min(6, round(dist * 6.5)))
             color = STANDARD_COLORS[idx % len(STANDARD_COLORS)]
 
             r_id = f"r_{idx}_{c_a.id}_{c_b.id}"
@@ -192,24 +188,23 @@ class ProceduralMapGenerator:
                 # Dijkstra
                 dist_map = {c: float("inf") for c in city_names}
                 dist_map[src] = 0
-                visited = set()
+                visited: set[str] = set()
 
                 while len(visited) < len(city_names):
                     unvisited = {c: dist_map[c] for c in city_names if c not in visited}
                     if not unvisited:
                         break
-                    curr = min(unvisited, key=unvisited.get)
+                    curr = min(unvisited, key=lambda k: unvisited[k])
                     if dist_map[curr] == float("inf"):
                         break
                     visited.add(curr)
 
-                    for nxt, l in adj[curr]:
-                        if dist_map[curr] + l < dist_map[nxt]:
-                            dist_map[nxt] = dist_map[curr] + l
+                    for nxt, edge_len in adj[curr]:
+                        dist_map[nxt] = min(dist_map[nxt], dist_map[curr] + edge_len)
 
                 shortest_path_len = dist_map[dst]
                 if 2 <= shortest_path_len < float("inf"):
-                    points = max(2, min(22, int(round(shortest_path_len * 1.2))))
+                    points = max(2, min(22, round(shortest_path_len * 1.2)))
                     valid_ticket_pairs.append((src, dst, points))
 
         rng.shuffle(valid_ticket_pairs)
@@ -253,4 +248,3 @@ class ProceduralMapDataset:
             val_maps=val_maps,
             test_maps=test_maps,
         )
-

@@ -1,13 +1,13 @@
 """Explicit game actions."""
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from src.game.card import CardColor
 
 
-class ActionType(str, Enum):
+class ActionType(StrEnum):
     DRAW_VISIBLE_CARD = "draw_visible_card"
     DRAW_HIDDEN_CARD = "draw_hidden_card"
     CLAIM_ROUTE = "claim_route"
@@ -41,9 +41,7 @@ class Action:
             action_type=ActionType(data["action_type"]),
             card_index=data.get("card_index"),
             route_id=data.get("route_id"),
-            color_chosen=(
-                CardColor(data["color_chosen"]) if data.get("color_chosen") else None
-            ),
+            color_chosen=(CardColor(data["color_chosen"]) if data.get("color_chosen") else None),
             locomotives_count=data.get("locomotives_count", 0),
             ticket_ids=tuple(ticket_ids) if ticket_ids is not None else None,
         )

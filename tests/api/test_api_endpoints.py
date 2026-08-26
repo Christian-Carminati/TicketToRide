@@ -1,8 +1,6 @@
 """Integration tests for all FastAPI REST endpoints and WebSocket telemetry in TicketToRide RL Lab."""
 
-import pytest
 from fastapi.testclient import TestClient
-
 from src.api.main import app
 
 client = TestClient(app)
@@ -123,4 +121,3 @@ def test_websocket_telemetry_hub():
         websocket.send_text("ping")
         msg = websocket.receive_json()
         assert msg["type"] in ["ack", "training_started", "training_step", "training_finished"]
-

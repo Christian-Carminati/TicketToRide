@@ -3,8 +3,9 @@
 import asyncio
 import logging
 from typing import Any
-from fastapi import WebSocket
+
 import orjson
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 

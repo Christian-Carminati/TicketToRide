@@ -1,12 +1,12 @@
 """BrainService: Performs deep neural network and search tree introspection for the Web Lab."""
 
-from typing import Any
+from typing import Any, Literal
+
 import numpy as np
 import torch
 from torch import nn
 
 from src.api.schemas import BayesianBeliefDTO, BrainInspectionDTO, LayerActivationDTO
-from src.rl.alphazero_search import NeuralMCTSEngine
 from src.rl.lstm_ppo import RecurrentMaskedActorCritic
 from src.rl.networks import MaskedActorCritic, MaskedQNetwork
 from src.rl.opponent_model import BayesianTicketBeliefTracker
@@ -48,7 +48,9 @@ class BrainService:
 
         for idx, layer in enumerate(net.net):
             if isinstance(layer, (nn.Linear, nn.ReLU, nn.Tanh)):
-                h = layer.register_forward_hook(get_hook(f"net_layer_{idx}_{layer.__class__.__name__}"))
+                h = layer.register_forward_hook(
+                    get_hook(f"net_layer_{idx}_{layer.__class__.__name__}")
+                )
                 hooks.append(h)
 
         with torch.no_grad():
@@ -123,8 +125,8 @@ class BrainService:
                 hooks.append(h)
 
         with torch.no_grad():
-            raw_logits, val = net.forward(obs_tensor)
-            raw_logits = raw_logits.squeeze(0).cpu().numpy()
+            raw_logits_t, val = net.forward(obs_tensor)
+            raw_logits = raw_logits_t.squeeze(0).cpu().numpy()
             value_est = float(val.squeeze(0).item())
 
         for h in hooks:
@@ -134,7 +136,9 @@ class BrainService:
         masked_logits = np.where(mask_np, raw_logits, -1e9)
 
         # Softmax over masked logits
-        shifted_logits = masked_logits - np.max(masked_logits[mask_np]) if np.any(mask_np) else masked_logits
+        shifted_logits = (
+            masked_logits - np.max(masked_logits[mask_np]) if np.any(mask_np) else masked_logits
+        )
         exp_logits = np.where(mask_np, np.exp(shifted_logits), 0.0)
         sum_exp = np.sum(exp_logits)
         probs = exp_logits / sum_exp if sum_exp > 0 else np.zeros_like(exp_logits)
@@ -170,13 +174,13 @@ class BrainService:
         mask_np = np.array(action_mask, dtype=bool)
 
         priors, value_est = net.evaluate_state(obs_np, mask_np)
-        
+
         # Simulate quick MCTS search distribution
         visits = np.zeros_like(priors, dtype=int)
         valid_indices = np.where(mask_np)[0]
         if len(valid_indices) > 0:
             for idx in valid_indices:
-                visits[idx] = int(round(priors[idx] * num_simulations))
+                visits[idx] = round(priors[idx] * num_simulations)
             if np.sum(visits) == 0:
                 visits[valid_indices[0]] = num_simulations
 
@@ -227,7 +231,9 @@ class BrainService:
             value_est = float(val.squeeze().item())
 
         masked_logits = np.where(mask_np, logits_np, -1e9)
-        shifted_logits = masked_logits - np.max(masked_logits[mask_np]) if np.any(mask_np) else masked_logits
+        shifted_logits = (
+            masked_logits - np.max(masked_logits[mask_np]) if np.any(mask_np) else masked_logits
+        )
         exp_logits = np.where(mask_np, np.exp(shifted_logits), 0.0)
         sum_exp = np.sum(exp_logits)
         probs = exp_logits / sum_exp if sum_exp > 0 else np.zeros_like(exp_logits)
@@ -260,11 +266,12 @@ class BrainService:
         opponent_id: str,
     ) -> list[BayesianBeliefDTO]:
         """Extract sorted posterior ticket probabilities from Bayesian belief tracker."""
-        posteriors = belief_tracker.get_posterior_distribution(opponent_id)
+        posteriors = belief_tracker.get_ticket_probabilities(opponent_id)
         results: list[BayesianBeliefDTO] = []
 
         for ticket, prob in posteriors.items():
             prob_val = float(prob)
+            threat: Literal["critical", "high", "moderate", "low"]
             if prob_val >= 0.6:
                 threat = "critical"
             elif prob_val >= 0.35:

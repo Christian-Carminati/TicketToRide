@@ -3,37 +3,41 @@ Neural MCTS and Opponent-Aware Bayesian MCTS Agent Implementations.
 """
 
 from __future__ import annotations
-from typing import Any, Optional
+
+from typing import Any
+
 import numpy as np
 
+from src.agents.base_agent import BaseAgent
+from src.environment.action_mask import ActionMasker
+from src.environment.action_space import DiscreteActionSpace
+from src.environment.observation import ObservationV1
 from src.game.action import Action
 from src.game.board import Board
-from src.game.maps import load_usa_board
-from src.game.state import GameState
 from src.game.game import Game
+from src.game.maps import load_usa_board
 from src.game.random import SeededRNG
 from src.game.rules import GameRules
-from src.agents.base_agent import BaseAgent
-from src.environment.observation import ObservationV1
-from src.environment.action_space import DiscreteActionSpace
-from src.environment.action_mask import ActionMasker
-from src.rl.policy_value_net import PolicyValueNetwork
+from src.game.state import GameState
 from src.rl.alphazero_search import NeuralMCTSEngine
 from src.rl.opponent_model import BayesianTicketBeliefTracker, belief_weighted_determinization
+from src.rl.policy_value_net import PolicyValueNetwork
+
 
 class NeuralMCTSAgent(BaseAgent):
     """
     AlphaZero-style search agent using a PolicyValueNetwork.
     """
+
     def __init__(
         self,
-        net: Optional[PolicyValueNetwork] = None,
+        net: PolicyValueNetwork | None = None,
         num_simulations: int = 40,
         c_puct: float = 1.5,
         name: str = "NeuralMCTSAgent",
         seed: int = 42,
-        board: Optional[Board] = None,
-        tickets: Optional[list[Any]] = None,
+        board: Board | None = None,
+        tickets: list[Any] | None = None,
     ):
         super().__init__(name=name)
         default_board, default_tickets = load_usa_board()
@@ -45,10 +49,10 @@ class NeuralMCTSAgent(BaseAgent):
         self.seed = seed
         self.num_simulations = num_simulations
         self.c_puct = c_puct
-        
+
         obs_dim = self.encoder.observation_shape[0]
         action_dim = self.action_space.n
-        
+
         self.net = net or PolicyValueNetwork(
             obs_dim=obs_dim,
             action_dim=action_dim,
@@ -67,18 +71,22 @@ class NeuralMCTSAgent(BaseAgent):
     def select_action(
         self,
         observation: np.ndarray,
-        action_mask: Optional[np.ndarray] = None,
-        info: Optional[dict[str, Any]] = None,
+        action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
+        info: dict[str, Any] | None = None,
     ) -> int:
         """Gymnasium interface: select action using direct neural policy evaluation."""
         probs, _ = self.net.evaluate_state(observation, action_mask)
-        return int(np.argmax(probs))
+        if deterministic:
+            return int(np.argmax(probs))
+        # Stochastic sample
+        return int(np.random.choice(len(probs), p=probs))
 
     def act(
         self,
         state: GameState,
         valid_actions: list[Action],
-        board: Optional[Board] = None,
+        board: Board | None = None,
     ) -> Action:
         """Select domain Action by running Neural MCTS tree search."""
         if not valid_actions:
@@ -97,7 +105,7 @@ class NeuralMCTSAgent(BaseAgent):
             self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
             self.action_space = DiscreteActionSpace(board=self.board)
             self.masker = ActionMasker(self.action_space)
-        
+
         game = Game.__new__(Game)
         game.board = active_board
         game.initial_tickets = list(active_tickets)
@@ -110,17 +118,17 @@ class NeuralMCTSAgent(BaseAgent):
             game, player_id=root_player_id, is_root_exploration=False
         )
         chosen_action = self.action_space.to_action(best_action_idx)
-        
+
         # Verify action is strictly valid or fallback to most similar
         if chosen_action in valid_actions:
             return chosen_action
-            
+
         for a in valid_actions:
             if a.action_type == chosen_action.action_type:
                 return a
         return valid_actions[0]
 
-    def reset(self, seed: Optional[int] = None) -> None:
+    def reset(self, seed: int | None = None) -> None:
         if seed is not None:
             self.seed = seed
             self.engine = NeuralMCTSEngine(
@@ -132,19 +140,21 @@ class NeuralMCTSAgent(BaseAgent):
                 tickets=self.tickets,
             )
 
+
 class OpponentAwareMCTSAgent(NeuralMCTSAgent):
     """
     Neural MCTS agent enhanced with Bayesian Ticket Belief Tracking and Belief-Weighted Determinization.
     """
+
     def __init__(
         self,
-        net: Optional[PolicyValueNetwork] = None,
+        net: PolicyValueNetwork | None = None,
         num_simulations: int = 40,
         c_puct: float = 1.5,
         name: str = "OpponentAwareMCTSAgent",
         seed: int = 42,
-        board: Optional[Board] = None,
-        tickets: Optional[list[Any]] = None,
+        board: Board | None = None,
+        tickets: list[Any] | None = None,
     ):
         super().__init__(
             net=net,
@@ -155,14 +165,14 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
             board=board,
             tickets=tickets,
         )
-        self.tracker: Optional[BayesianTicketBeliefTracker] = None
+        self.tracker: BayesianTicketBeliefTracker | None = None
         self._observed_routes: set[str] = set()
 
     def act(
         self,
         state: GameState,
         valid_actions: list[Action],
-        board: Optional[Board] = None,
+        board: Board | None = None,
     ) -> Action:
         if not valid_actions:
             raise ValueError("No valid actions available for OpponentAwareMCTSAgent.")
@@ -176,7 +186,7 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
             self.encoder = ObservationV1(board=self.board, initial_tickets=self.tickets)
             self.action_space = DiscreteActionSpace(board=self.board)
             self.masker = ActionMasker(self.action_space)
-        
+
         if self.tracker is None or self.tracker.board != active_board:
             self.tracker = BayesianTicketBeliefTracker(
                 board=active_board,
@@ -200,9 +210,11 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
         game.rules = GameRules()
         game.rng = SeededRNG(self.seed)
         game.state = state.clone()
+        assert self.tracker is not None
+        tracker = self.tracker
 
         def custom_det(g: Game, pid: str, rng: SeededRNG) -> Game:
-            return belief_weighted_determinization(g, pid, self.tracker, rng)
+            return belief_weighted_determinization(g, pid, tracker, rng)
 
         best_action_idx, _, _ = self.engine.search(
             game,
@@ -211,16 +223,16 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
             custom_determinizer=custom_det,
         )
         chosen_action = self.action_space.to_action(best_action_idx)
-        
+
         if chosen_action in valid_actions:
             return chosen_action
-            
+
         for a in valid_actions:
             if a.action_type == chosen_action.action_type:
                 return a
         return valid_actions[0]
 
-    def reset(self, seed: Optional[int] = None) -> None:
+    def reset(self, seed: int | None = None) -> None:
         super().reset(seed=seed)
         self.tracker = None
         self._observed_routes.clear()
@@ -228,4 +240,3 @@ class OpponentAwareMCTSAgent(NeuralMCTSAgent):
 
 # Backward compatible / analytical naming alias
 BayesianOpponentMCTSAgent = OpponentAwareMCTSAgent
-

@@ -2,12 +2,12 @@
 
 from collections.abc import Callable
 from typing import Any
+
 import numpy as np
 import torch
 from torch import nn, optim
 from torch.distributions import Categorical
 
-from src.environment.env import TicketToRideEnv
 from src.rl.advantage import compute_gae
 from src.rl.rollout import RecurrentRolloutBuffer
 
@@ -95,14 +95,18 @@ class RecurrentMaskedActorCritic(nn.Module):
         action_mask: torch.Tensor | None = None,
         action: torch.Tensor | None = None,
         deterministic: bool = False,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    ) -> tuple[
+        torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, tuple[torch.Tensor, torch.Tensor]
+    ]:
         """Compute action, log_prob, entropy, and value with optional action masking."""
         logits, values, new_hidden = self.forward(x, hidden)
 
         if action_mask is not None:
             if action_mask.dim() == 2 and logits.dim() == 3:
                 action_mask = action_mask.unsqueeze(1)
-            masked_logits = torch.where(action_mask, logits, torch.tensor(-1e8, device=logits.device))
+            masked_logits = torch.where(
+                action_mask, logits, torch.tensor(-1e8, device=logits.device)
+            )
         else:
             masked_logits = logits
 
@@ -134,7 +138,7 @@ class MaskedRecurrentPPOTrainer:
 
     def __init__(
         self,
-        env: TicketToRideEnv,
+        env: Any,
         config: dict[str, Any] | None = None,
         seed: int | None = None,
     ) -> None:
@@ -170,8 +174,9 @@ class MaskedRecurrentPPOTrainer:
         if self.device == "cpu" and torch.get_num_threads() > 2:
             torch.set_num_threads(2)
 
-        obs_dim = self.env.observation_space.shape[0]
-        action_dim = int(self.env.action_space.n)
+        obs_shape = self.env.observation_space.shape
+        obs_dim = obs_shape[0] if obs_shape is not None else 180
+        action_dim = int(getattr(self.env.action_space, "n", 150))
 
         self.actor_critic = RecurrentMaskedActorCritic(
             input_dim=obs_dim,
@@ -203,7 +208,7 @@ class MaskedRecurrentPPOTrainer:
             obs_tensor = torch.from_numpy(self.current_obs).unsqueeze(0).to(device=self.device)
             mask_np = self.current_info.get("action_mask")
             if mask_np is None:
-                mask_np = np.ones(self.env.action_space.n, dtype=bool)
+                mask_np = np.ones(int(getattr(self.env.action_space, "n", 150)), dtype=bool)
             mask_tensor = torch.from_numpy(mask_np).unsqueeze(0).to(device=self.device)
 
             h_step = self.current_hidden[0][0, 0].cpu().numpy().copy()
@@ -245,7 +250,9 @@ class MaskedRecurrentPPOTrainer:
                 current_ep_reward = 0.0
                 self.current_obs, self.current_info = self.env.reset()
                 # Boundary reset on done
-                self.current_hidden = self.actor_critic.get_initial_hidden(batch_size=1, device=self.device)
+                self.current_hidden = self.actor_critic.get_initial_hidden(
+                    batch_size=1, device=self.device
+                )
             else:
                 self.current_obs = next_obs
                 self.current_info = next_info
@@ -257,9 +264,13 @@ class MaskedRecurrentPPOTrainer:
             last_val_tensor, _ = self.actor_critic.get_value(last_obs_tensor, self.current_hidden)
             last_value = float(last_val_tensor.item())
 
-        rewards = np.array(self.rollout_buffer.rewards_buf[:self.rollout_buffer.size], dtype=np.float32)
-        values = np.array(self.rollout_buffer.values_buf[:self.rollout_buffer.size], dtype=np.float32)
-        dones = np.array(self.rollout_buffer.dones_buf[:self.rollout_buffer.size], dtype=bool)
+        rewards = np.array(
+            self.rollout_buffer.rewards_buf[: self.rollout_buffer.size], dtype=np.float32
+        )
+        values = np.array(
+            self.rollout_buffer.values_buf[: self.rollout_buffer.size], dtype=np.float32
+        )
+        dones = np.array(self.rollout_buffer.dones_buf[: self.rollout_buffer.size], dtype=bool)
 
         advantages, returns = compute_gae(
             rewards=rewards,
@@ -342,7 +353,9 @@ class MaskedRecurrentPPOTrainer:
 
             # Value loss
             if self.clip_vloss:
-                v_clipped = old_values + torch.clamp(new_values - old_values, -self.vf_clip_eps, self.vf_clip_eps)
+                v_clipped = old_values + torch.clamp(
+                    new_values - old_values, -self.vf_clip_eps, self.vf_clip_eps
+                )
                 v_loss1 = (new_values - returns) ** 2
                 v_loss2 = (v_clipped - returns) ** 2
                 v_loss = 0.5 * torch.max(v_loss1, v_loss2).mean()

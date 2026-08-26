@@ -41,9 +41,7 @@ def test_double_route_blocking_2_players():
     state = GameState(num_players=2)
 
     # In 2-player game, r2 should not be claimable because parallel r1 is claimed
-    assert (
-        GameRules.can_claim_route(r2, player1, state, board, num_players=2) is False
-    )
+    assert GameRules.can_claim_route(r2, player1, state, board, num_players=2) is False
 
     # In 4-player game, r2 IS claimable by a different player (player1)
     player1.add_card(TrainCard(color=CardColor.BLUE))
@@ -72,13 +70,9 @@ def test_valid_actions_in_drawing_second_card_state():
 
     # In DRAWING_SECOND_CARD, drawing visible locomotive is illegal
     assert any(a.action_type == ActionType.DRAW_HIDDEN_CARD for a in actions)
-    assert any(
-        a.action_type == ActionType.DRAW_VISIBLE_CARD and a.card_index == 0
-        for a in actions
-    )
+    assert any(a.action_type == ActionType.DRAW_VISIBLE_CARD and a.card_index == 0 for a in actions)
     assert not any(
-        a.action_type == ActionType.DRAW_VISIBLE_CARD and a.card_index == 1
-        for a in actions
+        a.action_type == ActionType.DRAW_VISIBLE_CARD and a.card_index == 1 for a in actions
     )
     assert not any(a.action_type == ActionType.CLAIM_ROUTE for a in actions)
 
@@ -93,9 +87,7 @@ def test_valid_actions_in_choosing_tickets_state():
 
     # Initial tickets: must keep at least 2
     state_initial = GameState(turn_state=TurnState.CHOOSING_INITIAL_TICKETS)
-    actions_init = GameRules.get_valid_actions(
-        player, state_initial, board, num_players=2
-    )
+    actions_init = GameRules.get_valid_actions(player, state_initial, board, num_players=2)
     assert len(actions_init) == 4  # 3 combinations of 2 + 1 combination of 3
     for a in actions_init:
         assert a.action_type == ActionType.KEEP_TICKETS

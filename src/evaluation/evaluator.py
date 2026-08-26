@@ -97,7 +97,7 @@ class Evaluator:
             game_seed = run_seed + game_idx
             # Alternate player seats: even games -> (A is player 0, B is player 1)
             #                       odd games -> (B is player 0, A is player 1)
-            is_a_first = (game_idx % 2 == 0)
+            is_a_first = game_idx % 2 == 0
             p0_agent = a if is_a_first else b
             p1_agent = b if is_a_first else a
 
@@ -141,14 +141,10 @@ class Evaluator:
             p_a = p0 if is_a_first else p1
             p_b = p1 if is_a_first else p0
             routes_a = [
-                game.board.get_route(rid)
-                for rid in p_a.claimed_route_ids
-                if game.board.get_route(rid) is not None
+                r for rid in p_a.claimed_route_ids if (r := game.board.get_route(rid)) is not None
             ]
             routes_b = [
-                game.board.get_route(rid)
-                for rid in p_b.claimed_route_ids
-                if game.board.get_route(rid) is not None
+                r for rid in p_b.claimed_route_ids if (r := game.board.get_route(rid)) is not None
             ]
 
             tickets_drawn_a += len(p_a.tickets)
@@ -209,5 +205,4 @@ class Evaluator:
         }
 
 
-__all__ = ["Evaluator", "EvaluationResult"]
-
+__all__ = ["EvaluationResult", "Evaluator"]

@@ -1,7 +1,6 @@
 """Phase 11 Acceptance Test Suite for MCTS & Heuristic Rollout."""
 
 from pathlib import Path
-import pytest
 
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.mcts_agent import MCTSAgent
@@ -25,9 +24,9 @@ def test_phase11_acceptance_mcts_beats_random():
     random_agent = RandomAgent(name="RandomAgent")
 
     res = evaluator.evaluate(agent_a=mcts, agent_b=random_agent, num_games=10, seed=42)
-    assert (
-        res.agent_a_win_rate >= 0.80
-    ), f"MCTS win rate vs Random too low: {res.agent_a_win_rate*100:.1f}%"
+    assert res.agent_a_win_rate >= 0.80, (
+        f"MCTS win rate vs Random too low: {res.agent_a_win_rate * 100:.1f}%"
+    )
 
 
 def test_phase11_acceptance_mcts_beats_greedy():
@@ -43,9 +42,9 @@ def test_phase11_acceptance_mcts_beats_greedy():
     greedy = GreedyAgent(name="GreedyAgent")
 
     res = evaluator.evaluate(agent_a=mcts, agent_b=greedy, num_games=10, seed=42)
-    assert (
-        res.agent_a_win_rate >= 0.60
-    ), f"MCTS win rate vs Greedy too low: {res.agent_a_win_rate*100:.1f}%"
+    assert res.agent_a_win_rate >= 0.60, (
+        f"MCTS win rate vs Greedy too low: {res.agent_a_win_rate * 100:.1f}%"
+    )
 
 
 def test_phase11_acceptance_mcts_competitive_with_strategic():
@@ -61,9 +60,9 @@ def test_phase11_acceptance_mcts_competitive_with_strategic():
     strategic = StrategicAgent(name="StrategicAgent")
 
     res = evaluator.evaluate(agent_a=mcts, agent_b=strategic, num_games=10, seed=42)
-    assert (
-        res.agent_a_win_rate >= 0.50
-    ), f"MCTS win rate vs Strategic too low: {res.agent_a_win_rate*100:.1f}% (scores: MCTS={res.metrics_a.avg_score:.1f}, Strategic={res.metrics_b.avg_score:.1f})"
+    assert res.agent_a_win_rate >= 0.50, (
+        f"MCTS win rate vs Strategic too low: {res.agent_a_win_rate * 100:.1f}% (scores: MCTS={res.metrics_a.avg_score:.1f}, Strategic={res.metrics_b.avg_score:.1f})"
+    )
 
 
 def test_phase11_acceptance_benchmark_runner(tmp_path: Path):

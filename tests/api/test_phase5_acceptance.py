@@ -1,6 +1,5 @@
 """End-to-end Phase 5 Acceptance Test Suite for Ticket to Ride RL Web Lab."""
 
-import pytest
 from fastapi.testclient import TestClient
 from src.api.main import app
 

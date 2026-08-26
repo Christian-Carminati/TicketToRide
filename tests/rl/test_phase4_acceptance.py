@@ -1,9 +1,7 @@
 """Phase 4 Acceptance Test Suite: DQN, PPO, and Multi-Opponent Benchmarks."""
 
 import numpy as np
-import pytest
 import torch
-
 from src.agents.dqn_agent import DQNAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
@@ -61,7 +59,9 @@ def test_phase4_dqn_beats_random_acceptance() -> None:
         num_games=50,
     )
 
-    print(f"\nDQN vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}")
+    print(
+        f"\nDQN vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}"
+    )
     assert results["agent_a_win_rate"] >= 0.65, (
         f"DQN win rate {results['agent_a_win_rate']} must be >= 0.65"
     )
@@ -113,7 +113,9 @@ def test_phase4_ppo_beats_random_acceptance() -> None:
         num_games=40,
     )
 
-    print(f"\nPPO vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}")
+    print(
+        f"\nPPO vs Random win rate: {results['agent_a_win_rate']:.2f}, score: {results['agent_a_mean_score']:.1f} vs {results['agent_b_mean_score']:.1f}"
+    )
     assert results["agent_a_win_rate"] >= 0.65, (
         f"PPO win rate {results['agent_a_win_rate']} must be >= 0.65"
     )

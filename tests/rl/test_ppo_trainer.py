@@ -2,8 +2,6 @@ import os
 import tempfile
 
 import numpy as np
-import torch
-
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
 from src.game.maps import create_synthetic_mini_board
@@ -28,7 +26,7 @@ def test_ppo_trainer_rollout_and_train_epoch() -> None:
 
     trainer = MaskedPPOTrainer(env=env, config=config)
 
-    rollout_metrics = trainer.collect_rollout()
+    trainer.collect_rollout()
     assert len(trainer.rollout_buffer) == 64
 
     train_metrics = trainer.train_epoch()

@@ -1,6 +1,7 @@
 """Generalized Advantage Estimation (GAE) for Actor-Critic methods."""
 
 from collections.abc import Sequence
+
 import numpy as np
 
 
@@ -82,4 +83,3 @@ def compute_gae_vectorized(
 
     returns = advantages + values
     return advantages, returns
-

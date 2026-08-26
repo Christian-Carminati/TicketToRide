@@ -27,9 +27,6 @@ __all__ = [
     "PPOTrainer",
     "PolicyPool",
     "PolicySnapshot",
-    "SelfPlayOpponentSampler",
-    "SelfPlayPPOTrainer",
-    "SelfPlayRecurrentPPOTrainer",
     "QNetworkMLP",
     "RecurrentMaskedActorCritic",
     "RecurrentPPOActorCritic",
@@ -37,5 +34,8 @@ __all__ = [
     "RecurrentRolloutBuffer",
     "ReplayBuffer",
     "RolloutBuffer",
+    "SelfPlayOpponentSampler",
+    "SelfPlayPPOTrainer",
+    "SelfPlayRecurrentPPOTrainer",
     "compute_gae",
 ]

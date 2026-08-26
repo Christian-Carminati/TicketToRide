@@ -52,7 +52,9 @@ class MCTSAgent(BaseAgent):
         root_player_id = curr_p.id if curr_p else "player_0"
 
         # Reconstruct Game context for search engine
-        active_board = board if board is not None else (self.board if self.board is not None else Board())
+        active_board = (
+            board if board is not None else (self.board if self.board is not None else Board())
+        )
         active_tickets = self.tickets if self.tickets is not None else []
         game = Game.__new__(Game)
         game.board = active_board
@@ -77,6 +79,7 @@ class MCTSAgent(BaseAgent):
         self,
         observation: np.ndarray,
         action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         """Select action index for Gymnasium environments."""

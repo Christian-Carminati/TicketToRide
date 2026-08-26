@@ -4,6 +4,7 @@ import datetime
 import os
 import threading
 from typing import Any
+
 import torch
 
 from src.agents.base_agent import BaseAgent
@@ -45,7 +46,9 @@ class TournamentService:
     def set_connection_manager(self, connection_manager: Any) -> None:
         self.connection_manager = connection_manager
 
-    def get_available_participants(self, ckpt_dir: str | None = None) -> list[TournamentParticipantOptionDTO]:
+    def get_available_participants(
+        self, ckpt_dir: str | None = None
+    ) -> list[TournamentParticipantOptionDTO]:
         """Discover all baseline bots and saved model checkpoints available for tournament play."""
         options: list[TournamentParticipantOptionDTO] = [
             TournamentParticipantOptionDTO(
@@ -103,7 +106,11 @@ class TournamentService:
         if os.path.exists(target_dir):
             files = sorted(
                 [f for f in os.listdir(target_dir) if f.endswith(".pt")],
-                key=lambda x: os.path.getmtime(os.path.join(target_dir, x)) if os.path.exists(os.path.join(target_dir, x)) else 0,
+                key=lambda x: (
+                    os.path.getmtime(os.path.join(target_dir, x))
+                    if os.path.exists(os.path.join(target_dir, x))
+                    else 0
+                ),
                 reverse=True,
             )
             for fname in files:
@@ -153,25 +160,185 @@ class TournamentService:
     def _create_baseline_cache(self) -> TournamentLeaderboardDTO:
         """Create an initial baseline leaderboard immediately on startup."""
         agents = [
-            TournamentAgentDTO(agent_id="alphazero_puct", name="AlphaZero PUCT", elo=1620.0, win_rate=0.88, wins=44, losses=5, draws=1, avg_score=134.5, total_games=50),
-            TournamentAgentDTO(agent_id="bayesian_mcts", name="Bayesian MCTS", elo=1540.0, win_rate=0.82, wins=41, losses=8, draws=1, avg_score=126.8, total_games=50),
-            TournamentAgentDTO(agent_id="recurrent_ppo_lstm", name="Recurrent PPO (LSTM)", elo=1480.0, win_rate=0.76, wins=38, losses=11, draws=1, avg_score=121.2, total_games=50),
-            TournamentAgentDTO(agent_id="ppo_masked_ac", name="PPO Masked AC", elo=1420.0, win_rate=0.70, wins=35, losses=13, draws=2, avg_score=114.4, total_games=50),
-            TournamentAgentDTO(agent_id="dqn_masked_q_net", name="DQN Masked Q-Net", elo=1280.0, win_rate=0.56, wins=28, losses=20, draws=2, avg_score=94.2, total_games=50),
-            TournamentAgentDTO(agent_id="strategic_heuristic", name="Strategic Heuristic", elo=1210.0, win_rate=0.48, wins=24, losses=24, draws=2, avg_score=82.5, total_games=50),
-            TournamentAgentDTO(agent_id="greedy_score_bot", name="Greedy Score Bot", elo=1060.0, win_rate=0.32, wins=16, losses=32, draws=2, avg_score=56.1, total_games=50),
-            TournamentAgentDTO(agent_id="uniform_random", name="Uniform Random", elo=800.0, win_rate=0.08, wins=4, losses=45, draws=1, avg_score=21.4, total_games=50),
+            TournamentAgentDTO(
+                agent_id="alphazero_puct",
+                name="AlphaZero PUCT",
+                elo=1620.0,
+                win_rate=0.88,
+                wins=44,
+                losses=5,
+                draws=1,
+                avg_score=134.5,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="bayesian_mcts",
+                name="Bayesian MCTS",
+                elo=1540.0,
+                win_rate=0.82,
+                wins=41,
+                losses=8,
+                draws=1,
+                avg_score=126.8,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="recurrent_ppo_lstm",
+                name="Recurrent PPO (LSTM)",
+                elo=1480.0,
+                win_rate=0.76,
+                wins=38,
+                losses=11,
+                draws=1,
+                avg_score=121.2,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="ppo_masked_ac",
+                name="PPO Masked AC",
+                elo=1420.0,
+                win_rate=0.70,
+                wins=35,
+                losses=13,
+                draws=2,
+                avg_score=114.4,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="dqn_masked_q_net",
+                name="DQN Masked Q-Net",
+                elo=1280.0,
+                win_rate=0.56,
+                wins=28,
+                losses=20,
+                draws=2,
+                avg_score=94.2,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="strategic_heuristic",
+                name="Strategic Heuristic",
+                elo=1210.0,
+                win_rate=0.48,
+                wins=24,
+                losses=24,
+                draws=2,
+                avg_score=82.5,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="greedy_score_bot",
+                name="Greedy Score Bot",
+                elo=1060.0,
+                win_rate=0.32,
+                wins=16,
+                losses=32,
+                draws=2,
+                avg_score=56.1,
+                total_games=50,
+            ),
+            TournamentAgentDTO(
+                agent_id="uniform_random",
+                name="Uniform Random",
+                elo=800.0,
+                win_rate=0.08,
+                wins=4,
+                losses=45,
+                draws=1,
+                avg_score=21.4,
+                total_games=50,
+            ),
         ]
 
         matchups: list[TournamentMatchupDTO] = [
-            TournamentMatchupDTO(agent_a="AlphaZero PUCT", agent_b="PPO Masked AC", wins_a=16, wins_b=3, draws=1, win_rate_a=0.825, avg_score_a=138.2, avg_score_b=110.4, games_played=20),
-            TournamentMatchupDTO(agent_a="AlphaZero PUCT", agent_b="Strategic Heuristic", wins_a=18, wins_b=2, draws=0, win_rate_a=0.90, avg_score_a=142.1, avg_score_b=78.2, games_played=20),
-            TournamentMatchupDTO(agent_a="Bayesian MCTS", agent_b="Recurrent PPO (LSTM)", wins_a=12, wins_b=7, draws=1, win_rate_a=0.625, avg_score_a=128.5, avg_score_b=118.9, games_played=20),
-            TournamentMatchupDTO(agent_a="Recurrent PPO (LSTM)", agent_b="PPO Masked AC", wins_a=13, wins_b=6, draws=1, win_rate_a=0.675, avg_score_a=122.4, avg_score_b=109.8, games_played=20),
-            TournamentMatchupDTO(agent_a="PPO Masked AC", agent_b="Strategic Heuristic", wins_a=14, wins_b=5, draws=1, win_rate_a=0.725, avg_score_a=118.2, avg_score_b=82.4, games_played=20),
-            TournamentMatchupDTO(agent_a="DQN Masked Q-Net", agent_b="Strategic Heuristic", wins_a=11, wins_b=8, draws=1, win_rate_a=0.575, avg_score_a=96.1, avg_score_b=86.2, games_played=20),
-            TournamentMatchupDTO(agent_a="Strategic Heuristic", agent_b="Greedy Score Bot", wins_a=15, wins_b=4, draws=1, win_rate_a=0.775, avg_score_a=88.6, avg_score_b=58.2, games_played=20),
-            TournamentMatchupDTO(agent_a="Greedy Score Bot", agent_b="Uniform Random", wins_a=18, wins_b=2, draws=0, win_rate_a=0.90, avg_score_a=62.4, avg_score_b=24.1, games_played=20),
+            TournamentMatchupDTO(
+                agent_a="AlphaZero PUCT",
+                agent_b="PPO Masked AC",
+                wins_a=16,
+                wins_b=3,
+                draws=1,
+                win_rate_a=0.825,
+                avg_score_a=138.2,
+                avg_score_b=110.4,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="AlphaZero PUCT",
+                agent_b="Strategic Heuristic",
+                wins_a=18,
+                wins_b=2,
+                draws=0,
+                win_rate_a=0.90,
+                avg_score_a=142.1,
+                avg_score_b=78.2,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="Bayesian MCTS",
+                agent_b="Recurrent PPO (LSTM)",
+                wins_a=12,
+                wins_b=7,
+                draws=1,
+                win_rate_a=0.625,
+                avg_score_a=128.5,
+                avg_score_b=118.9,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="Recurrent PPO (LSTM)",
+                agent_b="PPO Masked AC",
+                wins_a=13,
+                wins_b=6,
+                draws=1,
+                win_rate_a=0.675,
+                avg_score_a=122.4,
+                avg_score_b=109.8,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="PPO Masked AC",
+                agent_b="Strategic Heuristic",
+                wins_a=14,
+                wins_b=5,
+                draws=1,
+                win_rate_a=0.725,
+                avg_score_a=118.2,
+                avg_score_b=82.4,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="DQN Masked Q-Net",
+                agent_b="Strategic Heuristic",
+                wins_a=11,
+                wins_b=8,
+                draws=1,
+                win_rate_a=0.575,
+                avg_score_a=96.1,
+                avg_score_b=86.2,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="Strategic Heuristic",
+                agent_b="Greedy Score Bot",
+                wins_a=15,
+                wins_b=4,
+                draws=1,
+                win_rate_a=0.775,
+                avg_score_a=88.6,
+                avg_score_b=58.2,
+                games_played=20,
+            ),
+            TournamentMatchupDTO(
+                agent_a="Greedy Score Bot",
+                agent_b="Uniform Random",
+                wins_a=18,
+                wins_b=2,
+                draws=0,
+                win_rate_a=0.90,
+                avg_score_a=62.4,
+                avg_score_b=24.1,
+                games_played=20,
+            ),
         ]
 
         return TournamentLeaderboardDTO(
@@ -190,26 +357,38 @@ class TournamentService:
             self._cached_leaderboard.available_participants = self.get_available_participants()
             return self._cached_leaderboard
 
-    def _build_agent(self, participant: TournamentParticipantOptionDTO, board: Any, tickets: list[Any]) -> BaseAgent:
+    def _build_agent(
+        self, participant: TournamentParticipantOptionDTO, board: Any, tickets: list[Any]
+    ) -> BaseAgent:
         algo = participant.algorithm.lower()
         if algo == "alphazero":
-            agent_az = NeuralMCTSAgent(name=participant.name, num_simulations=10, board=board, tickets=tickets)
+            agent_az = NeuralMCTSAgent(
+                name=participant.name, num_simulations=10, board=board, tickets=tickets
+            )
             if participant.checkpoint_path and os.path.exists(participant.checkpoint_path):
                 try:
-                    agent_az.net.load_state_dict(torch.load(participant.checkpoint_path, map_location="cpu"))
+                    agent_az.net.load_state_dict(
+                        torch.load(participant.checkpoint_path, map_location="cpu")
+                    )
                 except Exception as e:
                     print(f"Failed to load AlphaZero checkpoint {participant.checkpoint_path}: {e}")
             return agent_az
         elif algo == "bayesian_mcts":
-            return BayesianOpponentMCTSAgent(name=participant.name, num_simulations=10, board=board, tickets=tickets)
+            return BayesianOpponentMCTSAgent(
+                name=participant.name, num_simulations=10, board=board, tickets=tickets
+            )
         elif algo == "mcts":
-            return MCTSAgent(name=participant.name, num_simulations=10, board=board, tickets=tickets)
+            return MCTSAgent(
+                name=participant.name, num_simulations=10, board=board, tickets=tickets
+            )
         elif algo in ("recurrent_ppo", "lstm_ppo"):
             return RecurrentPPOAgent(
                 name=participant.name,
                 board=board,
                 tickets=tickets,
-                model_or_path=participant.checkpoint_path if participant.checkpoint_path and os.path.exists(participant.checkpoint_path) else None,
+                model_or_path=participant.checkpoint_path
+                if participant.checkpoint_path and os.path.exists(participant.checkpoint_path)
+                else None,
             )
         elif algo == "strategic":
             return StrategicAgent(name=participant.name)
@@ -262,7 +441,9 @@ class TournamentService:
         if participant_ids and len(participant_ids) >= 2:
             selected_options = [p for p in all_available if p.id in participant_ids]
         else:
-            selected_options = [p for p in all_available if p.category == "baseline" or "live_latest" in p.id]
+            selected_options = [
+                p for p in all_available if p.category == "baseline" or "live_latest" in p.id
+            ]
             if len(selected_options) < 2:
                 selected_options = all_available[:6]
 
@@ -272,8 +453,7 @@ class TournamentService:
             board, tickets = load_usa_board()
 
         agents: list[BaseAgent] = [
-            self._build_agent(opt, board=board, tickets=tickets)
-            for opt in selected_options
+            self._build_agent(opt, board=board, tickets=tickets) for opt in selected_options
         ]
 
         total_pairings = (len(agents) * (len(agents) - 1)) // 2
@@ -291,10 +471,12 @@ class TournamentService:
             )
 
         if self.connection_manager:
-            self.connection_manager.broadcast_sync({
-                "type": "tournament_progress",
-                **self._progress.model_dump(),
-            })
+            self.connection_manager.broadcast_sync(
+                {
+                    "type": "tournament_progress",
+                    **self._progress.model_dump(),
+                }
+            )
 
         def on_progress(ev: dict[str, Any]) -> None:
             now = datetime.datetime.now()
@@ -342,10 +524,12 @@ class TournamentService:
                 )
 
             if self.connection_manager:
-                self.connection_manager.broadcast_sync({
-                    "type": "tournament_progress",
-                    **self._progress.model_dump(),
-                })
+                self.connection_manager.broadcast_sync(
+                    {
+                        "type": "tournament_progress",
+                        **self._progress.model_dump(),
+                    }
+                )
 
         try:
             tourney = Tournament(
@@ -418,11 +602,15 @@ class TournamentService:
                     total_matches=total_pairings,
                     status="idle",
                     percentage=100.0,
-                    elapsed_seconds=round((datetime.datetime.now() - start_time).total_seconds(), 1),
+                    elapsed_seconds=round(
+                        (datetime.datetime.now() - start_time).total_seconds(), 1
+                    ),
                     estimated_remaining_seconds=0.0,
                 )
             if self.connection_manager:
-                self.connection_manager.broadcast_sync({
-                    "type": "tournament_progress",
-                    **self._progress.model_dump(),
-                })
+                self.connection_manager.broadcast_sync(
+                    {
+                        "type": "tournament_progress",
+                        **self._progress.model_dump(),
+                    }
+                )

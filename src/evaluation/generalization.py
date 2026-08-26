@@ -190,7 +190,9 @@ class GeneralizationBenchmarkRunner:
             tickets=ref_tickets,
             name="PPO_SingleMap",
         )
-        ppo_single_res = evaluator.evaluate_agent_generalization(ppo_single_agent, opponent=random_agent)
+        ppo_single_res = evaluator.evaluate_agent_generalization(
+            ppo_single_agent, opponent=random_agent
+        )
 
         # 3. Train Multi-Map RL Agent (Trained on full Train Split)
         env_multi = MultiMapTicketToRideEnv(
@@ -209,7 +211,9 @@ class GeneralizationBenchmarkRunner:
             tickets=ref_tickets,
             name="PPO_MultiMap",
         )
-        ppo_multi_res = evaluator.evaluate_agent_generalization(ppo_multi_agent, opponent=random_agent)
+        ppo_multi_res = evaluator.evaluate_agent_generalization(
+            ppo_multi_agent, opponent=random_agent
+        )
 
         # 4. Official Boards Cross-Map Study (USA vs Europe)
         usa_board, usa_tickets = load_usa_board()
@@ -218,8 +222,12 @@ class GeneralizationBenchmarkRunner:
         usa_evaluator = Evaluator(board=usa_board, tickets_deck=usa_tickets, seed=self.seed)
         eur_evaluator = Evaluator(board=eur_board, tickets_deck=eur_tickets, seed=self.seed)
 
-        strat_vs_greedy_usa = usa_evaluator.evaluate(strategic_agent, greedy_agent, num_games=self.games_per_map)
-        strat_vs_greedy_eur = eur_evaluator.evaluate(strategic_agent, greedy_agent, num_games=self.games_per_map)
+        strat_vs_greedy_usa = usa_evaluator.evaluate(
+            strategic_agent, greedy_agent, num_games=self.games_per_map
+        )
+        strat_vs_greedy_eur = eur_evaluator.evaluate(
+            strategic_agent, greedy_agent, num_games=self.games_per_map
+        )
 
         elapsed = time.time() - start_time
 
@@ -268,13 +276,13 @@ class GeneralizationBenchmarkRunner:
 
         md_content = f"""# Relazione Scientifica: Studio di Generalizzazione su Mappe Procedurali e Mappa Europa
 
-**Versione Studio:** Fase 10  
-**Data:** 2026-08-21  
-**Mappe di Addestramento:** {meta['train_maps_count']} mappe procedurali  
-**Mappe di Test Inedite:** {meta['test_maps_count']} mappe procedurali mai viste  
-**Mappe Ufficiali:** USA e Europa  
-**Seed Deterministico:** {meta['seed']}  
-**Tempo di Calcolo:** {meta['elapsed_seconds']:.2f}s  
+**Versione Studio:** Fase 10
+**Data:** 2026-08-21
+**Mappe di Addestramento:** {meta["train_maps_count"]} mappe procedurali
+**Mappe di Test Inedite:** {meta["test_maps_count"]} mappe procedurali mai viste
+**Mappe Ufficiali:** USA e Europa
+**Seed Deterministico:** {meta["seed"]}
+**Tempo di Calcolo:** {meta["elapsed_seconds"]:.2f}s
 
 ---
 
@@ -282,10 +290,10 @@ class GeneralizationBenchmarkRunner:
 
 | Agente | Punteggio Train | Punteggio Test | Generalization Gap (Δgen) | Retention Rate | Win Rate Unseen |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **StrategicBot (Heuristic)** | {heur['strategic']['train_map_score']:.1f} | {heur['strategic']['unseen_map_score']:.1f} | {heur['strategic']['generalization_gap']:+.1f} | **{heur['strategic']['retention_rate']:.1f}%** | {heur['strategic']['unseen_win_rate']*100:.1f}% |
-| **GreedyBot (Heuristic)** | {heur['greedy']['train_map_score']:.1f} | {heur['greedy']['unseen_map_score']:.1f} | {heur['greedy']['generalization_gap']:+.1f} | **{heur['greedy']['retention_rate']:.1f}%** | {heur['greedy']['unseen_win_rate']*100:.1f}% |
-| **PPO Multi-Map (Generalist)** | {rl['ppo_multi_map']['train_map_score']:.1f} | {rl['ppo_multi_map']['unseen_map_score']:.1f} | {rl['ppo_multi_map']['generalization_gap']:+.1f} | **{rl['ppo_multi_map']['retention_rate']:.1f}%** | {rl['ppo_multi_map']['unseen_win_rate']*100:.1f}% |
-| **PPO Single-Map (Overfitting)** | {rl['ppo_single_map']['train_map_score']:.1f} | {rl['ppo_single_map']['unseen_map_score']:.1f} | {rl['ppo_single_map']['generalization_gap']:+.1f} | **{rl['ppo_single_map']['retention_rate']:.1f}%** | {rl['ppo_single_map']['unseen_win_rate']*100:.1f}% |
+| **StrategicBot (Heuristic)** | {heur["strategic"]["train_map_score"]:.1f} | {heur["strategic"]["unseen_map_score"]:.1f} | {heur["strategic"]["generalization_gap"]:+.1f} | **{heur["strategic"]["retention_rate"]:.1f}%** | {heur["strategic"]["unseen_win_rate"] * 100:.1f}% |
+| **GreedyBot (Heuristic)** | {heur["greedy"]["train_map_score"]:.1f} | {heur["greedy"]["unseen_map_score"]:.1f} | {heur["greedy"]["generalization_gap"]:+.1f} | **{heur["greedy"]["retention_rate"]:.1f}%** | {heur["greedy"]["unseen_win_rate"] * 100:.1f}% |
+| **PPO Multi-Map (Generalist)** | {rl["ppo_multi_map"]["train_map_score"]:.1f} | {rl["ppo_multi_map"]["unseen_map_score"]:.1f} | {rl["ppo_multi_map"]["generalization_gap"]:+.1f} | **{rl["ppo_multi_map"]["retention_rate"]:.1f}%** | {rl["ppo_multi_map"]["unseen_win_rate"] * 100:.1f}% |
+| **PPO Single-Map (Overfitting)** | {rl["ppo_single_map"]["train_map_score"]:.1f} | {rl["ppo_single_map"]["unseen_map_score"]:.1f} | {rl["ppo_single_map"]["generalization_gap"]:+.1f} | **{rl["ppo_single_map"]["retention_rate"]:.1f}%** | {rl["ppo_single_map"]["unseen_win_rate"] * 100:.1f}% |
 
 ---
 
@@ -293,7 +301,7 @@ class GeneralizationBenchmarkRunner:
 
 | Confronto (Strategic vs Greedy) | Win Rate USA | Win Rate Europa | Punteggio USA | Punteggio Europa |
 | :--- | :--- | :--- | :--- | :--- |
-| **StrategicBot vs GreedyBot** | **{off['strategic_usa_win_rate']*100:.1f}%** | **{off['strategic_europe_win_rate']*100:.1f}%** | {off['strategic_usa_avg_score']:.1f} | {off['strategic_europe_avg_score']:.1f} |
+| **StrategicBot vs GreedyBot** | **{off["strategic_usa_win_rate"] * 100:.1f}%** | **{off["strategic_europe_win_rate"] * 100:.1f}%** | {off["strategic_usa_avg_score"]:.1f} | {off["strategic_europe_avg_score"]:.1f} |
 
 ---
 

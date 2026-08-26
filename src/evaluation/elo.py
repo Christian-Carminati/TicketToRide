@@ -1,7 +1,6 @@
 """Elo rating calculations for multi-agent tournament ranking."""
 
 
-
 class EloSystem:
     """Computes and updates Elo ratings for agents."""
 
@@ -14,7 +13,7 @@ class EloSystem:
         return self.ratings.get(agent_id, self.initial_rating)
 
     def expected_score(self, rating_a: float, rating_b: float) -> float:
-        return 1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0))
+        return float(1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0)))
 
     def update(self, agent_a: str, agent_b: str, score_a: float) -> None:
         """Update Elo after a match. score_a is 1.0 (win), 0.5 (draw), or 0.0 (loss)."""

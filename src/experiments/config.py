@@ -1,7 +1,5 @@
 """Experiment Configuration schemas using Pydantic."""
 
-from typing import Any
-
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -103,7 +101,7 @@ class ExperimentConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str) -> "ExperimentConfig":
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         return cls(**data)
 

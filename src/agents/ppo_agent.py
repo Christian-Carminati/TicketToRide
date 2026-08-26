@@ -46,7 +46,9 @@ class PPOAgent(BaseAgent):
                 discrete_actions = DiscreteActionSpace(board=board)
         self.encoder = encoder
         self.discrete_actions = discrete_actions
-        self.masker = ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
+        self.masker = (
+            ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
+        )
         if ac is not None:
             self.actor_critic = ac.to(device)
         else:
@@ -59,11 +61,11 @@ class PPOAgent(BaseAgent):
         if model_path is not None:
             self.load(model_path)
 
-
     def select_action(
         self,
         observation: np.ndarray,
         action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         obs_tensor = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -75,7 +77,7 @@ class PPOAgent(BaseAgent):
 
         with torch.no_grad():
             action, _, _, _ = self.actor_critic.get_action_and_value(
-                obs_tensor, action_mask=mask_tensor, deterministic=True
+                obs_tensor, action_mask=mask_tensor, deterministic=deterministic
             )
         return int(action.item())
 
@@ -88,7 +90,11 @@ class PPOAgent(BaseAgent):
         if not valid_actions:
             raise ValueError("No valid actions available")
 
-        if self.encoder is not None and self.discrete_actions is not None and self.masker is not None:
+        if (
+            self.encoder is not None
+            and self.discrete_actions is not None
+            and self.masker is not None
+        ):
             obs = self.encoder.encode(state, player_index=state.current_player_index)
             pending = state.current_player.pending_tickets if state.current_player else None
             mask = self.masker.compute_mask(valid_actions, pending_tickets=pending)
@@ -96,11 +102,17 @@ class PPOAgent(BaseAgent):
             chosen_idx = self.select_action(obs, action_mask=mask)
             domain_act = self.discrete_actions.to_action(chosen_idx)
 
-            if domain_act.action_type == ActionType.KEEP_TICKETS and state.current_player and pending:
-                slots = set(int(idx) for idx in (domain_act.ticket_ids or ()))
+            if (
+                domain_act.action_type == ActionType.KEEP_TICKETS
+                and state.current_player
+                and pending
+            ):
+                slots = {int(idx) for idx in (domain_act.ticket_ids or ())}
                 chosen_ids = tuple(t.id for slot_i, t in enumerate(pending) if slot_i in slots)
                 for va in valid_actions:
-                    if va.action_type == ActionType.KEEP_TICKETS and set(va.ticket_ids or ()) == set(chosen_ids):
+                    if va.action_type == ActionType.KEEP_TICKETS and set(
+                        va.ticket_ids or ()
+                    ) == set(chosen_ids):
                         return va
 
             for va in valid_actions:

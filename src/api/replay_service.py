@@ -1,9 +1,10 @@
 """ReplayService: High-performance SQLite WAL indexed storage and compressed match replays."""
 
 import json
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 from typing import Any
+
 import orjson
 import zstandard as zstd
 
@@ -116,7 +117,9 @@ class ReplayService:
 
         # Fallback disk scan if database was newly initialized with existing JSON files
         results: list[dict[str, Any]] = []
-        for file in sorted(self.replays_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        for file in sorted(
+            self.replays_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+        ):
             try:
                 with open(file, "rb") as f:
                     data = orjson.loads(f.read())

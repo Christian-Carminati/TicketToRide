@@ -1,6 +1,4 @@
-import pytest
 from src.experiments.config import ExperimentConfig, SelfPlayConfig
-from src.experiments.runner import ExperimentRunner
 
 
 def test_selfplay_config_parsing():

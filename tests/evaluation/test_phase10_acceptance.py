@@ -1,7 +1,7 @@
 """Acceptance Test Suite for Phase 10: Generalization, Europe Board, and Procedural Maps."""
 
 from pathlib import Path
-import pytest
+
 from src.evaluation.generalization import GeneralizationBenchmarkRunner
 from src.game.maps import load_europe_board, load_usa_board
 from src.game.procedural import ProceduralMapGenerator
@@ -14,7 +14,7 @@ def test_phase10_acceptance_full_pipeline(tmp_path):
     # 1. Verify procedural map generator determinism and connectivity
     gen = ProceduralMapGenerator()
     b1, t1 = gen.generate(seed=42)
-    b2, t2 = gen.generate(seed=42)
+    b2, _t2 = gen.generate(seed=42)
     assert len(b1.cities) == 8
     assert [c.name for c in b1.cities.values()] == [c.name for c in b2.cities.values()]
     assert len(b1.routes) == 14

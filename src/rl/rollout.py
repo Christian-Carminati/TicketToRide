@@ -1,6 +1,7 @@
 """Rollout buffer for on-policy PPO trajectories with Action Masking."""
 
 from collections.abc import Iterator
+
 import numpy as np
 import torch
 
@@ -47,12 +48,14 @@ class RolloutBuffer:
         if not self.initialized or self.obs_buf is None or self.masks_buf is None:
             self._lazy_init(len(obs), len(action_mask))
 
+        assert self.obs_buf is not None and self.masks_buf is not None
+
         if self.ptr >= self.capacity:
             new_cap = self.capacity * 2
             new_obs = np.zeros((new_cap, self.obs_dim), dtype=np.float32)
             new_masks = np.zeros((new_cap, self.action_dim), dtype=bool)
-            new_obs[:self.capacity] = self.obs_buf
-            new_masks[:self.capacity] = self.masks_buf
+            new_obs[: self.capacity] = self.obs_buf
+            new_masks[: self.capacity] = self.masks_buf
             self.obs_buf = new_obs
             self.masks_buf = new_masks
 
@@ -82,23 +85,23 @@ class RolloutBuffer:
 
     @property
     def actions(self) -> list[int]:
-        return list(self.actions_buf[:self.size])
+        return list(self.actions_buf[: self.size])
 
     @property
     def rewards(self) -> list[float]:
-        return list(self.rewards_buf[:self.size])
+        return list(self.rewards_buf[: self.size])
 
     @property
     def values(self) -> list[float]:
-        return list(self.values_buf[:self.size])
+        return list(self.values_buf[: self.size])
 
     @property
     def log_probs(self) -> list[float]:
-        return list(self.log_probs_buf[:self.size])
+        return list(self.log_probs_buf[: self.size])
 
     @property
     def dones(self) -> list[bool]:
-        return list(self.dones_buf[:self.size])
+        return list(self.dones_buf[: self.size])
 
     @property
     def action_masks(self) -> list[np.ndarray]:
@@ -331,6 +334,13 @@ class RecurrentRolloutBuffer:
         ):
             self._lazy_init(len(obs), len(action_mask))
 
+        assert (
+            self.obs_buf is not None
+            and self.masks_buf is not None
+            and self.h_buf is not None
+            and self.c_buf is not None
+        )
+
         if self.ptr >= self.capacity:
             new_cap = self.capacity * 2
             new_obs = np.zeros((new_cap, self.obs_dim), dtype=np.float32)
@@ -441,5 +451,3 @@ class RecurrentRolloutBuffer:
 
     def __len__(self) -> int:
         return self.size
-
-

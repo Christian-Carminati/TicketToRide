@@ -1,6 +1,7 @@
 """Pydantic Data Transfer Objects (DTOs) for API serialization."""
 
 from typing import Any, Literal
+
 from pydantic import BaseModel
 
 
@@ -45,8 +46,11 @@ class GameStateDTO(BaseModel):
 
 class GameSessionCreateRequest(BaseModel):
     map_name: str = "usa"
-    player_types: list[str] = ["human", "random"]  # "human", "random", "greedy", "strategic", "dqn", "ppo", "recurrent_ppo", "mcts", "alphazero", "bayesian_mcts"
-    seed: int = 42
+    player_types: list[str] = [
+        "human",
+        "random",
+    ]  # "human", "random", "greedy", "strategic", "dqn", "ppo", "recurrent_ppo", "mcts", "alphazero", "bayesian_mcts", "random_bot"
+    seed: int | None = 42
     model_checkpoint: str | None = None
     player_checkpoints: list[str | None] | None = None
 
@@ -87,7 +91,7 @@ class BrainInspectionDTO(BaseModel):
     masked_logits_or_q: list[float]
     observation_vector: list[float]
     layer_activations: list[LayerActivationDTO] | None = None
-    
+
     # Extended search & memory inspection (Lessons 8, 11, 12)
     mcts_visits: list[int] | None = None
     mcts_priors: list[float] | None = None
@@ -113,8 +117,8 @@ class TrainingStartRequest(BaseModel):
     override_timesteps: int | None = None
     learning_rate: float | None = None
     num_simulations: int = 30  # For AlphaZero / MCTS
-    seed: int = 42
-    opponent_type: str = "random"  # "random", "greedy", "strategic", "self_play"
+    seed: int | None = 42
+    opponent_type: str = "random"  # "random", "greedy", "strategic", "mixed", "self_play"
     map_name: str = "usa"
 
 
@@ -129,7 +133,9 @@ class TrainingStatusDTO(BaseModel):
 
 
 class TelemetryEventDTO(BaseModel):
-    type: Literal["training_started", "training_step", "checkpoint_saved", "training_finished", "error"]
+    type: Literal[
+        "training_started", "training_step", "checkpoint_saved", "training_finished", "error"
+    ]
     experiment_id: str
     step: int
     episode: int
@@ -143,7 +149,6 @@ class TelemetryEventDTO(BaseModel):
     explained_var: float | None = None
     win_rate: float | None = None
     fps: float | None = None
-
 
 
 # --- Tournament & Leaderboard DTOs ---
@@ -271,4 +276,3 @@ class ReportDetailDTO(BaseModel):
 GameStateResponse = GameStateDTO
 ActionRequest = ActionDTO
 TrainingTelemetry = TelemetryEventDTO
-

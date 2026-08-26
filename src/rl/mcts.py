@@ -4,14 +4,11 @@ Includes MCTSNode, MCTSConfig, UCT action selection, heuristic rollout policies,
 continuous leaf evaluation, and the complete MCTSSearchEngine with prioritized expansion.
 """
 
-from collections import defaultdict
-from dataclasses import dataclass, field
-from enum import Enum
 import heapq
 import math
-from typing import Any
-
-import numpy as np
+from collections import defaultdict
+from dataclasses import dataclass
+from enum import StrEnum
 
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.strategic_agent import StrategicHeuristicAgent
@@ -23,13 +20,11 @@ from src.game.graph import check_ticket_completed, compute_longest_continuous_pa
 from src.game.player import Player
 from src.game.random import SeededRNG
 from src.game.route import Route
-from src.game.rules import GameRules
 from src.game.state import GameState, TurnState
-from src.game.ticket import DestinationTicket
 from src.rl.mcts_determinization import determinize_game
 
 
-class RolloutPolicyType(str, Enum):
+class RolloutPolicyType(StrEnum):
     """Supported rollout simulation policies."""
 
     RANDOM = "random"
@@ -113,9 +108,12 @@ def _prioritize_actions(
                     for r in ticket_paths.get(tid, []):
                         if r.claimed_by != player.id:
                             needed_r_ids.add(r.id)
-                train_cost = sum(
-                    board.get_route(rid).length for rid in needed_r_ids if board.get_route(rid)
-                )
+                cost = 0
+                for rid in needed_r_ids:
+                    r_item = board.get_route(rid)
+                    if r_item is not None:
+                        cost += r_item.length
+                train_cost = cost
                 if train_cost == 0:
                     return float(total_pts) * 10.0
                 return (total_pts / float(train_cost)) * 10.0
@@ -123,11 +121,11 @@ def _prioritize_actions(
             return sorted(ticket_actions, key=ticket_subset_efficiency, reverse=True)
 
     # 2. Main Turn Decision Analysis
-    player_routes = [
-        board.get_route(rid)
-        for rid in player.claimed_route_ids
-        if board.get_route(rid) is not None
-    ]
+    player_routes: list[Route] = []
+    for rid in player.claimed_route_ids:
+        r_item = board.get_route(rid)
+        if r_item is not None:
+            player_routes.append(r_item)
     active_tickets = [t for t in player.tickets if not check_ticket_completed(player_routes, t)]
 
     target_routes: list[Route] = []
@@ -303,9 +301,7 @@ def _estimate_ticket_progress(player: Player, board: Board) -> float:
         return 0.0
 
     player_routes = [
-        board.get_route(rid)
-        for rid in player.claimed_route_ids
-        if board.get_route(rid) is not None
+        r for rid in player.claimed_route_ids if (r := board.get_route(rid)) is not None
     ]
     net_points = 0.0
 
@@ -384,14 +380,10 @@ def evaluate_leaf_state(
 
     # 2. Direct Ticket Status Differential
     root_routes = [
-        game.board.get_route(rid)
-        for rid in root_p.claimed_route_ids
-        if game.board.get_route(rid) is not None
+        r for rid in root_p.claimed_route_ids if (r := game.board.get_route(rid)) is not None
     ]
     opp_routes = [
-        game.board.get_route(rid)
-        for rid in opp_p.claimed_route_ids
-        if game.board.get_route(rid) is not None
+        r for rid in opp_p.claimed_route_ids if (r := game.board.get_route(rid)) is not None
     ]
     root_done = sum(1 for t in root_p.tickets if check_ticket_completed(root_routes, t))
     opp_done = sum(1 for t in opp_p.tickets if check_ticket_completed(opp_routes, t))

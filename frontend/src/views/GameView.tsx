@@ -7,6 +7,7 @@ import { VisibleDeck } from '../components/cards/VisibleDeck';
 import { TicketsList } from '../components/cards/TicketsList';
 import { ActionDTO, CheckpointDTO } from '../api/types';
 import { api } from '../api/client';
+import { RotateCcw } from 'lucide-react';
 
 export const GameView: React.FC = () => {
   const {
@@ -28,6 +29,10 @@ export const GameView: React.FC = () => {
   const [highlightedCities, setHighlightedCities] = useState<string[]>([]);
   const [claimModalRoute, setClaimModalRoute] = useState<BoardRoute | null>(null);
 
+  const [seedMode, setSeedMode] = useState<'random' | 'fixed'>('random');
+  const [customSeed, setCustomSeed] = useState<number>(42);
+  const [activeSeed, setActiveSeed] = useState<number>(42);
+
   // Fetch available checkpoints
   useEffect(() => {
     api.listCheckpoints()
@@ -43,10 +48,12 @@ export const GameView: React.FC = () => {
   // Auto-initialize a USA game session on first mount if none exists
   useEffect(() => {
     if (!gameState && !isLoading) {
+      const initSeed = seedMode === 'random' ? Math.floor(Math.random() * 1000000) : customSeed;
+      setActiveSeed(initSeed);
       createGame({
         map_name: 'usa',
         player_types: ['human', 'ppo'],
-        seed: 42,
+        seed: initSeed,
         model_checkpoint: selectedCheckpoint || undefined,
       });
     }
@@ -68,10 +75,12 @@ export const GameView: React.FC = () => {
   }, [gameState, isLoading, stepGame]);
 
   const handleStartNewGame = () => {
+    const nextSeed = seedMode === 'random' ? Math.floor(Math.random() * 1000000) : customSeed;
+    setActiveSeed(nextSeed);
     createGame({
       map_name: 'usa',
       player_types: [player1Type, player2Type],
-      seed: Math.floor(Math.random() * 10000),
+      seed: nextSeed,
       model_checkpoint: selectedCheckpoint || undefined,
     });
   };
@@ -170,6 +179,7 @@ export const GameView: React.FC = () => {
             }}
           >
             <option value="human">Human Player</option>
+            <option value="random_bot">🎲 Bot Casuale (Random AI)</option>
             <option value="ppo">PPO Agent</option>
             <option value="dqn">DQN Agent</option>
             <option value="strategic">StrategicBot</option>
@@ -194,11 +204,94 @@ export const GameView: React.FC = () => {
           >
             <option value="ppo">PPO Agent</option>
             <option value="dqn">DQN Agent</option>
+            <option value="random_bot">🎲 Bot Casuale (Random AI)</option>
             <option value="greedy">GreedyBot</option>
             <option value="strategic">StrategicBot</option>
             <option value="random">RandomBot</option>
             <option value="human">Human Player</option>
           </select>
+
+          {/* Seed Controls */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              background: '#FAF0DA',
+              padding: '0.25rem 0.55rem',
+              borderRadius: '6px',
+              border: '1.5px solid #C59B27',
+            }}
+          >
+            <label style={{ fontSize: '0.8rem', color: '#4A2F1D', fontWeight: 800, fontFamily: "'Playfair Display', serif" }}>
+              Seed:
+            </label>
+            <select
+              value={seedMode}
+              onChange={(e) => setSeedMode(e.target.value as 'random' | 'fixed')}
+              style={{
+                backgroundColor: '#FAF5EB',
+                color: '#23140C',
+                border: '1px solid #8C6305',
+                borderRadius: '4px',
+                padding: '0.2rem 0.4rem',
+                fontSize: '0.78rem',
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: 700,
+              }}
+            >
+              <option value="random">🎲 Casuale</option>
+              <option value="fixed">🔒 Fisso</option>
+            </select>
+
+            {seedMode === 'fixed' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <input
+                  type="number"
+                  value={customSeed}
+                  onChange={(e) => setCustomSeed(Number(e.target.value))}
+                  style={{
+                    width: '65px',
+                    backgroundColor: '#FAF5EB',
+                    color: '#23140C',
+                    border: '1px solid #8C6305',
+                    borderRadius: '4px',
+                    padding: '0.2rem 0.35rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    fontFamily: "'Courier Prime', monospace",
+                  }}
+                />
+                <button
+                  type="button"
+                  title="Genera nuovo seed casuale"
+                  onClick={() => setCustomSeed(Math.floor(Math.random() * 1000000))}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#8C6305',
+                  }}
+                >
+                  <RotateCcw size={13} />
+                </button>
+              </div>
+            ) : (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontFamily: "'Courier Prime', monospace",
+                  color: '#7A5229',
+                  fontWeight: 700,
+                }}
+              >
+                #{activeSeed}
+              </span>
+            )}
+          </div>
 
           {(player1Type === 'ppo' || player1Type === 'dqn' || player2Type === 'ppo' || player2Type === 'dqn') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

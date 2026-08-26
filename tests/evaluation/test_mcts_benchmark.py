@@ -1,6 +1,7 @@
 """Unit tests for MCTS benchmark runner."""
 
 from pathlib import Path
+
 from src.evaluation.mcts_benchmark import MCTSBenchmarkRunner
 from src.rl.mcts import MCTSConfig, RolloutPolicyType
 

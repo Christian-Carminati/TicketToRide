@@ -3,8 +3,9 @@ Curriculum Learning Manager for Progressive Training across Maps & Opponents.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+
 
 @dataclass
 class CurriculumStageConfig:
@@ -16,11 +17,13 @@ class CurriculumStageConfig:
     min_ticket_rate: float
     eval_episodes: int = 30
 
+
 class CurriculumManager:
     """
     Manages progression through educational and competitive curriculum stages.
     """
-    def __init__(self, stages: Optional[List[CurriculumStageConfig]] = None):
+
+    def __init__(self, stages: list[CurriculumStageConfig] | None = None):
         if stages is None:
             self.stages = [
                 CurriculumStageConfig(
@@ -50,9 +53,9 @@ class CurriculumManager:
             ]
         else:
             self.stages = stages
-            
+
         self.current_stage_idx: int = 0
-        self.history: List[Dict[str, float]] = []
+        self.history: list[dict[str, float]] = []
 
     @property
     def current_stage(self) -> CurriculumStageConfig:
@@ -71,14 +74,16 @@ class CurriculumManager:
         """
         if self.is_completed:
             return True
-            
+
         stage = self.current_stage
-        self.history.append({
-            "stage_id": float(stage.stage_id),
-            "win_rate": win_rate,
-            "ticket_rate": ticket_rate,
-        })
-        
+        self.history.append(
+            {
+                "stage_id": float(stage.stage_id),
+                "win_rate": win_rate,
+                "ticket_rate": ticket_rate,
+            }
+        )
+
         if win_rate >= stage.min_win_rate and ticket_rate >= stage.min_ticket_rate:
             self.current_stage_idx += 1
             return True
@@ -88,6 +93,12 @@ class CurriculumManager:
         """Returns human-readable summary of curriculum progression."""
         lines = ["# Curriculum Progression Summary"]
         for idx, stage in enumerate(self.stages):
-            status = "[COMPLETED]" if idx < self.current_stage_idx else ("[ACTIVE]" if idx == self.current_stage_idx else "[LOCKED]")
-            lines.append(f"- {stage.name} ({stage.map_type} map vs {stage.opponent_type}): {status}")
+            status = (
+                "[COMPLETED]"
+                if idx < self.current_stage_idx
+                else ("[ACTIVE]" if idx == self.current_stage_idx else "[LOCKED]")
+            )
+            lines.append(
+                f"- {stage.name} ({stage.map_type} map vs {stage.opponent_type}): {status}"
+            )
         return "\n".join(lines)

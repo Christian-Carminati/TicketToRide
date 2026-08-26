@@ -2,9 +2,6 @@
 
 import heapq
 from collections import defaultdict
-from typing import Any
-
-import numpy as np
 
 from src.agents.base_agent import BaseAgent
 from src.game.action import Action, ActionType
@@ -58,15 +55,9 @@ class StrategicHeuristicAgent(BaseAgent):
 
         # 3. Main Turn Decision: Route Claims vs Card Draws
         player_routes = [
-            board.get_route(rid)
-            for rid in player.claimed_route_ids
-            if board.get_route(rid) is not None
+            r for rid in player.claimed_route_ids if (r := board.get_route(rid)) is not None
         ]
-        active_tickets = [
-            t
-            for t in player.tickets
-            if not check_ticket_completed(player_routes, t)
-        ]
+        active_tickets = [t for t in player.tickets if not check_ticket_completed(player_routes, t)]
         target_routes: list[Route] = []
         for t in active_tickets:
             path_routes = self._compute_shortest_path_routes(player, t, board)
@@ -87,7 +78,9 @@ class StrategicHeuristicAgent(BaseAgent):
                     r = board.get_route(a.route_id or "")
                     if not r:
                         return (0, 0)
-                    is_bottleneck = 1 if len(board.get_routes_between(r.city_a, r.city_b)) == 1 else 0
+                    is_bottleneck = (
+                        1 if len(board.get_routes_between(r.city_a, r.city_b)) == 1 else 0
+                    )
                     return (is_bottleneck, r.length)
 
                 target_claim_actions.sort(key=claim_priority, reverse=True)
@@ -143,9 +136,12 @@ class StrategicHeuristicAgent(BaseAgent):
                 for r in ticket_paths.get(tid, ()):
                     needed_routes.add(r.id)
 
-            total_train_cost = sum(
-                board.get_route(rid).length for rid in needed_routes if board.get_route(rid)
-            )
+            cost = 0
+            for rid in needed_routes:
+                route_obj = board.get_route(rid)
+                if route_obj is not None:
+                    cost += route_obj.length
+            total_train_cost = cost
             if total_train_cost == 0:
                 return float(total_points)
             return total_points / float(total_train_cost)
@@ -192,17 +188,18 @@ class StrategicHeuristicAgent(BaseAgent):
         path_routes: list[Route] = []
         curr = city_target
         while curr != city_start:
-            r = prev_route.get(curr)
-            if not r:
+            r_obj = prev_route.get(curr)
+            if not r_obj:
                 break
-            path_routes.append(r)
-            curr = prev_city.get(curr, city_start)
+            path_routes.append(r_obj)
+            next_city = prev_city.get(curr)
+            if not next_city:
+                break
+            curr = next_city
 
         return path_routes
 
-    def _calculate_card_deficit(
-        self, player: Player, routes: list[Route]
-    ) -> dict[CardColor, int]:
+    def _calculate_card_deficit(self, player: Player, routes: list[Route]) -> dict[CardColor, int]:
         needed: dict[CardColor, int] = defaultdict(int)
         wild_needed = 0
 
@@ -253,15 +250,9 @@ class StrategicHeuristicAgent(BaseAgent):
             return hidden[0] if hidden else valid_actions[0]
 
         player_routes = [
-            board.get_route(rid)
-            for rid in player.claimed_route_ids
-            if board.get_route(rid) is not None
+            r for rid in player.claimed_route_ids if (r := board.get_route(rid)) is not None
         ]
-        active_tickets = [
-            t
-            for t in player.tickets
-            if not check_ticket_completed(player_routes, t)
-        ]
+        active_tickets = [t for t in player.tickets if not check_ticket_completed(player_routes, t)]
         target_routes: list[Route] = []
         for t in active_tickets:
             for r in self._compute_shortest_path_routes(player, t, board):

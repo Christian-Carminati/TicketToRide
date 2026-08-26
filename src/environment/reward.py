@@ -2,9 +2,9 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
-from src.game.action import Action, ActionType
+from src.game.action import ActionType
 from src.game.board import Board
 from src.game.graph import check_tickets_completed_batch
 from src.game.maps import load_usa_board
@@ -26,7 +26,14 @@ class RewardWeights:
 
 
 class BaseRewardCalculator(ABC):
-    """Abstract base class for modular reward functions."""
+    """Abstract interface for modular reward calculation engines."""
+
+    def __init__(
+        self,
+        weights: RewardWeights | None = None,
+        board: Board | None = None,
+    ) -> None:
+        pass
 
     @abstractmethod
     def calculate(
@@ -101,7 +108,9 @@ class RewardV1_Sparse(BaseRewardCalculator):
                 components["loss_penalty"] = float(-self.weights.loss_penalty)
 
             # Score differential
-            components["score_diff"] = float(self.weights.score_diff_weight * (player.score - opp_score))
+            components["score_diff"] = float(
+                self.weights.score_diff_weight * (player.score - opp_score)
+            )
 
             # Uncompleted tickets penalty
             terminal_routes = [
@@ -111,11 +120,11 @@ class RewardV1_Sparse(BaseRewardCalculator):
             ]
             final_completed = check_tickets_completed_batch(terminal_routes, player.tickets)
             ticket_pen = sum(
-                float(t.points)
-                for t in player.tickets
-                if not final_completed.get(t.id, False)
+                float(t.points) for t in player.tickets if not final_completed.get(t.id, False)
             )
-            components["uncompleted_tickets_penalty"] = float(-self.weights.ticket_failure_penalty_weight * ticket_pen)
+            components["uncompleted_tickets_penalty"] = float(
+                -self.weights.ticket_failure_penalty_weight * ticket_pen
+            )
 
         return components
 
@@ -202,7 +211,9 @@ class RewardV2_DenseRoutes(BaseRewardCalculator):
             elif next_state.winner_id is not None and next_state.winner_id != next_player.id:
                 components["loss_penalty"] = float(-self.weights.loss_penalty)
 
-            components["score_diff"] = float(self.weights.score_diff_weight * (next_player.score - opp_score))
+            components["score_diff"] = float(
+                self.weights.score_diff_weight * (next_player.score - opp_score)
+            )
 
             terminal_routes = [
                 self._routes_by_id[rid]
@@ -211,11 +222,11 @@ class RewardV2_DenseRoutes(BaseRewardCalculator):
             ]
             final_completed = check_tickets_completed_batch(terminal_routes, next_player.tickets)
             ticket_pen = sum(
-                float(t.points)
-                for t in next_player.tickets
-                if not final_completed.get(t.id, False)
+                float(t.points) for t in next_player.tickets if not final_completed.get(t.id, False)
             )
-            components["uncompleted_tickets_penalty"] = float(-self.weights.ticket_failure_penalty_weight * ticket_pen)
+            components["uncompleted_tickets_penalty"] = float(
+                -self.weights.ticket_failure_penalty_weight * ticket_pen
+            )
 
         return components
 
@@ -314,7 +325,9 @@ class RewardV3_TicketMilestones(BaseRewardCalculator):
                 if not was_done and is_done:
                     ticket_points_awarded += float(t.points)
 
-            components["ticket_completion"] = float(self.weights.ticket_completion_weight * ticket_points_awarded)
+            components["ticket_completion"] = float(
+                self.weights.ticket_completion_weight * ticket_points_awarded
+            )
 
         # 3. Terminal outcome reward
         if next_state.is_game_over:
@@ -326,7 +339,9 @@ class RewardV3_TicketMilestones(BaseRewardCalculator):
             elif next_state.winner_id is not None and next_state.winner_id != next_player.id:
                 components["loss_penalty"] = float(-self.weights.loss_penalty)
 
-            components["score_diff"] = float(self.weights.score_diff_weight * (next_player.score - opp_score))
+            components["score_diff"] = float(
+                self.weights.score_diff_weight * (next_player.score - opp_score)
+            )
 
             terminal_routes = [
                 self._routes_by_id[rid]
@@ -335,11 +350,11 @@ class RewardV3_TicketMilestones(BaseRewardCalculator):
             ]
             final_completed = check_tickets_completed_batch(terminal_routes, next_player.tickets)
             ticket_pen = sum(
-                float(t.points)
-                for t in next_player.tickets
-                if not final_completed.get(t.id, False)
+                float(t.points) for t in next_player.tickets if not final_completed.get(t.id, False)
             )
-            components["uncompleted_tickets_penalty"] = float(-self.weights.ticket_failure_penalty_weight * ticket_pen)
+            components["uncompleted_tickets_penalty"] = float(
+                -self.weights.ticket_failure_penalty_weight * ticket_pen
+            )
 
         return components
 
@@ -438,7 +453,9 @@ class RewardV4_StrategicShaped(BaseRewardCalculator):
                 if not was_done and is_done:
                     ticket_points_awarded += float(t.points)
 
-            components["ticket_completion"] = float(self.weights.ticket_completion_weight * ticket_points_awarded)
+            components["ticket_completion"] = float(
+                self.weights.ticket_completion_weight * ticket_points_awarded
+            )
 
         # 3. Terminal outcomes
         if next_state.is_game_over:
@@ -450,7 +467,9 @@ class RewardV4_StrategicShaped(BaseRewardCalculator):
             elif next_state.winner_id is not None and next_state.winner_id != next_player.id:
                 components["loss_penalty"] = float(-self.weights.loss_penalty)
 
-            components["score_diff"] = float(self.weights.score_diff_weight * (next_player.score - opp_score))
+            components["score_diff"] = float(
+                self.weights.score_diff_weight * (next_player.score - opp_score)
+            )
 
             terminal_routes = [
                 self._routes_by_id[rid]
@@ -459,11 +478,11 @@ class RewardV4_StrategicShaped(BaseRewardCalculator):
             ]
             final_completed = check_tickets_completed_batch(terminal_routes, next_player.tickets)
             ticket_pen = sum(
-                float(t.points)
-                for t in next_player.tickets
-                if not final_completed.get(t.id, False)
+                float(t.points) for t in next_player.tickets if not final_completed.get(t.id, False)
             )
-            components["uncompleted_tickets_penalty"] = float(-self.weights.ticket_failure_penalty_weight * ticket_pen)
+            components["uncompleted_tickets_penalty"] = float(
+                -self.weights.ticket_failure_penalty_weight * ticket_pen
+            )
 
         return components
 
@@ -496,7 +515,7 @@ DefaultRewardCalculator = RewardV4_StrategicShaped
 class RewardFactory:
     """Factory for creating and registering reward calculators by version or alias."""
 
-    _REGISTRY: dict[str, type[BaseRewardCalculator]] = {
+    _REGISTRY: ClassVar[dict[str, type[BaseRewardCalculator]]] = {
         "1": RewardV1_Sparse,
         "v1": RewardV1_Sparse,
         "sparse": RewardV1_Sparse,

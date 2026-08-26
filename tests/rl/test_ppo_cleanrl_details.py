@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-import torch
-
 from src.environment.env import TicketToRideEnv
 from src.rl.ppo import MaskedPPOTrainer
 

@@ -201,7 +201,9 @@ def load_usa_board() -> tuple[Board, list[DestinationTicket]]:
     """Load the official Ticket to Ride USA board with 36 cities, 100 routes, and 30 tickets."""
     board = Board()
     for name, (x, y) in USA_CITIES.items():
-        board.add_city(City(id=name.lower().replace(" ", "_").replace(".", ""), name=name, x=x, y=y))
+        board.add_city(
+            City(id=name.lower().replace(" ", "_").replace(".", ""), name=name, x=x, y=y)
+        )
 
     # Process routes and double routes
     routes: list[Route] = []
@@ -507,4 +509,3 @@ def load_europe_board() -> tuple[Board, list[DestinationTicket]]:
         tickets.append(DestinationTicket(id=ticket_id, city_a=c_a, city_b=c_b, points=points))
 
     return board, tickets
-

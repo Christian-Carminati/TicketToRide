@@ -50,7 +50,9 @@ class DiscreteActionSpace:
         act = Action(action_type=ActionType.DRAW_HIDDEN_CARD)
         self._id_to_action[current_id] = act
         self._action_to_id[act] = current_id
-        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = current_id
+        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = (
+            current_id
+        )
         current_id += 1
 
         # 1..5: DRAW_VISIBLE_CARD (slots 0..4)
@@ -65,7 +67,9 @@ class DiscreteActionSpace:
         act = Action(action_type=ActionType.DRAW_TICKETS)
         self._id_to_action[current_id] = act
         self._action_to_id[act] = current_id
-        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = current_id
+        self._key_to_id[(act.action_type, act.card_index, act.route_id, act.color_chosen)] = (
+            current_id
+        )
         current_id += 1
 
         # 7..13: KEEP_TICKETS (subsets of {0, 1, 2} represented by string tuple index markers)
@@ -132,8 +136,10 @@ class DiscreteActionSpace:
         if state is not None and action.action_type == ActionType.KEEP_TICKETS:
             player = state.current_player
             if player and player.pending_tickets and action.ticket_ids:
-                slots = set(int(idx) for idx in action.ticket_ids if str(idx).isdigit())
-                chosen_ids = tuple(t.id for slot_i, t in enumerate(player.pending_tickets) if slot_i in slots)
+                slots = {int(idx) for idx in action.ticket_ids if str(idx).isdigit()}
+                chosen_ids = tuple(
+                    t.id for slot_i, t in enumerate(player.pending_tickets) if slot_i in slots
+                )
                 return Action(action_type=ActionType.KEEP_TICKETS, ticket_ids=chosen_ids)
         return action
 
@@ -141,8 +147,8 @@ class DiscreteActionSpace:
 ActionSpaceV1 = DiscreteActionSpace
 
 __all__ = [
-    "ActionSpaceV1",
-    "DiscreteActionSpace",
     "STANDARD_CLAIM_COLORS",
     "TICKET_SUBSET_INDICES",
+    "ActionSpaceV1",
+    "DiscreteActionSpace",
 ]

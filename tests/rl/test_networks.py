@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from src.rl.networks import MaskedActorCritic, MaskedQNetwork
 
 
@@ -96,5 +95,3 @@ def test_masked_actor_critic_orthogonal_initialization() -> None:
     gram_crit = torch.mm(w_crit, w_crit.t())
     assert torch.allclose(gram_crit, (1.0**2) * torch.eye(1), atol=1e-3)
     assert torch.allclose(critic_out.bias.data, torch.zeros_like(critic_out.bias.data))
-
-

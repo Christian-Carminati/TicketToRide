@@ -1,9 +1,8 @@
-import pytest
+from src.api.schemas import TrainingStartRequest
+from src.api.trainer_service import TrainerService
 from src.environment.env import TicketToRideEnv
 from src.game.maps import create_synthetic_mini_board
 from src.rl.self_play import PolicyPool, SelfPlayOpponentSampler, SelfPlayPPOTrainer
-from src.api.trainer_service import TrainerService
-from src.api.schemas import TrainingStartRequest
 
 
 def test_self_play_trainer_rollout_and_epoch():
@@ -20,7 +19,7 @@ def test_self_play_trainer_rollout_and_epoch():
         "snapshot_interval": 50,
     }
     trainer = SelfPlayPPOTrainer(env=env, config=config, pool=pool, sampler=sampler, seed=42)
-    
+
     rollout_info = trainer.collect_rollout()
     assert "mean_rollout_reward" in rollout_info
     metrics = trainer.train_epoch()
@@ -45,7 +44,7 @@ def test_trainer_service_self_play_startup():
 
 def test_trainer_service_self_play_execution():
     service = TrainerService()
-    req = TrainingStartRequest(
+    TrainingStartRequest(
         config_name="self_play_mini.yaml",
         algorithm_type="self_play_ppo",
         override_timesteps=128,
@@ -53,7 +52,8 @@ def test_trainer_service_self_play_execution():
         seed=42,
     )
     # Run _run_training directly
-    from src.experiments.config import ExperimentConfig, AlgorithmConfig, EnvironmentConfig
+    from src.experiments.config import AlgorithmConfig, EnvironmentConfig, ExperimentConfig
+
     cfg = ExperimentConfig(
         name="test_pfsp",
         algorithm=AlgorithmConfig(name="self_play_ppo"),
@@ -72,4 +72,3 @@ def test_trainer_service_self_play_execution():
     )
     assert service._status.current_step >= 64
     assert service._status.episodes >= 0
-

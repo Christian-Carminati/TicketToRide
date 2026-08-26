@@ -1,6 +1,5 @@
 """Unit tests for WebSocket telemetry hub."""
 
-import pytest
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.testclient import TestClient
 from src.api.websocket import ConnectionManager

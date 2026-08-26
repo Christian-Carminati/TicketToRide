@@ -1,6 +1,7 @@
 """Recurrent PPO Agent for playing Ticket to Ride with internal LSTM memory."""
 
 from typing import Any
+
 import numpy as np
 import torch
 
@@ -67,7 +68,11 @@ class RecurrentPPOAgent(BaseAgent):
             else:
                 state_dict = checkpoint
 
-            c_hidden = checkpoint.get("hidden_dim", hidden_dim) if isinstance(checkpoint, dict) else hidden_dim
+            c_hidden = (
+                checkpoint.get("hidden_dim", hidden_dim)
+                if isinstance(checkpoint, dict)
+                else hidden_dim
+            )
             c_lstm = (
                 checkpoint.get("lstm_hidden_dim", lstm_hidden_dim)
                 if isinstance(checkpoint, dict)
@@ -105,14 +110,16 @@ class RecurrentPPOAgent(BaseAgent):
 
     def select_action(
         self,
-        obs: np.ndarray,
+        observation: np.ndarray,
         action_mask: np.ndarray | None = None,
-        deterministic: bool | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         """Select discrete action index given observation vector and action mask."""
-        det = self.deterministic if deterministic is None else deterministic
-        obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+        det = deterministic
+        obs_tensor = torch.as_tensor(
+            observation, dtype=torch.float32, device=self.device
+        ).unsqueeze(0)
         mask_tensor = (
             torch.as_tensor(action_mask, dtype=torch.bool, device=self.device).unsqueeze(0)
             if action_mask is not None

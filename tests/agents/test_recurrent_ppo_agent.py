@@ -2,10 +2,10 @@
 
 import os
 import tempfile
+
 import numpy as np
 import pytest
 import torch
-
 from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
 from src.environment.action_space import DiscreteActionSpace
 from src.environment.observation import ObservationV1
@@ -25,7 +25,9 @@ def test_recurrent_ppo_agent_act_and_state_evolution():
     action_space = DiscreteActionSpace(board=board)
     action_dim = action_space.n
 
-    model = RecurrentMaskedActorCritic(input_dim=obs_dim, action_dim=action_dim, hidden_dim=64, lstm_hidden_dim=64)
+    model = RecurrentMaskedActorCritic(
+        input_dim=obs_dim, action_dim=action_dim, hidden_dim=64, lstm_hidden_dim=64
+    )
     agent = RecurrentPPOAgent(model=model, board=board, tickets=tickets, num_players=2)
 
     valid_actions = game.valid_actions()
@@ -33,7 +35,7 @@ def test_recurrent_ppo_agent_act_and_state_evolution():
     assert action in valid_actions
 
     # Check that hidden state updated
-    h, c = agent.current_hidden
+    h, _c = agent.current_hidden
     assert not torch.all(h == 0.0)
 
     # Test reset clears hidden state
@@ -116,7 +118,9 @@ def test_recurrent_ppo_agent_fallback_on_invalid_decoded_action():
     # Valid actions in initial state
     valid_actions = [Action(action_type=ActionType.DRAW_HIDDEN_CARD)]
     # Mock select_action to return an index that doesn't decode to DRAW_HIDDEN_CARD
-    agent.select_action = lambda obs, mask, deterministic=None: 999999 if 999999 < len(mask) else len(mask) - 1
+    agent.select_action = lambda obs, mask, deterministic=None: (
+        999999 if 999999 < len(mask) else len(mask) - 1
+    )
 
     act = agent.act(game.state, valid_actions, board)
     assert act == valid_actions[0]

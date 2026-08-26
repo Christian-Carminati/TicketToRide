@@ -8,6 +8,9 @@ from src.game.card import CardColor, TrainCard
 from src.game.game import Game
 from src.game.random import SeededRNG
 
+CARD_SINGLETONS = {c: TrainCard(color=c) for c in CardColor}
+ZERO_CARDS = {c: 0 for c in CardColor}
+
 
 def determinize_game(game: Game, root_player_id: str, rng: SeededRNG) -> Game:
     """Sample a determinized game state consistent with public observations.
@@ -41,9 +44,10 @@ def determinize_game(game: Game, root_player_id: str, rng: SeededRNG) -> Game:
     for p in state.players:
         if p.id != root_player_id:
             for color, count in p.cards.items():
-                hidden_cards.extend([TrainCard(color=color) for _ in range(count)])
+                if count > 0:
+                    hidden_cards.extend([CARD_SINGLETONS[color]] * count)
             # Reset opponent card inventory
-            p.cards = {c: 0 for c in CardColor}
+            p.cards = ZERO_CARDS.copy()
 
     # 2. Shuffle hidden card pool
     rng.shuffle(hidden_cards)

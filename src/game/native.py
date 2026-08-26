@@ -1,10 +1,10 @@
 """Native Rust Game Engine bridge and high-speed simulation interfaces."""
 
-from typing import Any
+from typing import Any, cast
+
 import ttr_core
 
-from src.game.action import Action, ActionType
-from src.game.card import CardColor
+from src.game.action import Action
 
 
 class NativeGame:
@@ -20,46 +20,46 @@ class NativeGame:
 
     @property
     def is_game_over(self) -> bool:
-        return self.py_game.is_game_over()
+        return cast(bool, self.py_game.is_game_over())
 
     @property
     def current_player_index(self) -> int:
-        return self.py_game.current_player_index()
+        return cast(int, self.py_game.current_player_index())
 
     @property
     def turn_number(self) -> int:
-        return self.py_game.turn_number()
+        return cast(int, self.py_game.turn_number())
 
     @property
     def turn_state(self) -> str:
-        return self.py_game.turn_state()
+        return cast(str, self.py_game.turn_state())
 
     @property
     def scores(self) -> tuple[int, int]:
-        return self.py_game.scores()
+        return cast(tuple[int, int], self.py_game.scores())
 
     @property
     def winner_id(self) -> int:
-        return self.py_game.winner_id()
+        return cast(int, self.py_game.winner_id())
 
     @property
     def trains_remaining(self) -> tuple[int, int]:
-        return self.py_game.trains_remaining()
+        return cast(tuple[int, int], self.py_game.trains_remaining())
 
     def player_hand(self, player_idx: int) -> list[int]:
-        return self.py_game.player_hand(player_idx)
+        return cast(list[int], self.py_game.player_hand(player_idx))
 
     def player_tickets(self, player_idx: int) -> list[int]:
-        return self.py_game.player_tickets(player_idx)
+        return cast(list[int], self.py_game.player_tickets(player_idx))
 
     def is_ticket_completed(self, player_idx: int, ticket_id: int) -> bool:
-        return self.py_game.is_ticket_completed(player_idx, ticket_id)
+        return cast(bool, self.py_game.is_ticket_completed(player_idx, ticket_id))
 
     def valid_actions_raw(self) -> list[dict[str, Any]]:
-        return self.py_game.valid_actions()
+        return cast(list[dict[str, Any]], self.py_game.valid_actions())
 
     def valid_actions(self) -> list[Action]:
-        raw = self.py_game.valid_actions()
+        raw = self.valid_actions_raw()
         return [Action.from_dict(d) for d in raw]
 
     def step(self, action: Action | dict[str, Any]) -> None:
@@ -86,4 +86,4 @@ class NativeVectorEnv:
         self.py_vec.reset_all(base_seed)
 
     def step_batch_sim(self, num_steps_per_env: int = 100) -> int:
-        return self.py_vec.step_batch_sim(num_steps_per_env)
+        return cast(int, self.py_vec.step_batch_sim(num_steps_per_env))

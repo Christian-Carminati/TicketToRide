@@ -37,6 +37,7 @@ class RandomAgent(BaseAgent):
         self,
         observation: np.ndarray,
         action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         if action_mask is not None:

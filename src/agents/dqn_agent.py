@@ -33,8 +33,12 @@ class DQNAgent(BaseAgent):
         self.device = device
         self.encoder = encoder
         self.discrete_actions = discrete_actions
-        self.masker = ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
-        self.q_net = MaskedQNetwork(input_dim=input_dim, action_dim=action_dim, hidden_dim=hidden_dim).to(device)
+        self.masker = (
+            ActionMasker(self.discrete_actions) if self.discrete_actions is not None else None
+        )
+        self.q_net = MaskedQNetwork(
+            input_dim=input_dim, action_dim=action_dim, hidden_dim=hidden_dim
+        ).to(device)
         self.q_net.eval()
         if model_path is not None:
             self.load(model_path)
@@ -43,14 +47,17 @@ class DQNAgent(BaseAgent):
         self,
         observation: np.ndarray,
         action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         if action_mask is None:
-            num_actions = self.q_net.net[-1].out_features
+            num_actions = getattr(self.q_net, "action_dim", 150)
             action_mask = np.ones(num_actions, dtype=np.int8)
 
         obs_tensor = torch.tensor(observation, dtype=torch.float32, device=self.device)
-        return self.q_net.select_action(obs_tensor, action_mask=action_mask, epsilon=0.0)
+        return self.q_net.select_action(
+            obs_tensor, action_mask=action_mask, epsilon=0.0 if deterministic else 0.05
+        )
 
     def act(
         self,
@@ -61,7 +68,11 @@ class DQNAgent(BaseAgent):
         if not valid_actions:
             raise ValueError("No valid actions available")
 
-        if self.encoder is not None and self.discrete_actions is not None and self.masker is not None:
+        if (
+            self.encoder is not None
+            and self.discrete_actions is not None
+            and self.masker is not None
+        ):
             obs = self.encoder.encode(state, player_index=state.current_player_index)
             pending = state.current_player.pending_tickets if state.current_player else None
             mask = self.masker.compute_mask(valid_actions, pending_tickets=pending)
@@ -69,11 +80,17 @@ class DQNAgent(BaseAgent):
             chosen_idx = self.select_action(obs, action_mask=mask)
             domain_act = self.discrete_actions.to_action(chosen_idx)
 
-            if domain_act.action_type == ActionType.KEEP_TICKETS and state.current_player and pending:
-                slots = set(int(idx) for idx in (domain_act.ticket_ids or ()))
+            if (
+                domain_act.action_type == ActionType.KEEP_TICKETS
+                and state.current_player
+                and pending
+            ):
+                slots = {int(idx) for idx in (domain_act.ticket_ids or ())}
                 chosen_ids = tuple(t.id for slot_i, t in enumerate(pending) if slot_i in slots)
                 for va in valid_actions:
-                    if va.action_type == ActionType.KEEP_TICKETS and set(va.ticket_ids or ()) == set(chosen_ids):
+                    if va.action_type == ActionType.KEEP_TICKETS and set(
+                        va.ticket_ids or ()
+                    ) == set(chosen_ids):
                         return va
 
             for va in valid_actions:

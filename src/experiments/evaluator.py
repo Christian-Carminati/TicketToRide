@@ -1,7 +1,6 @@
 """Multi-Opponent Evaluator for RL agents during and after training."""
 
 from collections.abc import Sequence
-from typing import Any
 
 from src.agents.base_agent import BaseAgent
 from src.agents.greedy_agent import GreedyAgent

@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from src.rl.advantage import compute_gae_vectorized
 from src.rl.rollout import VectorRolloutBuffer
 

@@ -1,7 +1,6 @@
 """Tests for DefaultRewardCalculator (RewardV1)."""
 
 import pytest
-
 from src.environment.reward import DefaultRewardCalculator, RewardWeights
 from src.game.action import Action, ActionType
 from src.game.card import CardColor, TrainCard

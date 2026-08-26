@@ -1,7 +1,7 @@
 """Tests for Procedural Map Generator and Map Split infrastructure."""
 
 from collections import deque
-import pytest
+
 from src.game.card import CardColor
 from src.game.procedural import ProceduralMapConfig, ProceduralMapGenerator
 
@@ -29,7 +29,7 @@ def test_procedural_map_determinism():
 def test_procedural_map_graph_connectivity():
     gen = ProceduralMapGenerator()
     for seed in [1, 7, 42, 100, 999]:
-        board, tickets = gen.generate(seed=seed)
+        board, _tickets = gen.generate(seed=seed)
         cities_list = list(board.cities.values())
         assert len(cities_list) > 0
 
@@ -94,4 +94,3 @@ def test_procedural_map_dataset_split():
     # Verify boards are unique and populated
     train_city_counts = [len(b.cities) for b, t in split.train_maps]
     assert all(count == 8 for count in train_city_counts)
-

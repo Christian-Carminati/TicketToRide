@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.strategic_agent import StrategicHeuristicAgent

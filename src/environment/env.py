@@ -1,6 +1,6 @@
 """Gymnasium Environment wrapper for Ticket to Ride."""
 
-from typing import Any, ClassVar
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
@@ -21,7 +21,7 @@ from src.game.ticket import DestinationTicket
 class TicketToRideEnv(gym.Env):
     """Gymnasium-compatible single-agent / turn-based environment with auto-stepping opponent."""
 
-    metadata: ClassVar[dict[str, Any]] = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
 
     def __init__(
         self,
@@ -70,8 +70,8 @@ class TicketToRideEnv(gym.Env):
         self.discrete_actions = DiscreteActionSpace(board=self.board)
         self.masker = ActionMasker(self.discrete_actions)
 
-        self.action_space = spaces.Discrete(self.discrete_actions.n)
-        self.observation_space = spaces.Box(
+        self.action_space: spaces.Discrete = spaces.Discrete(self.discrete_actions.n)
+        self.observation_space: spaces.Box = spaces.Box(
             low=0.0,
             high=1.0,
             shape=self.encoder.observation_shape,
@@ -84,7 +84,7 @@ class TicketToRideEnv(gym.Env):
         options: dict[str, Any] | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
-        state = self.game.reset(seed=seed)
+        self.game.reset(seed=seed)
         if self.opponent and hasattr(self.opponent, "reset"):
             self.opponent.reset(seed=seed)
 
@@ -160,9 +160,7 @@ class TicketToRideEnv(gym.Env):
             pending = self.game.state.players[curr_player_idx].pending_tickets
             if action.ticket_ids and pending:
                 actual_ticket_ids = tuple(
-                    pending[int(idx)].id
-                    for idx in action.ticket_ids
-                    if int(idx) < len(pending)
+                    pending[int(idx)].id for idx in action.ticket_ids if int(idx) < len(pending)
                 )
                 return Action(
                     action_type=ActionType.KEEP_TICKETS,

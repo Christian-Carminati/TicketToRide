@@ -28,9 +28,7 @@ class Player:
         self.cards: dict[CardColor, int] = (
             cards.copy() if cards is not None else {c: 0 for c in CardColor}
         )
-        self.tickets: list[DestinationTicket] = (
-            tickets.copy() if tickets is not None else []
-        )
+        self.tickets: list[DestinationTicket] = tickets.copy() if tickets is not None else []
         self.claimed_route_ids: list[str] = (
             claimed_route_ids.copy() if claimed_route_ids is not None else []
         )
@@ -175,4 +173,3 @@ class Player:
             claimed_route_ids=list(self.claimed_route_ids),
             pending_tickets=list(self.pending_tickets),
         )
-

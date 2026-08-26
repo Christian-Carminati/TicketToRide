@@ -1,11 +1,7 @@
 """Unit tests for Baseline and RL Agent interfaces and RandomAgent."""
 
 import numpy as np
-import pytest
-
-from src.agents.base_agent import BaseAgent
 from src.agents.random_agent import RandomAgent
-from src.game.action import Action, ActionType
 from src.game.game import Game
 
 
@@ -36,3 +32,21 @@ def test_random_agent_reset():
     agent = RandomAgent(seed=42)
     agent.reset(seed=999)
     assert agent.rng is not None
+
+
+def test_mixed_opponent_agent():
+    from src.agents.mixed_agent import MixedOpponentAgent
+
+    mixed = MixedOpponentAgent(seed=42)
+    game = Game(num_players=2, seed=42)
+    game.reset(seed=42)
+    valid_actions = game.valid_actions()
+
+    act = mixed.act(game.state, valid_actions, game.board)
+    assert act in valid_actions
+
+    # Test reset switches / initializes properly
+    mixed.reset(seed=123)
+    assert mixed.active_agent is not None
+    assert "MixedBot" in mixed.name
+

@@ -20,4 +20,3 @@ __all__ = [
     "TicketToRideEnv",
     "compute_action_mask",
 ]
-

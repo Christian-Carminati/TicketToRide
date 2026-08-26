@@ -157,7 +157,7 @@ class GameRules:
                 options = player.can_afford_route(route)
                 for option in options:
                     locos = option.get(CardColor.LOCOMOTIVE, 0)
-                    color_chosen = None
+                    color_chosen: CardColor | None = None
                     for c in option:
                         if c != CardColor.LOCOMOTIVE:
                             color_chosen = c

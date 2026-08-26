@@ -1,6 +1,5 @@
 """Unit tests for BrainService neural network introspection."""
 
-import torch
 from src.api.brain_service import BrainService
 from src.rl.networks import MaskedActorCritic, MaskedQNetwork
 

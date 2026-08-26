@@ -69,4 +69,3 @@ def test_environment_reward_version_initialization(sample_game):
         reward_calculator=3,
     )
     assert env_v3.reward_calc.__class__.__name__ == "RewardV3_TicketMilestones"
-

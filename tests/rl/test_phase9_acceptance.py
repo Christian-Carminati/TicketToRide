@@ -2,10 +2,9 @@
 
 import json
 from pathlib import Path
-import numpy as np
-import pytest
-import torch
 
+import numpy as np
+import torch
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
 from src.evaluation.self_play_benchmark import SelfPlayBenchmarkRunner
@@ -13,7 +12,6 @@ from src.game.maps import load_usa_board
 from src.rl.networks import MaskedActorCritic
 from src.rl.self_play import (
     PolicyPool,
-    PolicySnapshot,
     SelfPlayOpponentSampler,
     SelfPlayPPOTrainer,
 )
@@ -68,7 +66,12 @@ def test_phase9_criterion_3_dynamic_opponent_switching():
 
     trainer = SelfPlayPPOTrainer(
         env=env,
-        config={"rollout_steps": 32, "minibatch_size": 16, "num_epochs": 1, "snapshot_interval": 32},
+        config={
+            "rollout_steps": 32,
+            "minibatch_size": 16,
+            "num_epochs": 1,
+            "snapshot_interval": 32,
+        },
         pool=pool,
         seed=101,
     )
@@ -82,6 +85,7 @@ def test_phase9_criterion_3_dynamic_opponent_switching():
 
 def test_phase9_criterion_4_deterministic_reproducibility():
     """Criterion 4: Identical seeds produce bitwise reproducible self-play training and pools."""
+
     def run_training(seed=77):
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -133,6 +137,7 @@ def test_phase9_criterion_5_generational_progression_and_superiority():
     random_agent = RandomAgent()
 
     from src.evaluation.evaluator import Evaluator
+
     evaluator = Evaluator(board=board, tickets_deck=tickets)
     eval_res = evaluator.evaluate(final_agent, random_agent, num_games=10, seed=42)
 
@@ -154,7 +159,9 @@ def test_phase9_criterion_6_automated_scientific_benchmark_study(tmp_path: Path)
         }
     )
     results = runner.run_study()
-    runner.generate_report(results, output_md_path=str(report_md), output_json_path=str(report_json))
+    runner.generate_report(
+        results, output_md_path=str(report_md), output_json_path=str(report_json)
+    )
 
     assert report_md.exists()
     assert report_json.exists()

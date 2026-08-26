@@ -4,12 +4,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.agents.base_agent import BaseAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
 from src.environment.reward import RewardFactory
-from src.evaluation.behavioral import BehavioralEvaluator, BehavioralProfile
+from src.evaluation.behavioral import BehavioralEvaluator
 from src.game.maps import create_synthetic_mini_board, load_usa_board
 from src.rl.ppo import MaskedPPOTrainer
 
@@ -177,26 +176,28 @@ class RewardResearchRunner:
                 f"| **{label}** | {wr:.1f}% | {avg_s:.1f} | {diff:+.1f} | {t_comp:.1f}% | {eff:.2f} | {r_len:.2f} | {turns:.1f} | {cd_ratio:.1f}% |"
             )
 
-        lines.extend([
-            "",
-            "## 3. Detailed Version Profiles & Qualitative Analysis",
-            "",
-            "### 3.1 Reward V1 (Sparse / Pure Outcome)",
-            "- **Caratteristica**: Nessun feedback intermedio durante la partita; ricompensa assegnata unicamente al termine dell'episodio.",
-            "- **Analisi Comportamentale**: L'agente opera sotto massimo ritardo di credit assignment. Mostra una convergenza più lenta nei primi timesteps ma sviluppa strategie prive di bias o distorsioni artificiali di percorso.",
-            "",
-            "### 3.2 Reward V2 (Dense Route Points)",
-            "- **Caratteristica**: Incentivo immediato sui punti delle tratte rivendicate combinato con step penalty.",
-            "- **Analisi Comportamentale**: L'agente acquisisce rapidamente un comportamento proattivo nell'occupare binari, massimizzando il numero di tratte rivendicate e la rapidità dei turni.",
-            "",
-            "### 3.3 Reward V3 (Ticket Milestones)",
-            "- **Caratteristica**: Premia in tempo reale il completamento topologico dei Destination Ticket.",
-            "- **Analisi Comportamentale**: Massimizza il `ticket_completion_rate` e pianifica reti di connessione coerenti fra le città assegnate.",
-            "",
-            "### 3.4 Reward V4 (Strategic Balanced)",
-            "- **Caratteristica**: Equilibrio accurato tra punti tratta, completamento ticket, efficienza dei vagoni e punteggio relativo.",
-            "- **Analisi Comportamentale**: Ottiene le prestazioni competitive più solide e bilanciate su entrambi i fronti (punti binario e chiusura ticket).",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## 3. Detailed Version Profiles & Qualitative Analysis",
+                "",
+                "### 3.1 Reward V1 (Sparse / Pure Outcome)",
+                "- **Caratteristica**: Nessun feedback intermedio durante la partita; ricompensa assegnata unicamente al termine dell'episodio.",
+                "- **Analisi Comportamentale**: L'agente opera sotto massimo ritardo di credit assignment. Mostra una convergenza più lenta nei primi timesteps ma sviluppa strategie prive di bias o distorsioni artificiali di percorso.",
+                "",
+                "### 3.2 Reward V2 (Dense Route Points)",
+                "- **Caratteristica**: Incentivo immediato sui punti delle tratte rivendicate combinato con step penalty.",
+                "- **Analisi Comportamentale**: L'agente acquisisce rapidamente un comportamento proattivo nell'occupare binari, massimizzando il numero di tratte rivendicate e la rapidità dei turni.",
+                "",
+                "### 3.3 Reward V3 (Ticket Milestones)",
+                "- **Caratteristica**: Premia in tempo reale il completamento topologico dei Destination Ticket.",
+                "- **Analisi Comportamentale**: Massimizza il `ticket_completion_rate` e pianifica reti di connessione coerenti fra le città assegnate.",
+                "",
+                "### 3.4 Reward V4 (Strategic Balanced)",
+                "- **Caratteristica**: Equilibrio accurato tra punti tratta, completamento ticket, efficienza dei vagoni e punteggio relativo.",
+                "- **Analisi Comportamentale**: Ottiene le prestazioni competitive più solide e bilanciate su entrambi i fronti (punti binario e chiusura ticket).",
+                "",
+            ]
+        )
 
         return "\n".join(lines)

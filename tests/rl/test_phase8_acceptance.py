@@ -1,11 +1,10 @@
 """Comprehensive Phase 8 Acceptance Test Suite verifying all 6 acceptance criteria."""
 
 import json
-from pathlib import Path
+
 import numpy as np
 import pytest
 import torch
-
 from src.agents.random_agent import RandomAgent
 from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
 from src.environment.env import TicketToRideEnv
@@ -38,12 +37,14 @@ def test_phase8_criterion_1_anti_leakage_invariance():
 
 def test_phase8_criterion_2_and_3_recurrent_architecture_and_buffer():
     """Criterion 2 & 3: Masked categorical distribution & sequential chunk generation."""
-    model = RecurrentMaskedActorCritic(input_dim=50, action_dim=10, hidden_dim=32, lstm_hidden_dim=32)
+    model = RecurrentMaskedActorCritic(
+        input_dim=50, action_dim=10, hidden_dim=32, lstm_hidden_dim=32
+    )
     obs = torch.randn(1, 50)
     hidden = model.get_initial_hidden(batch_size=1)
     mask = torch.tensor([[True, False, False, False, False, False, False, False, False, False]])
 
-    action, log_prob, _, _, _ = model.get_action_and_value(obs, hidden, action_mask=mask)
+    action, _log_prob, _, _, _ = model.get_action_and_value(obs, hidden, action_mask=mask)
     assert action.item() == 0
 
     buffer = RecurrentRolloutBuffer(capacity=16, obs_dim=50, action_dim=10, lstm_hidden_dim=32)
@@ -68,6 +69,7 @@ def test_phase8_criterion_2_and_3_recurrent_architecture_and_buffer():
 
 def test_phase8_criterion_4_deterministic_reproducibility():
     """Criterion 4: Identical seeds produce bitwise reproducible recurrent models and metrics."""
+
     def run_training(seed=123):
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -141,7 +143,9 @@ def test_phase8_criterion_6_automated_scientific_benchmark_study(tmp_path):
     )
 
     results = runner.run_study()
-    runner.generate_report(results, output_md_path=str(report_md), output_json_path=str(report_json))
+    runner.generate_report(
+        results, output_md_path=str(report_md), output_json_path=str(report_json)
+    )
 
     assert report_md.exists()
     assert report_json.exists()

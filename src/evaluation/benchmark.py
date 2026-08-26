@@ -30,11 +30,12 @@ class PPOBenchmarkRunner:
     ) -> None:
         self.board_type = board_type
         self.games_per_opponent = games_per_opponent
-        self.total_training_steps = training_steps if training_steps is not None else total_training_steps
+        self.total_training_steps = (
+            training_steps if training_steps is not None else total_training_steps
+        )
         self.output_json = output_json
         self.output_md = output_md
         self.seed = seed
-
 
         if board_type == "mini":
             self.board, self.tickets = create_synthetic_mini_board()
@@ -102,7 +103,9 @@ class PPOBenchmarkRunner:
         evaluator = Evaluator(board=self.board, tickets_deck=self.tickets, seed=eval_seed)
 
         for name, opp in opponents.items():
-            opp_results = evaluator.evaluate(agent_a=agent, agent_b=opp, num_games=eval_games, seed=eval_seed)
+            opp_results = evaluator.evaluate(
+                agent_a=agent, agent_b=opp, num_games=eval_games, seed=eval_seed
+            )
             m_a = opp_results[agent.name]
             m_b = opp_results[opp.name]
 
@@ -176,13 +179,15 @@ class PPOBenchmarkRunner:
             )
 
         if "ablation" in results:
-            lines.extend([
-                "",
-                "## 2. CleanRL Ablation Study",
-                "",
-                "| Variant | Vs Random Win% | Vs Random Diff | Vs Greedy Win% | Vs Strategic Win% | Description |",
-                "| :--- | :---: | :---: | :---: | :---: | :--- |",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## 2. CleanRL Ablation Study",
+                    "",
+                    "| Variant | Vs Random Win% | Vs Random Diff | Vs Greedy Win% | Vs Strategic Win% | Description |",
+                    "| :--- | :---: | :---: | :---: | :---: | :--- |",
+                ]
+            )
             for var_name, data in results["ablation"].items():
                 desc = {
                     "ppo_full": "Full CleanRL (Ortho + VF Clip + LR Anneal)",

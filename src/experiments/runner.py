@@ -16,10 +16,7 @@ from src.experiments.config import ExperimentConfig
 from src.experiments.evaluator import MultiOpponentEvaluator
 from src.experiments.registry import ExperimentRecord, ExperimentRegistry
 from src.game.maps import create_synthetic_mini_board, load_usa_board
-from src.rl.dqn import MaskedDQNTrainer
-from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer
-from src.rl.ppo import MaskedPPOTrainer
-from src.rl.self_play import SelfPlayPPOTrainer, SelfPlayRecurrentPPOTrainer
+from src.rl.factory import TrainerFactory
 
 
 class ExperimentRunner:
@@ -41,8 +38,10 @@ class ExperimentRunner:
         board, tickets = self._setup_board()
         if self.config.environment.reward_config is not None:
             rc_dict = self.config.environment.reward_config.model_dump()
-            v = rc_dict.pop("version", "custom")
-            weights = RewardWeights(**{k: val for k, val in rc_dict.items() if hasattr(RewardWeights, k)})
+            rc_dict.pop("version", "custom")
+            weights = RewardWeights(
+                **{k: val for k, val in rc_dict.items() if hasattr(RewardWeights, k)}
+            )
             reward_calc = RewardFactory.create("custom", board=board, weights=weights)
         else:
             reward_calc = RewardFactory.create(self.config.environment.reward_version, board=board)
@@ -84,13 +83,16 @@ class ExperimentRunner:
                 "learning_starts": self.config.algorithm.learning_starts,
                 "max_grad_norm": self.config.algorithm.max_grad_norm,
             }
-            trainer = MaskedDQNTrainer(env=env, config=dqn_config)
+            dqn_trainer = TrainerFactory.create("dqn", env=env, config=dqn_config)
 
-            def eval_cb(step: int, tr: MaskedDQNTrainer) -> None:
+            def eval_cb(step: int, tr: Any) -> None:
                 nonlocal best_win_rate, final_metrics
+                obs_shape = env.observation_space.shape
+                obs_dim = obs_shape[0] if obs_shape is not None else 180
+                act_dim = int(getattr(env.action_space, "n", 150))
                 eval_agent = DQNAgent(
-                    input_dim=env.observation_space.shape[0],
-                    action_dim=int(env.action_space.n),
+                    input_dim=obs_dim,
+                    action_dim=act_dim,
                     encoder=env.encoder,
                     discrete_actions=env.discrete_actions,
                 )
@@ -110,13 +112,13 @@ class ExperimentRunner:
                     best_win_rate = target_wr
                     tr.save(best_ckpt)
 
-            trainer.train(
+            dqn_trainer.train(
                 total_timesteps=self.config.training.total_timesteps,
                 eval_callback=eval_cb,
                 eval_freq=self.config.training.eval_freq,
             )
             # Final evaluation
-            eval_cb(trainer.total_timesteps, trainer)
+            eval_cb(dqn_trainer.total_timesteps, dqn_trainer)
 
         elif algo_name == "ppo":
             ppo_config = {
@@ -135,17 +137,20 @@ class ExperimentRunner:
                 "baseline_mix_rate": self.config.self_play.baseline_mix_rate,
                 "pfsp_exponent": self.config.self_play.pfsp_exponent,
                 "pool_max_size": self.config.self_play.pool_max_size,
+                "self_play": self.config.self_play.enabled,
             }
-            if self.config.self_play.enabled:
-                trainer = SelfPlayPPOTrainer(env=env, config=ppo_config, seed=self.config.seed)
-            else:
-                trainer = MaskedPPOTrainer(env=env, config=ppo_config)
+            ppo_trainer = TrainerFactory.create(
+                "ppo", env=env, config=ppo_config, seed=self.config.seed
+            )
 
-            def eval_cb_ppo(step: int, tr: MaskedPPOTrainer) -> None:
+            def eval_cb_ppo(step: int, tr: Any) -> None:
                 nonlocal best_win_rate, final_metrics
+                obs_shape = env.observation_space.shape
+                obs_dim = obs_shape[0] if obs_shape is not None else 180
+                act_dim = int(getattr(env.action_space, "n", 150))
                 eval_agent = PPOAgent(
-                    input_dim=env.observation_space.shape[0],
-                    action_dim=int(env.action_space.n),
+                    input_dim=obs_dim,
+                    action_dim=act_dim,
                     encoder=env.encoder,
                     discrete_actions=env.discrete_actions,
                 )
@@ -165,12 +170,12 @@ class ExperimentRunner:
                     best_win_rate = target_wr
                     tr.save(best_ckpt)
 
-            trainer.train(
+            ppo_trainer.train(
                 total_timesteps=self.config.training.total_timesteps,
                 eval_callback=eval_cb_ppo,
                 eval_freq=self.config.training.eval_freq,
             )
-            eval_cb_ppo(trainer.total_timesteps, trainer)
+            eval_cb_ppo(ppo_trainer.total_timesteps, ppo_trainer)
 
         else:
             raise ValueError(f"Unsupported algorithm: {algo_name}")

@@ -8,6 +8,7 @@ from src.game.maps import create_synthetic_mini_board
 
 def test_deterministic_full_game_replay():
     """Verify that two games with identical seeds and policies produce bit-exact identical histories."""
+
     def play_game(seed: int):
         game = Game(num_players=2, seed=seed)
         game.reset(seed=seed)
@@ -48,9 +49,9 @@ def test_card_conservation_invariant():
         total_deck = len(game.state.train_deck)
         total_discard = len(game.state.discard_pile)
 
-        assert (
-            total_in_hands + total_visible + total_deck + total_discard == 110
-        ), f"Cards broken: hands={total_in_hands}, vis={total_visible}, deck={total_deck}, disc={total_discard}"
+        assert total_in_hands + total_visible + total_deck + total_discard == 110, (
+            f"Cards broken: hands={total_in_hands}, vis={total_visible}, deck={total_deck}, disc={total_discard}"
+        )
 
         valid = game.valid_actions()
         if not valid:
@@ -71,9 +72,9 @@ def test_train_conservation_invariant():
         for p in game.state.players:
             claimed_routes = [game.board.get_route(r_id) for r_id in p.claimed_route_ids]
             spent_trains = sum(r.length for r in claimed_routes if r is not None)
-            assert (
-                p.trains_remaining + spent_trains == 45
-            ), f"Train invariant broken for player {p.id}: {p.trains_remaining} + {spent_trains} != 45"
+            assert p.trains_remaining + spent_trains == 45, (
+                f"Train invariant broken for player {p.id}: {p.trains_remaining} + {spent_trains} != 45"
+            )
 
         valid = game.valid_actions()
         if not valid:

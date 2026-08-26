@@ -50,7 +50,7 @@ export interface GameStateDTO {
 export interface GameSessionCreateRequest {
   map_name?: string;
   player_types?: string[];
-  seed?: number;
+  seed?: number | null;
   model_checkpoint?: string | null;
   player_checkpoints?: Array<string | null>;
 }
@@ -100,8 +100,8 @@ export interface TrainingStartRequest {
   override_timesteps?: number | null;
   learning_rate?: number | null;
   num_simulations?: number;
-  seed?: number;
-  opponent_type?: string; // 'random' | 'greedy' | 'strategic' | 'self_play'
+  seed?: number | null;
+  opponent_type?: string; // 'random' | 'greedy' | 'strategic' | 'mixed' | 'self_play'
   map_name?: string;
 }
 

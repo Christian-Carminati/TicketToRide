@@ -38,7 +38,7 @@ class Board:
         for r in self.routes:
             self._adjacent_routes[r.city_a].append(r)
             self._adjacent_routes[r.city_b].append(r)
-            pair_key = tuple(sorted([r.city_a, r.city_b]))
+            pair_key = (min(r.city_a, r.city_b), max(r.city_a, r.city_b))
             self._routes_between[pair_key].append(r)
 
     def add_city(self, city: City) -> None:
@@ -60,7 +60,7 @@ class Board:
     def get_routes_between(self, city_a: str, city_b: str) -> list[Route]:
         if not self._routes_between and self.routes:
             self.rebuild_indexes()
-        pair_key = tuple(sorted([city_a, city_b]))
+        pair_key = (min(city_a, city_b), max(city_a, city_b))
         return self._routes_between.get(pair_key, [])
 
     def get_adjacent_routes(self, city_name_or_id: str) -> list[Route]:
@@ -93,5 +93,10 @@ class Board:
             )
             for r in self.routes
         ]
-        return Board(cities=dict(self.cities), routes=cloned_routes)
-
+        b = Board.__new__(Board)
+        b.cities = self.cities
+        b.routes = cloned_routes
+        b._route_map = {r.id: r for r in cloned_routes}
+        b._adjacent_routes = self._adjacent_routes
+        b._routes_between = self._routes_between
+        return b

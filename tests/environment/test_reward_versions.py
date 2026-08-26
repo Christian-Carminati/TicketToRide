@@ -1,9 +1,7 @@
 """Unit tests for Phase 7 modular reward versions, component breakdowns, and factory."""
 
 import pytest
-
 from src.environment.reward import (
-    BaseRewardCalculator,
     CustomRewardCalculator,
     RewardFactory,
     RewardV1_Sparse,
@@ -130,7 +128,7 @@ def test_reward_v4_strategic_shaped():
 
 
 def test_custom_reward_calculator_weights():
-    board, tickets = create_synthetic_mini_board()
+    board, _tickets = create_synthetic_mini_board()
     weights = RewardWeights(
         route_points_weight=3.5,
         step_penalty=0.05,

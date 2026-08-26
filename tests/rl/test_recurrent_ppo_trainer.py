@@ -1,12 +1,13 @@
 import os
 import tempfile
+
 import numpy as np
 import pytest
 import torch
-
 from src.environment.env import TicketToRideEnv
+from src.rl import MaskedRecurrentPPOTrainer as ExportedTrainer
+from src.rl import RecurrentPPOTrainer as ExportedAliasTrainer
 from src.rl.lstm_ppo import MaskedRecurrentPPOTrainer, RecurrentPPOTrainer
-from src.rl import MaskedRecurrentPPOTrainer as ExportedTrainer, RecurrentPPOTrainer as ExportedAliasTrainer
 
 
 def test_recurrent_ppo_trainer_train_step_execution():
@@ -38,6 +39,7 @@ def test_recurrent_ppo_trainer_train_step_execution():
 
 def test_recurrent_ppo_trainer_deterministic_reproducibility():
     """Two trainers initialized with same seed must yield identical loss trajectories."""
+
     def run_trainer_run(seed=123):
         torch.manual_seed(seed)
         np.random.seed(seed)

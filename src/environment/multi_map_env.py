@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -10,7 +10,7 @@ from gymnasium import spaces
 
 from src.environment.action_mask import ActionMasker
 from src.environment.action_space import DiscreteActionSpace
-from src.environment.observation import BaseObservationEncoder, ObservationV1
+from src.environment.observation import ObservationV1
 from src.environment.reward import BaseRewardCalculator, RewardFactory
 from src.game.action import Action, ActionType
 from src.game.board import Board
@@ -22,7 +22,7 @@ from src.game.ticket import DestinationTicket
 class MultiMapTicketToRideEnv(gym.Env):
     """Gymnasium environment that samples new map topologies from a dataset upon reset."""
 
-    metadata: ClassVar[dict[str, Any]] = {"render_modes": ["human", "rgb_array"]}
+    metadata = {"render_modes": ["human", "rgb_array"]}
 
     def __init__(
         self,
@@ -61,8 +61,8 @@ class MultiMapTicketToRideEnv(gym.Env):
             board=ref_board, initial_tickets=ref_tickets, num_players=self.num_players
         )
 
-        self.action_space = spaces.Discrete(self.ref_actions.n)
-        self.observation_space = spaces.Box(
+        self.action_space: spaces.Discrete = spaces.Discrete(self.ref_actions.n)
+        self.observation_space: spaces.Box = spaces.Box(
             low=0.0,
             high=1.0,
             shape=self.ref_encoder.observation_shape,
@@ -91,9 +91,7 @@ class MultiMapTicketToRideEnv(gym.Env):
             initial_tickets=tickets,
             num_players=self.num_players,
         )
-        self.reward_calc = RewardFactory.create(
-            self.reward_calculator_config, board=board
-        )
+        self.reward_calc = RewardFactory.create(self.reward_calculator_config, board=board)
         self.discrete_actions = DiscreteActionSpace(board=board)
         self.masker = ActionMasker(self.discrete_actions)
 
@@ -114,7 +112,7 @@ class MultiMapTicketToRideEnv(gym.Env):
             self._current_map_idx += 1
 
         self._set_active_map(chosen_idx, seed=seed)
-        state = self.game.reset(seed=seed)
+        self.game.reset(seed=seed)
         if self.opponent and hasattr(self.opponent, "reset"):
             self.opponent.reset(seed=seed)
 
@@ -184,7 +182,7 @@ class MultiMapTicketToRideEnv(gym.Env):
         return formatted
 
     def _format_action_mask(self, raw_mask: np.ndarray) -> np.ndarray:
-        target_dim = self.action_space.n
+        target_dim = int(self.action_space.n)
         if len(raw_mask) == target_dim:
             return raw_mask
         formatted = np.zeros(target_dim, dtype=bool)
@@ -200,9 +198,7 @@ class MultiMapTicketToRideEnv(gym.Env):
             pending = self.game.state.players[curr_player_idx].pending_tickets
             if action.ticket_ids and pending:
                 actual_ticket_ids = tuple(
-                    pending[int(idx)].id
-                    for idx in action.ticket_ids
-                    if int(idx) < len(pending)
+                    pending[int(idx)].id for idx in action.ticket_ids if int(idx) < len(pending)
                 )
                 return Action(
                     action_type=ActionType.KEEP_TICKETS,

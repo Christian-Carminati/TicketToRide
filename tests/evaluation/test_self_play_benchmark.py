@@ -1,6 +1,6 @@
-from pathlib import Path
 import json
-import pytest
+from pathlib import Path
+
 from src.evaluation.self_play_benchmark import SelfPlayBenchmarkRunner
 
 

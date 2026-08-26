@@ -1,9 +1,7 @@
 """Unit tests for StrategicHeuristicAgent."""
 
-import pytest
-
 from src.agents.strategic_agent import StrategicHeuristicAgent
-from src.game.action import Action, ActionType
+from src.game.action import ActionType
 from src.game.card import CardColor, TrainCard
 from src.game.game import Game
 from src.game.ticket import DestinationTicket

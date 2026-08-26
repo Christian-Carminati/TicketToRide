@@ -1,9 +1,7 @@
 """End-to-end integration test verifying the full telemetry and workbench flow for TicketToRide RL Lab."""
 
-import pytest
 from fastapi.testclient import TestClient
 from src.api.main import app
-from src.api.schemas import GameSessionCreateRequest, TrainingStartRequest
 
 client = TestClient(app)
 

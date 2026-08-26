@@ -1,13 +1,9 @@
 """Tests for Gymnasium environment wrapper and check_env compliance."""
 
-import gymnasium as gym
-from gymnasium.utils.env_checker import check_env
 import numpy as np
-import pytest
-
+from gymnasium.utils.env_checker import check_env
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.random_agent import RandomAgent
-from src.agents.strategic_agent import StrategicHeuristicAgent
 from src.environment.env import TicketToRideEnv
 from src.game.maps import create_synthetic_mini_board, load_usa_board
 

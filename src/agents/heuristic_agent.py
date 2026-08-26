@@ -5,4 +5,4 @@ from src.agents.strategic_agent import StrategicAgent
 
 HeuristicAgent = GreedyAgent
 
-__all__ = ["HeuristicAgent", "StrategicAgent", "GreedyAgent"]
+__all__ = ["GreedyAgent", "HeuristicAgent", "StrategicAgent"]

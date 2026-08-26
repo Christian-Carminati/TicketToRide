@@ -1,11 +1,11 @@
-import pytest
-import torch
 from pathlib import Path
-from src.rl.networks import MaskedActorCritic
-from src.rl.lstm_ppo import RecurrentMaskedActorCritic
-from src.rl.self_play import PolicyPool, PolicySnapshot
+
+import pytest
 from src.agents.ppo_agent import PPOAgent
 from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
+from src.rl.lstm_ppo import RecurrentMaskedActorCritic
+from src.rl.networks import MaskedActorCritic
+from src.rl.self_play import PolicyPool
 
 
 def test_policy_pool_add_and_retrieve():
@@ -41,7 +41,9 @@ def test_policy_pool_capacity_and_retention():
 def test_policy_pool_create_agent():
     pool = PolicyPool()
     mlp_model = MaskedActorCritic(input_dim=50, action_dim=10, hidden_dim=32)
-    lstm_model = RecurrentMaskedActorCritic(input_dim=50, action_dim=10, hidden_dim=32, lstm_hidden_dim=32)
+    lstm_model = RecurrentMaskedActorCritic(
+        input_dim=50, action_dim=10, hidden_dim=32, lstm_hidden_dim=32
+    )
 
     pool.add_policy(mlp_model, step=100, name="mlp_snap")
     pool.add_policy(lstm_model, step=200, name="lstm_snap")
@@ -69,13 +71,16 @@ def test_policy_pool_save_and_load(tmp_path: Path):
 
 def test_sampler_uniform_and_latest_biased():
     from src.rl.self_play import SelfPlayOpponentSampler
+
     pool = PolicyPool()
     model = MaskedActorCritic(input_dim=50, action_dim=10, hidden_dim=32)
     pool.add_policy(model, step=0, name="gen_0")
     pool.add_policy(model, step=1000, name="gen_1")
     pool.add_policy(model, step=2000, name="gen_2")
 
-    sampler_latest = SelfPlayOpponentSampler(strategy="latest_biased", baseline_mix_rate=0.0, seed=123)
+    sampler_latest = SelfPlayOpponentSampler(
+        strategy="latest_biased", baseline_mix_rate=0.0, seed=123
+    )
     weights = sampler_latest.get_opponent_weights(pool)
     assert weights["gen_2"] >= 0.5
 
@@ -166,5 +171,3 @@ def test_selfplay_recurrent_ppo_trainer():
     assert trainer.pool.size == 1
     trainer.train(total_timesteps=128)
     assert trainer.pool.size >= 2
-
-

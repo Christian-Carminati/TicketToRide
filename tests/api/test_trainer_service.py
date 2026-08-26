@@ -1,6 +1,7 @@
 """Unit tests for TrainerService background runner and telemetry streaming."""
 
 import time
+
 from src.api.schemas import TrainingStartRequest
 from src.api.trainer_service import TrainerService
 from src.api.websocket import ConnectionManager

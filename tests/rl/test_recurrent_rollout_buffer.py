@@ -1,7 +1,5 @@
 import numpy as np
 import pytest
-import torch
-
 from src.rl.rollout import RecurrentRolloutBuffer
 
 
@@ -23,7 +21,7 @@ def test_recurrent_rollout_buffer_add_and_chunking():
         reward = 1.0
         val = float(i)
         lp = -0.5
-        done = (i % 8 == 7)
+        done = i % 8 == 7
         mask = np.ones(action_dim, dtype=bool)
         h = np.ones(lstm_hidden_dim, dtype=np.float32) * i
         c = np.ones(lstm_hidden_dim, dtype=np.float32) * i
@@ -188,4 +186,3 @@ def test_recurrent_rollout_buffer_imports():
 
     assert Buf1 is Buf3
     assert Buf2 is Buf3
-

@@ -1,10 +1,9 @@
 """Unit and benchmark tests for fast in-memory state cloning."""
 
 import time
-from src.game.action import Action
-from src.game.card import CardColor, TrainCard
+
+from src.game.card import CardColor
 from src.game.game import Game
-from src.game.ticket import DestinationTicket
 
 
 def test_fast_cloning_isolation():

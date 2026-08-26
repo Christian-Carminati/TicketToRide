@@ -1,7 +1,6 @@
 """Tests for MultiMapTicketToRideEnv."""
 
 import numpy as np
-import pytest
 from src.environment.multi_map_env import MultiMapTicketToRideEnv
 from src.game.procedural import ProceduralMapGenerator
 
@@ -22,7 +21,7 @@ def test_multi_map_env_lifecycle():
     # Step in environment
     mask = info1["action_mask"]
     valid_act = int(np.where(mask)[0][0])
-    obs2, reward, terminated, truncated, info2 = env.step(valid_act)
+    obs2, reward, terminated, truncated, _info2 = env.step(valid_act)
 
     assert isinstance(obs2, np.ndarray)
     assert isinstance(reward, float)

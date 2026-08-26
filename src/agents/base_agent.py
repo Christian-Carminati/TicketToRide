@@ -24,12 +24,12 @@ class BaseAgent(ABC):
         board: Board | None = None,
     ) -> Action:
         """Select a domain Action given current game state and legal actions."""
-        pass
 
     def select_action(
         self,
         observation: np.ndarray,
         action_mask: np.ndarray | None = None,
+        deterministic: bool = True,
         info: dict[str, Any] | None = None,
     ) -> int:
         """Select an action index for Gymnasium environments."""
@@ -41,4 +41,3 @@ class BaseAgent(ABC):
 
     def reset(self, seed: int | None = None) -> None:
         """Reset internal agent state or random number generator."""
-        pass

@@ -1,6 +1,7 @@
 """Action masking implementation to ensure RL policies only sample legal actions."""
 
 from typing import TYPE_CHECKING
+
 import numpy as np
 
 from src.environment.action_space import TICKET_SUBSET_INDICES, DiscreteActionSpace

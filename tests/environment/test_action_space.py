@@ -1,7 +1,5 @@
 """Tests for DiscreteActionSpace bijective mapping."""
 
-import pytest
-
 from src.environment.action_space import DiscreteActionSpace
 from src.game.action import Action, ActionType
 from src.game.card import CardColor

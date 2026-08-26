@@ -1,7 +1,6 @@
 """Unit tests for MCTSSearchEngine and MCTS search loop."""
 
-from src.game.action import Action, ActionType
-from src.game.card import CardColor, TrainCard
+from src.game.card import CardColor
 from src.game.game import Game
 from src.rl.mcts import MCTSConfig, MCTSSearchEngine, RolloutPolicyType
 

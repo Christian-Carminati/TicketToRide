@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 from src.rl.replay_buffer import ReplayBuffer
 from src.rl.rollout import RolloutBuffer
 
@@ -44,7 +43,9 @@ def test_rollout_buffer_minibatch_generator() -> None:
     advantages = np.ones(16, dtype=np.float32) * 2.0
     returns = np.ones(16, dtype=np.float32) * 3.0
 
-    minibatches = list(rollout.generate_minibatches(batch_size=4, advantages=advantages, returns=returns))
+    minibatches = list(
+        rollout.generate_minibatches(batch_size=4, advantages=advantages, returns=returns)
+    )
     assert len(minibatches) == 4
     for mb in minibatches:
         assert mb["obs"].shape == (4, 4)

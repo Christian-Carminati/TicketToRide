@@ -14,12 +14,8 @@ def test_graph_ticket_connectivity():
         Route(id="r1", city_a="City_A", city_b="City_B", length=2, claimed_by="p0"),
         Route(id="r2", city_a="City_B", city_b="City_C", length=3, claimed_by="p0"),
     ]
-    t_connected = DestinationTicket(
-        id="t1", city_a="City_A", city_b="City_C", points=5
-    )
-    t_not_connected = DestinationTicket(
-        id="t2", city_a="City_A", city_b="City_D", points=7
-    )
+    t_connected = DestinationTicket(id="t1", city_a="City_A", city_b="City_C", points=5)
+    t_not_connected = DestinationTicket(id="t2", city_a="City_A", city_b="City_D", points=7)
 
     assert check_ticket_completed(routes, t_connected) is True
     assert check_ticket_completed(routes, t_not_connected) is False

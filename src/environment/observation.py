@@ -1,13 +1,13 @@
 """Observation encoders for converting GameState to bounded vector representations."""
 
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 from src.game.board import Board
 from src.game.card import CardColor
 from src.game.graph import check_tickets_completed_batch
 from src.game.maps import load_usa_board
-from src.game.route import Route
 from src.game.state import GameState, TurnState
 from src.game.ticket import DestinationTicket
 
@@ -71,7 +71,8 @@ class ObservationV1(BaseObservationEncoder):
             + 2  # trains remaining, current score
             + len(self._route_ids) * 3  # route states: [unclaimed, own, opponent]
             + len(self._ticket_ids) * 3  # ticket states: [owned, completed, points/25]
-            + (self.num_players - 1) * 4  # opponent public: [card_count, trains, routes_count, score]
+            + (self.num_players - 1)
+            * 4  # opponent public: [card_count, trains, routes_count, score]
             + 5  # deck counts: [train_deck/110, discard/110, ticket_deck/30, turn/100, is_last_round]
             + 4  # turn phase one-hot (NORMAL, DRAWING_SECOND_CARD, CHOOSING_TICKETS, CHOOSING_INITIAL)
         )
@@ -109,9 +110,7 @@ class ObservationV1(BaseObservationEncoder):
         offset += 2
 
         # 4. Route ownership states (len(routes) * 3)
-        all_claimed_ids = {
-            rid: p.id for p in state.players for rid in p.claimed_route_ids
-        }
+        all_claimed_ids = {rid: p.id for p in state.players for rid in p.claimed_route_ids}
 
         for i, r_id in enumerate(self._route_ids):
             base = offset + i * 3
@@ -126,9 +125,7 @@ class ObservationV1(BaseObservationEncoder):
 
         # 5. Tickets (len(tickets) * 3)
         player_routes = [
-            self._routes_by_id[rid]
-            for rid in player.claimed_route_ids
-            if rid in self._routes_by_id
+            self._routes_by_id[rid] for rid in player.claimed_route_ids if rid in self._routes_by_id
         ]
         completion_status = check_tickets_completed_batch(player_routes, player.tickets)
         owned_ticket_map = {t.id: t for t in player.tickets}

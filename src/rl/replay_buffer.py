@@ -1,6 +1,5 @@
 """Experience Replay Buffer for DQN with Action Masking and Vectorized Storage."""
 
-from typing import Any
 import numpy as np
 import torch
 
@@ -26,7 +25,8 @@ class ReplayBatch:
 
     def __getitem__(self, item: str) -> torch.Tensor:
         if hasattr(self, item):
-            return getattr(self, item)
+            val: torch.Tensor = getattr(self, item)
+            return val
         raise KeyError(f"ReplayBatch has no key '{item}'")
 
     def __contains__(self, item: str) -> bool:
@@ -82,6 +82,12 @@ class ReplayBuffer:
         if not self.initialized or self.obs_buf is None or self.masks_buf is None:
             self._lazy_init(len(obs), len(next_action_mask) if next_action_mask is not None else 1)
 
+        assert (
+            self.obs_buf is not None
+            and self.next_obs_buf is not None
+            and self.masks_buf is not None
+        )
+
         self.obs_buf[self.ptr] = obs
         self.actions_buf[self.ptr] = int(action)
         self.rewards_buf[self.ptr] = float(reward)
@@ -94,6 +100,11 @@ class ReplayBuffer:
         self.size = min(self.size + 1, self.capacity)
 
     def sample(self, batch_size: int, device: str = "cpu") -> ReplayBatch:
+        assert (
+            self.obs_buf is not None
+            and self.next_obs_buf is not None
+            and self.masks_buf is not None
+        )
         idxs = np.random.randint(0, self.size, size=batch_size)
         return ReplayBatch(
             obs=torch.from_numpy(self.obs_buf[idxs]).to(device=device),

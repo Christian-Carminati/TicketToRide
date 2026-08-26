@@ -1,7 +1,6 @@
 """Unit tests for RewardResearchRunner and scientific report generation."""
 
 from pathlib import Path
-import pytest
 
 from src.evaluation.reward_research import RewardResearchRunner
 

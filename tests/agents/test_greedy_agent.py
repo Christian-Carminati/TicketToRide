@@ -1,7 +1,7 @@
 """Unit tests for GreedyAgent."""
 
 from src.agents.greedy_agent import GreedyAgent
-from src.game.action import Action, ActionType
+from src.game.action import ActionType
 from src.game.card import CardColor, TrainCard
 from src.game.game import Game
 
@@ -45,10 +45,9 @@ def test_greedy_agent_prioritizes_highest_scoring_route():
         chosen_route = game.board.get_route(action.route_id)
         for ca in claim_actions:
             r = game.board.get_route(ca.route_id)
-            assert (
-                game.rules.points_for_route_length(chosen_route.length)
-                >= game.rules.points_for_route_length(r.length)
-            )
+            assert game.rules.points_for_route_length(
+                chosen_route.length
+            ) >= game.rules.points_for_route_length(r.length)
 
 
 def test_greedy_agent_draws_matching_majority_color_or_locomotive():

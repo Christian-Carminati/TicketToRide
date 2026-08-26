@@ -3,6 +3,7 @@ import os
 import time
 from contextlib import asynccontextmanager
 from typing import Any
+
 import torch
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -132,7 +133,9 @@ def stop_training() -> TrainingStatusDTO:
 
 
 # --- Tournament & Leaderboard Endpoints ---
-@app.get("/api/tournament/participants/available", response_model=list[TournamentParticipantOptionDTO])
+@app.get(
+    "/api/tournament/participants/available", response_model=list[TournamentParticipantOptionDTO]
+)
 def get_available_tournament_participants() -> list[TournamentParticipantOptionDTO]:
     return tournament_service.get_available_participants()
 
@@ -285,7 +288,9 @@ def get_report(filename: str) -> ReportDetailDTO:
 def delete_report(filename: str) -> dict[str, Any]:
     success = report_service.delete_report(filename)
     if not success:
-        raise HTTPException(status_code=404, detail=f"Report '{filename}' non trovato o non eliminabile.")
+        raise HTTPException(
+            status_code=404, detail=f"Report '{filename}' non trovato o non eliminabile."
+        )
     return {"success": True, "deleted_file": filename}
 
 
@@ -295,15 +300,24 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
     if request.session_id:
         session = game_service.get_session(request.session_id)
         if not session:
-            raise HTTPException(status_code=404, detail=f"Session '{request.session_id}' not found.")
+            raise HTTPException(
+                status_code=404, detail=f"Session '{request.session_id}' not found."
+            )
 
         current_idx = session.game.state.current_player_index
         obs = session.encoder.encode(session.game.state, current_idx).tolist()
-        pending = session.game.state.current_player.pending_tickets if session.game.state.current_player else None
+        pending = (
+            session.game.state.current_player.pending_tickets
+            if session.game.state.current_player
+            else None
+        )
         valid_acts = session.game.valid_actions()
         mask = [bool(m) for m in session.masker.compute_mask(valid_acts, pending_tickets=pending)]
 
-        action_labels = [f"Act {i}: {session.action_space.to_action(i).action_type.name}" for i in range(session.action_space.n)]
+        action_labels = [
+            f"Act {i}: {session.action_space.to_action(i).action_type.name}"
+            for i in range(session.action_space.n)
+        ]
 
         agent = session.agents[current_idx]
         if hasattr(agent, "net"):
@@ -317,11 +331,17 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
                 belief_tracker=belief_tracker,
             )
         elif hasattr(agent, "model") and hasattr(agent.model, "lstm"):
-            return brain_service.inspect_recurrent_ppo(agent.model, obs, mask, action_labels=action_labels)
+            return brain_service.inspect_recurrent_ppo(
+                agent.model, obs, mask, action_labels=action_labels
+            )
         elif hasattr(agent, "q_net"):
-            return brain_service.inspect_q_network(agent.q_net, obs, mask, action_labels=action_labels)
+            return brain_service.inspect_q_network(
+                agent.q_net, obs, mask, action_labels=action_labels
+            )
         elif hasattr(agent, "actor_critic"):
-            return brain_service.inspect_actor_critic(agent.actor_critic, obs, mask, action_labels=action_labels)
+            return brain_service.inspect_actor_critic(
+                agent.actor_critic, obs, mask, action_labels=action_labels
+            )
         else:
             net = MaskedActorCritic(input_dim=len(obs), action_dim=len(mask), hidden_dim=128)
             return brain_service.inspect_actor_critic(net, obs, mask, action_labels=action_labels)
@@ -335,7 +355,11 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
         net_dqn = MaskedQNetwork(input_dim=len(obs_vec), action_dim=len(mask_vec), hidden_dim=128)
         if os.path.exists("experiments/checkpoints"):
             ckpts = sorted(
-                [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "dqn" in f.lower() and f.endswith(".pt")],
+                [
+                    os.path.join("experiments/checkpoints", f)
+                    for f in os.listdir("experiments/checkpoints")
+                    if "dqn" in f.lower() and f.endswith(".pt")
+                ],
                 key=os.path.getmtime,
                 reverse=True,
             )
@@ -352,10 +376,16 @@ def inspect_brain(request: BrainInspectRequest) -> BrainInspectionDTO:
                     pass
         return brain_service.inspect_q_network(net_dqn, obs_vec, mask_vec, action_labels=labels)
     else:
-        net_ppo = MaskedActorCritic(input_dim=len(obs_vec), action_dim=len(mask_vec), hidden_dim=128)
+        net_ppo = MaskedActorCritic(
+            input_dim=len(obs_vec), action_dim=len(mask_vec), hidden_dim=128
+        )
         if os.path.exists("experiments/checkpoints"):
             ckpts = sorted(
-                [os.path.join("experiments/checkpoints", f) for f in os.listdir("experiments/checkpoints") if "ppo" in f.lower() and f.endswith(".pt")],
+                [
+                    os.path.join("experiments/checkpoints", f)
+                    for f in os.listdir("experiments/checkpoints")
+                    if "ppo" in f.lower() and f.endswith(".pt")
+                ],
                 key=os.path.getmtime,
                 reverse=True,
             )
@@ -392,4 +422,3 @@ if os.path.exists("docs/course"):
 
 if os.path.exists("frontend/dist"):
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
-

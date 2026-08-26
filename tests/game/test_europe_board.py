@@ -1,6 +1,5 @@
 """Tests for official Ticket to Ride Europe board."""
 
-import pytest
 from src.game.game import Game
 from src.game.maps import load_europe_board
 

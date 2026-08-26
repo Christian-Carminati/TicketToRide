@@ -1,13 +1,10 @@
 """Tests for ObservationV1 encoder and POMDP anti-leakage invariants."""
 
 import numpy as np
-import pytest
-
 from src.environment.observation import ObservationV1
-from src.game.card import CardColor, TrainCard
+from src.game.card import CardColor
 from src.game.game import Game
 from src.game.maps import create_synthetic_mini_board, load_usa_board
-from src.game.ticket import DestinationTicket
 
 
 def test_observation_v1_mini_board_shape_and_range():

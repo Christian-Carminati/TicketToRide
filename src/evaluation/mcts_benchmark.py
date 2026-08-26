@@ -1,8 +1,8 @@
 """MCTS Scientific Evaluation and Benchmark Suite."""
 
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
 
 from src.agents.greedy_agent import GreedyAgent
@@ -10,7 +10,7 @@ from src.agents.mcts_agent import MCTSAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.strategic_agent import StrategicAgent
 from src.evaluation.evaluator import Evaluator
-from src.rl.mcts import MCTSConfig, RolloutPolicyType
+from src.rl.mcts import MCTSConfig
 
 
 class MCTSBenchmarkRunner:
@@ -90,16 +90,18 @@ class MCTSBenchmarkRunner:
 
         for opp_name, data in results["opponents"].items():
             md.append(
-                f"| **{opp_name}** | {data['mcts_win_rate']*100:.1f}% | {data['opp_win_rate']*100:.1f}% | {data['draw_rate']*100:.1f}% | {data['avg_mcts_score']:.1f} | {data['avg_opp_score']:.1f} | {data['avg_score_diff']:+.1f} |"
+                f"| **{opp_name}** | {data['mcts_win_rate'] * 100:.1f}% | {data['opp_win_rate'] * 100:.1f}% | {data['draw_rate'] * 100:.1f}% | {data['avg_mcts_score']:.1f} | {data['avg_opp_score']:.1f} | {data['avg_score_diff']:+.1f} |"
             )
 
-        md.extend([
-            "",
-            "## 3. Valutazione e Conclusioni",
-            f"- **Tasso di Vittoria Medio Globale:** `{results['summary']['avg_win_rate']*100:.1f}%`",
-            "- **Validazione:** MCTS si dimostra un avversario altamente performante e competitivo, validando l'approccio di ricerca ad albero su informazione parziale determinizzata.",
-            "",
-        ])
+        md.extend(
+            [
+                "",
+                "## 3. Valutazione e Conclusioni",
+                f"- **Tasso di Vittoria Medio Globale:** `{results['summary']['avg_win_rate'] * 100:.1f}%`",
+                "- **Validazione:** MCTS si dimostra un avversario altamente performante e competitivo, validando l'approccio di ricerca ad albero su informazione parziale determinizzata.",
+                "",
+            ]
+        )
 
         with open(output_md_path, "w", encoding="utf-8") as f:
             f.write("\n".join(md))

@@ -3,9 +3,7 @@
 from src.api.schemas import (
     ActionDTO,
     BrainInspectionDTO,
-    GameSessionCreateRequest,
     GameStateDTO,
-    GameStepRequest,
     LayerActivationDTO,
     PlayerStateDTO,
     ReplayDetailDTO,

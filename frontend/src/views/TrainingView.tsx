@@ -17,10 +17,11 @@ export const TrainingView: React.FC = () => {
   } = useTrainingStream();
 
   const [selectedAlgo, setSelectedAlgo] = useState<'ppo' | 'dqn' | 'recurrent_ppo' | 'self_play_ppo' | 'alphazero'>('ppo');
-  const [opponentType, setOpponentType] = useState<string>('greedy');
+  const [opponentType, setOpponentType] = useState<string>('mixed');
   const [overrideTimesteps, setOverrideTimesteps] = useState<number>(15000);
   const [numSimulations, setNumSimulations] = useState<number>(30);
   const [mapName, setMapName] = useState<'usa' | 'mini'>('usa');
+  const [seedMode, setSeedMode] = useState<'random' | 'fixed'>('random');
   const [seed, setSeed] = useState<number>(42);
   const [checkpoints, setCheckpoints] = useState<CheckpointDTO[]>([]);
   const [isLoadingCheckpoints, setIsLoadingCheckpoints] = useState(false);
@@ -49,7 +50,7 @@ export const TrainingView: React.FC = () => {
       algorithm_type: selectedAlgo,
       override_timesteps: overrideTimesteps,
       num_simulations: numSimulations,
-      seed: seed,
+      seed: seedMode === 'random' ? null : seed,
       opponent_type: opponentType,
       map_name: mapName,
     });
@@ -374,6 +375,7 @@ export const TrainingView: React.FC = () => {
                   fontFamily: "'Playfair Display', Georgia, serif",
                 }}
               >
+                <option value="mixed">🎲 Pool Misto (Casuale per Episodio)</option>
                 <option value="greedy">Greedy Score Bot</option>
                 <option value="strategic">Strategic Heuristic</option>
                 <option value="random">Uniform Random</option>
@@ -406,28 +408,68 @@ export const TrainingView: React.FC = () => {
             </select>
           </div>
 
-          {/* Seed Input */}
+          {/* Seed Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <label style={{ fontSize: '0.8rem', color: '#4A2F1D', fontWeight: 800, fontFamily: "'Playfair Display', serif" }}>
               Seed:
             </label>
-            <input
-              type="number"
-              value={seed}
+            <select
+              value={seedMode}
               disabled={isTraining}
-              onChange={(e) => setSeed(Number(e.target.value))}
+              onChange={(e) => setSeedMode(e.target.value as 'random' | 'fixed')}
               style={{
-                width: '55px',
                 backgroundColor: '#FAF5EB',
                 color: '#23140C',
                 border: '1.5px solid #8C6305',
                 borderRadius: '6px',
-                padding: '0.25rem 0.4rem',
+                padding: '0.3rem 0.6rem',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                fontFamily: "'Courier Prime', monospace",
+                fontFamily: "'Playfair Display', Georgia, serif",
               }}
-            />
+            >
+              <option value="random">🎲 Casuale (Dinamico)</option>
+              <option value="fixed">🔒 Fisso (Riproducibile)</option>
+            </select>
+
+            {seedMode === 'fixed' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <input
+                  type="number"
+                  value={seed}
+                  disabled={isTraining}
+                  onChange={(e) => setSeed(Number(e.target.value))}
+                  style={{
+                    width: '65px',
+                    backgroundColor: '#FAF5EB',
+                    color: '#23140C',
+                    border: '1.5px solid #8C6305',
+                    borderRadius: '6px',
+                    padding: '0.25rem 0.4rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    fontFamily: "'Courier Prime', monospace",
+                  }}
+                />
+                <button
+                  type="button"
+                  title="Genera nuovo seed casuale"
+                  disabled={isTraining}
+                  onClick={() => setSeed(Math.floor(Math.random() * 1000000))}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: isTraining ? 'not-allowed' : 'pointer',
+                    padding: '0.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#8C6305',
+                  }}
+                >
+                  <RefreshCw size={13} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

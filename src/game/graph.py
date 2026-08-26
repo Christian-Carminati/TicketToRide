@@ -1,6 +1,7 @@
 """Graph connectivity and longest continuous trail algorithms for Ticket to Ride."""
 
 from collections import defaultdict
+
 from src.game.route import Route
 from src.game.ticket import DestinationTicket
 
@@ -116,8 +117,7 @@ def compute_longest_continuous_path(player_routes: list[Route]) -> int:
 
     def dfs(current_city: str, current_len: int, visited_edges: set[str]) -> None:
         nonlocal max_length
-        if current_len > max_length:
-            max_length = current_len
+        max_length = max(max_length, current_len)
 
         for neighbor, edge_id, length in adj[current_city]:
             if edge_id not in visited_edges:

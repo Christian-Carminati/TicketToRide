@@ -1,7 +1,6 @@
 """Phase 7 Acceptance Test Suite: Reward Research & Behavioral Benchmarking."""
 
 from pathlib import Path
-import pytest
 
 from src.environment.reward import (
     CustomRewardCalculator,
@@ -58,7 +57,7 @@ def test_phase7_automated_reward_comparison_study(tmp_path: Path):
     assert md_path.exists()
 
     # Verify structured metrics exist for all versions
-    for v_key, study in results["reward_studies"].items():
+    for study in results["reward_studies"].values():
         assert "vs_random" in study
         assert "ticket_completion_rate" in study["vs_random"]
         assert "route_efficiency" in study["vs_random"]

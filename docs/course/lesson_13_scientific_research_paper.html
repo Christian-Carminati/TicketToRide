@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lezione 13: Metodologia di Ricerca Scientifica, Benchmark Cross-Paradigma & Tesi di Laurea - TicketToRide RL Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="course.js"></script>
+  <style>
+    .lang-en { display: none; }
+    .btn-lang-toggle {
+      background: var(--bg-secondary);
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-lang-toggle:hover {
+      background: var(--accent-cyan);
+      color: #000;
+    }
+    .paradigm-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .paradigm-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 4px solid var(--accent-cyan);
+    }
+    .paradigm-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <a href="index.html" class="header-brand">
+      <span class="logo-badge">TTR-RL</span>
+      <span class="lang-it">TicketToRide AI Lab: Corso Universitario</span>
+      <span class="lang-en">TicketToRide AI Lab: University Course</span>
+    </a>
+    <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
+      <button class="btn-lang-toggle" id="langToggleBtn">🇬🇧 Switch to English</button>
+      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar">
+    <div class="sidebar-title">
+      <span class="lang-it">Programma del Corso</span>
+      <span class="lang-en">Course Syllabus</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+      <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
+      <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
+      <li class="nav-item active"><a href="lesson_13_scientific_research_paper.html"><span class="nav-lesson-num">13</span> Metodologia Scientifica & Tesi</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="app-main">
+    
+    <div class="lesson-badge-header">
+      <span class="badge badge-phase">Fase 13</span>
+      <span class="badge badge-level">
+        <span class="lang-it">Metodologia di Ricerca & Tesi di Laurea</span>
+        <span class="lang-en">Research Methodology & Master's Thesis</span>
+      </span>
+      <span class="badge badge-time">45 min</span>
+    </div>
+
+    <!-- ITALIAN CONTENT -->
+    <div class="lang-it">
+      <h1>Lezione 13: Metodologia di Ricerca Scientifica, Benchmark Cross-Paradigma e Redazione Accademica</h1>
+
+      <p>
+        Benvenuto nella lezione conclusiva e culminante del percorso. Finora abbiamo costruito ogni tassello del laboratorio: il motore in Rust, l'ambiente Gymnasium POMDP, gli algoritmi di Deep RL (CleanRL PPO, Recurrent LSTM), il Multi-Agent Self-Play, l'Information-Set MCTS e l'architettura neurale di AlphaZero con inferenza Bayesiana. In questo modulo impariamo <strong>come trasformare questo arsenale ingegneristico in un contributo scientifico originale per una Tesi di Laurea o una pubblicazione internazionale</strong>.
+      </p>
+
+      <!-- 1. INTUIZIONE -->
+      <div class="pedagogical-box box-intuition">
+        <div class="box-title">💡 1. L'Intuizione: Dal Codice Software alla Formulazione di Ipotesi Falsificabili</div>
+        <p>
+          Un progetto di ingegneria dimostra che un sistema <em>funziona</em>; un lavoro scientifico dimostra <strong>perché, sotto quali condizioni e con quale vantaggio quantitativo</strong> una metodologia supera le alternative.
+        </p>
+        <p>
+          Nel contesto dei giochi strategici su grafo a informazione imperfetta come <em>Ticket to Ride</em>, la domanda cardine della letteratura è:
+          <br><em>"È superiore un approccio di memoria neurale implicita (LSTM end-to-end) o un approccio esplicito basato su deduzione probabilistica Bayesiana su grafo?"</em>
+        </p>
+      </div>
+
+      <!-- 2. LE 4 DOMANDE DI RICERCA -->
+      <h2>2. Le 4 Domande di Ricerca Formali ($RQ_1 - RQ_4$)</h2>
+      <p>Ogni lavoro accademico di valore poggia su domande di ricerca precise e verificabili empiricamente:</p>
+
+      <div class="paradigm-card-grid">
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_1}$: Memoria Neurale in POMDP</div>
+          <p>In quale misura una policy ricorrente (LSTM Actor-Critic) riduce l'errore decisionale rispetto a una policy Markoviana piatta (MLP) quando l'informazione è parziale?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_2}$: Determinizzazione Pesata in MCTS</div>
+          <p>L'uso della distribuzione a posteriori $P(T_k \mid \mathcal{E}_{\text{opp}})$ nel campionare gli stati nascosti elimina gli errori di <em>Strategy Fusion</em> rispetto alla determinizzazione uniforme casuale?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_3}$: Convergenza dell'Inferenza Bayesiana</div>
+          <p>Con quale velocità (misurata tramite decadimento dell'entropia di Shannon e Top-$K$ accuracy) il motore di detour su grafo circoscrive gli obiettivi segreti avversari?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_4}$: Robustezza al Bluff & Frontiera di Calcolo</div>
+          <p>Come reagiscono il modello neurale e il modello probabilistico a mosse di disinformazione deliberata (bluff), e qual è il trade-off empirico tra Elo e latenza decisionale (ms/mossa)?</p>
+        </div>
+      </div>
+
+      <!-- 3. LA MATRICE DEI 6 PARADIGMI -->
+      <h2>3. La Matrice di Triangolazione a 6 Paradigmi</h2>
+      <p>Per isolare l'effetto di ogni componente algoritmica, confrontiamo 6 agenti distinti:</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+            <th style="padding: 10px;">Agente</th>
+            <th style="padding: 10px;">Famiglia</th>
+            <th style="padding: 10px;">Rappresentazione Stato</th>
+            <th style="padding: 10px;">Decision-Making Core</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Heuristic-Dijkstra</td>
+            <td style="padding: 10px;">Simbolico / Deterministico</td>
+            <td style="padding: 10px;">Cammino minimo su grafo</td>
+            <td style="padding: 10px;">Greedy su tratte ottime</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Flat-PPO</td>
+            <td style="padding: 10px;">Model-Free Deep RL</td>
+            <td style="padding: 10px;">Vettore 1D istantaneo $o_t$</td>
+            <td style="padding: 10px;">MLP Policy $\pi_\theta(a \mid o_t)$</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Recurrent-PPO</td>
+            <td style="padding: 10px;">Model-Free POMDP</td>
+            <td style="padding: 10px;">Stato latente ricorrente $h_t$</td>
+            <td style="padding: 10px;">LSTM Actor-Critic $\pi_\theta(a \mid h_t)$</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Uniform-ISMCTS</td>
+            <td style="padding: 10px;">Tree Search Classico</td>
+            <td style="padding: 10px;">Determinizzazione casuale $\tilde{s} \sim \mathcal{U}$</td>
+            <td style="padding: 10px;">UCT Search con rollout casuali</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Neural-AlphaZero</td>
+            <td style="padding: 10px;">Model-Based Neurale</td>
+            <td style="padding: 10px;">Policy Prior $\mathbf{p}_\theta$ + Value $v_\theta$</td>
+            <td style="padding: 10px;">PUCT Search senza rollout</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Bayesian-AlphaZero</td>
+            <td style="padding: 10px;">Opponent-Aware Search</td>
+            <td style="padding: 10px;">Credenza $P(T_k \mid \mathcal{E})$ + Detour</td>
+            <td style="padding: 10px;">Belief-Weighted PUCT + Blocker</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4. FORMULE E RIGORE MATEMATICO -->
+      <h2>4. Formulazione Matematica del Filtro di Credenza</h2>
+      <p>
+        Dato il grafo della ferrovia $G=(V, E)$, per ogni tratta occupata dall'avversario $e=(a, b)$ e ogni ipotetico biglietto obiettivo segreto $T_k=(u, v)$, il costo di detour è calcolato come:
+      </p>
+
+      $$\Delta(e, T_k) = \min\big(d(u, a) + \text{len}(e) + d(b, v), \; d(u, b) + \text{len}(e) + d(a, v)\big) - d(u, v)$$
+
+      <p>
+        L'aggiornamento della distribuzione a posteriori sui biglietti dopo $t$ mosse osservate $\mathcal{E}_{1:t} = (e_1, \dots, e_t)$ segue la regola di Bayes:
+      </p>
+
+      $$P(T_k \mid \mathcal{E}_{1:t}) = \frac{P(T_k) \cdot \prod_{\tau=1}^t \exp(-\beta \cdot \Delta(e_\tau, T_k))}{\sum_{j} P(T_j) \cdot \prod_{\tau=1}^t \exp(-\beta \cdot \Delta(e_\tau, T_j))}$$
+
+      <p>
+        L'incertezza residua dell'agente è quantificata turno per turno tramite l'<strong>Entropia di Shannon</strong>:
+      </p>
+
+      $$H(t) = -\sum_{k} P(T_k \mid \mathcal{E}_{1:t}) \log_2 P(T_k \mid \mathcal{E}_{1:t})$$
+
+      <!-- 5. STRUTTURA DELLA MONOGRAFIA DI TESI -->
+      <h2>5. Struttura dei Capitoli per la Tesi di Laurea</h2>
+      <ul>
+        <li><strong>Capitolo 1 — Introduzione & POMDP su Grafo</strong>: Contesto storico, formulazione formale del gioco, assenza di information-leakage, motivazioni e $RQ_1-RQ_4$.</li>
+        <li><strong>Capitolo 2 — Fondamenti Teorici & Stato dell'Arte</strong>: Policy Gradient, CleanRL PPO, Backpropagation Through Time (BPTT) in LSTM, Information-Set MCTS, Strategy Fusion, e AlphaZero.</li>
+        <li><strong>Capitolo 3 — Architettura e Implementazione</strong>: Core deterministico in Rust a 1.44M step/s, Gymnasium wrapper, formalizzazione dei 6 agenti e motore di Detour Dijkstra.</li>
+        <li><strong>Capitolo 4 — Risultati Sperimentali & Benchmark</strong>: Ranking Elo con intervalli di confidenza al 95%, curve di decadimento dell'entropia, test di bluff e frontiera di Pareto computazionale.</li>
+        <li><strong>Capitolo 5 — XAI e Casi di Studio nel Web Lab</strong>: Analisi telemetrica turno per turno, heatmap di contesa dei colli di bottiglia e replay significativi.</li>
+        <li><strong>Capitolo 6 — Conclusioni e Ricerche Future</strong>: Risposte alle domande di ricerca, generalizzazione con Graph Neural Networks (GNN) ed estensione a partite multi-giocatore (3-5 player).</li>
+      </ul>
+    </div>
+
+    <!-- ENGLISH CONTENT -->
+    <div class="lang-en">
+      <h1>Lesson 13: Scientific Research Methodology, Cross-Paradigm Benchmark & Master's Thesis</h1>
+
+      <p>
+        Welcome to the capstone lesson of our course. Throughout the previous modules, we built every component of the laboratory: the high-throughput Rust game core, the Gymnasium POMDP environment, Deep RL algorithms (CleanRL PPO, Recurrent LSTM), Multi-Agent Self-Play, Information-Set MCTS, and the AlphaZero neural architecture with Bayesian inference. In this module, you will learn <strong>how to turn this engineering foundation into a rigorous scientific Master's thesis or international conference publication</strong>.
+      </p>
+
+      <!-- 1. INTUITION -->
+      <div class="pedagogical-box box-intuition">
+        <div class="box-title">💡 1. The Intuition: From Software Engineering to Falsifiable Hypotheses</div>
+        <p>
+          Software engineering demonstrates that a system <em>works</em>; scientific research investigates <strong>why, under which conditions, and with what quantitative advantage</strong> one methodology outperforms alternatives.
+        </p>
+        <p>
+          In imperfect-information network games like <em>Ticket to Ride</em>, the central research question is:
+          <br><em>"Does explicit Bayesian belief tracking over graph detours outperform implicit end-to-end recurrent neural memory (LSTM)?"</em>
+        </p>
+      </div>
+
+      <!-- 2. RESEARCH QUESTIONS -->
+      <h2>2. The 4 Formal Research Questions ($RQ_1 - RQ_4$)</h2>
+      <div class="paradigm-card-grid">
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_1}$: Neural Memory in POMDPs</div>
+          <p>To what extent does a recurrent policy (LSTM Actor-Critic) reduce decision error compared to a flat Markovian policy (MLP) under partial observability?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_2}$: Belief-Weighted Determinization</div>
+          <p>Does sampling hidden states from the posterior $P(T_k \mid \mathcal{E}_{\text{opp}})$ eliminate <em>Strategy Fusion</em> errors compared to uniform random determinization in MCTS?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_3}$: Bayesian Inference Convergence</div>
+          <p>At what convergence speed (measured via Shannon entropy decay and Top-$K$ accuracy) does the graph detour engine identify hidden destination tickets?</p>
+        </div>
+        <div class="paradigm-card">
+          <div class="paradigm-title">$\mathbf{RQ_4}$: Deception Robustness & Compute Pareto Frontier</div>
+          <p>How do neural and probabilistic models respond to deliberate bluffing, and what is the empirical trade-off between Elo rating and decision latency (ms/move)?</p>
+        </div>
+      </div>
+
+      <!-- 3. TRIANGULATION MATRIX -->
+      <h2>3. The 6-Paradigm Triangulation Matrix</h2>
+      <p>To rigorously isolate algorithmic contributions, we evaluate 6 distinct paradigms:</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+            <th style="padding: 10px;">Agent</th>
+            <th style="padding: 10px;">Family</th>
+            <th style="padding: 10px;">State Representation</th>
+            <th style="padding: 10px;">Decision Core</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Heuristic-Dijkstra</td>
+            <td style="padding: 10px;">Symbolic / Deterministic</td>
+            <td style="padding: 10px;">Graph shortest paths</td>
+            <td style="padding: 10px;">Greedy route claims</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Flat-PPO</td>
+            <td style="padding: 10px;">Model-Free Deep RL</td>
+            <td style="padding: 10px;">1D Instantaneous observation $o_t$</td>
+            <td style="padding: 10px;">MLP Policy $\pi_\theta(a \mid o_t)$</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Recurrent-PPO</td>
+            <td style="padding: 10px;">Model-Free POMDP</td>
+            <td style="padding: 10px;">Recurrent hidden state $h_t$</td>
+            <td style="padding: 10px;">LSTM Actor-Critic $\pi_\theta(a \mid h_t)$</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Uniform-ISMCTS</td>
+            <td style="padding: 10px;">Classical Tree Search</td>
+            <td style="padding: 10px;">Random determinization $\tilde{s} \sim \mathcal{U}$</td>
+            <td style="padding: 10px;">UCT Search with random rollouts</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Neural-AlphaZero</td>
+            <td style="padding: 10px;">Neural Model-Based</td>
+            <td style="padding: 10px;">Policy prior $\mathbf{p}_\theta$ + Value $v_\theta$</td>
+            <td style="padding: 10px;">PUCT Search without rollouts</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold; color: var(--accent-cyan);">Bayesian-AlphaZero</td>
+            <td style="padding: 10px;">Opponent-Aware Search</td>
+            <td style="padding: 10px;">Belief $P(T_k \mid \mathcal{E})$ + Detour</td>
+            <td style="padding: 10px;">Belief-Weighted PUCT + Blocker</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4. MATHEMATICS -->
+      <h2>4. Mathematical Formulation of the Bayesian Belief Engine</h2>
+      <p>Given the board railway network graph $G=(V, E)$, for any claimed route $e=(a, b)$ and secret destination ticket candidate $T_k=(u, v)$, the detour penalty is:</p>
+
+      $$\Delta(e, T_k) = \min\big(d(u, a) + \text{len}(e) + d(b, v), \; d(u, b) + \text{len}(e) + d(a, v)\big) - d(u, v)$$
+
+      <p>Bayesian posterior updating across $t$ observed enemy route claims $\mathcal{E}_{1:t}$:</p>
+
+      $$P(T_k \mid \mathcal{E}_{1:t}) = \frac{P(T_k) \cdot \prod_{\tau=1}^t \exp(-\beta \cdot \Delta(e_\tau, T_k))}{\sum_{j} P(T_j) \cdot \prod_{\tau=1}^t \exp(-\beta \cdot \Delta(e_\tau, T_j))}$$
+
+      <p>Residual uncertainty is quantified at every turn by the <strong>Shannon Entropy</strong>:</p>
+
+      $$H(t) = -\sum_{k} P(T_k \mid \mathcal{E}_{1:t}) \log_2 P(T_k \mid \mathcal{E}_{1:t})$$
+
+      <!-- 5. MONOGRAPH CHAPTERS -->
+      <h2>5. Thesis Monograph Chapter Structure</h2>
+      <ul>
+        <li><strong>Chapter 1 — Introduction & Graph POMDPs</strong>: Background, formal game specification, zero-leakage guarantee, and $RQ_1-RQ_4$.</li>
+        <li><strong>Chapter 2 — Theoretical Foundations & State-of-the-Art</strong>: Policy Gradients, CleanRL details, Recurrent BPTT in LSTMs, ISMCTS, Strategy Fusion, and AlphaZero.</li>
+        <li><strong>Chapter 3 — System Architecture & Methodology</strong>: Rust 1.44M step/s core, Gymnasium environment, 6 agent formulations, and Dijkstra Detour Filter.</li>
+        <li><strong>Chapter 4 — Experimental Benchmark & Results</strong>: Multi-seed Elo tournaments with 95% CI, Shannon entropy decay curves, deception tests, and Pareto compute frontier.</li>
+        <li><strong>Chapter 5 — XAI & Web Lab Case Studies</strong>: Real-time telemetry inspection, bottleneck route contention heatmaps, and turning-point replay breakdowns.</li>
+        <li><strong>Chapter 6 — Conclusions & Future Horizons</strong>: Answers to research questions, Relational Graph Neural Networks (GNNs), procedural map generalization, and 3-5 player games.</li>
+      </ul>
+    </div>
+
+    <!-- INTERACTIVE QUIZ (BILINGUAL) -->
+    <h2>
+      <span class="lang-it">Quiz di Autovalutazione della Ricerca</span>
+      <span class="lang-en">Scientific Research Self-Assessment Quiz</span>
+    </h2>
+
+    <!-- Domanda 1 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">
+        <span class="lang-it">Domanda 1 di 3: Lo Strategy Fusion Dilemma in MCTS</span>
+        <span class="lang-en">Question 1 of 3: The Strategy Fusion Dilemma in MCTS</span>
+      </div>
+      <p class="lang-it">Perché l'Information-Set MCTS a determinizzazione uniforme casuale soffre di <em>Strategy Fusion</em> in Ticket to Ride?</p>
+      <p class="lang-en">Why does uniform Information-Set MCTS suffer from <em>Strategy Fusion</em> in Ticket to Ride?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l13_q1" value="a">
+          <span class="lang-it">A) Perché assume che il giocatore possa scegliere azioni diverse nei nodi foglia basandosi su informazioni che in realtà sono segrete, fondendo strategie distinte in un unico albero senza considerare le distribuzioni reali delle credenze.</span>
+          <span class="lang-en">A) Because it assumes the agent can pick different actions at leaf nodes based on information that is actually hidden, fusing distinct sub-strategies without weighting by true posterior beliefs.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l13_q1" value="b">
+          <span class="lang-it">B) Perché la libreria PyTorch esegue la backpropagation con learning rate eccessivamente elevato.</span>
+          <span class="lang-en">B) Because PyTorch performs backpropagation with an excessively high learning rate.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l13_q1_sol">
+        <span class="lang-it">Verifica & Mostra Soluzione</span>
+        <span class="lang-en">Check & Show Solution</span>
+      </button>
+      <div class="quiz-solution" id="l13_q1_sol">
+        <strong>
+          <span class="lang-it">Risposta Corretta: A</span>
+          <span class="lang-en">Correct Answer: A</span>
+        </strong><br>
+        <em class="lang-it">Spiegazione: Lo Strategy Fusion è il limite teorico dell'ISMCTS classico; campionando mondi possibili pesati con la distribuzione Bayesiana $P(T_k \mid \mathcal{E})$, la ricerca concentra i rami sui veri scenari plausibili.</em>
+        <em class="lang-en">Explanation: Strategy Fusion is the classic theoretical pathology of ISMCTS; belief-weighted determinization focuses search rollouts on truly plausible world states.</em>
+      </div>
+    </div>
+
+    <!-- Domanda 2 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">
+        <span class="lang-it">Domanda 2 di 3: L'Entropia di Shannon nell'Opponent Modeling</span>
+        <span class="lang-en">Question 2 of 3: Shannon Entropy in Opponent Modeling</span>
+      </div>
+      <p class="lang-it">Cosa indica una rapida diminuzione dell'Entropia di Shannon $H(t) = -\sum P(T_k) \log_2 P(T_k)$ durante i primi 15 turni di gioco?</p>
+      <p class="lang-en">What does a rapid drop in Shannon Entropy $H(t) = -\sum P(T_k) \log_2 P(T_k)$ signify during the first 15 game turns?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l13_q2" value="a">
+          <span class="lang-it">A) Che l'agente sta riducendo drasticamente l'incertezza sui biglietti segreti dell'avversario, concentrando la probabilità su pochissimi candidati altamente plausibili.</span>
+          <span class="lang-en">A) The agent is drastically reducing its uncertainty regarding enemy secret tickets, concentrating probability mass on a few highly plausible candidates.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l13_q2" value="b">
+          <span class="lang-it">B) Che la memoria RAM del server è andata in overflow.</span>
+          <span class="lang-en">B) That the server's RAM memory has encountered an overflow.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l13_q2_sol">
+        <span class="lang-it">Verifica & Mostra Soluzione</span>
+        <span class="lang-en">Check & Show Solution</span>
+      </button>
+      <div class="quiz-solution" id="l13_q2_sol">
+        <strong>
+          <span class="lang-it">Risposta Corretta: A</span>
+          <span class="lang-en">Correct Answer: A</span>
+        </strong><br>
+        <em class="lang-it">Spiegazione: L'entropia misura l'incertezza della distribuzione: da massima (distribuzione uniforme iniziale, incertezza totale) a minima (certezza sull'obiettivo avversario).</em>
+        <em class="lang-en">Explanation: Entropy measures belief uncertainty: from maximum (initial uniform distribution) to near-zero (confident goal identification).</em>
+      </div>
+    </div>
+
+    <!-- Domanda 3 -->
+    <div class="quiz-widget">
+      <div class="quiz-header">
+        <span class="lang-it">Domanda 3 di 3: Vantaggi della Memoria Neurale LSTM in POMDP</span>
+        <span class="lang-en">Question 3 of 3: Advantage of Recurrent LSTM Memory in POMDPs</span>
+      </div>
+      <p class="lang-it">Perché una policy con cella LSTM (Recurrent PPO) è teoricamente più robusta a mosse di "bluff" rispetto a un filtro Bayesiano puro con parametri rigidi?</p>
+      <p class="lang-en">Why is a recurrent LSTM policy theoretically more resilient to "bluffing" than a rigid Bayesian filter?</p>
+      <div class="quiz-options">
+        <label class="quiz-option">
+          <input type="radio" name="l13_q3" value="a">
+          <span class="lang-it">A) Perché la rappresentazione latente distribuita apprende correlazioni temporali non lineari e può filtrare anomalie stocastiche senza crollare su singoli aggiornamenti di verosimiglianza estremi.</span>
+          <span class="lang-en">A) Because distributed latent states learn non-linear temporal correlations and can filter out stochastic anomalies without collapsing on extreme single-event likelihood updates.</span>
+        </label>
+        <label class="quiz-option">
+          <input type="radio" name="l13_q3" value="b">
+          <span class="lang-it">B) Perché le LSTM non utilizzano numeri in virgola mobile.</span>
+          <span class="lang-en">B) Because LSTMs do not use floating point numbers.</span>
+        </label>
+      </div>
+      <button class="btn-reveal-solution" data-target="l13_q3_sol">
+        <span class="lang-it">Verifica & Mostra Soluzione</span>
+        <span class="lang-en">Check & Show Solution</span>
+      </button>
+      <div class="quiz-solution" id="l13_q3_sol">
+        <strong>
+          <span class="lang-it">Risposta Corretta: A</span>
+          <span class="lang-en">Correct Answer: A</span>
+        </strong><br>
+        <em class="lang-it">Spiegazione: Le memorie neurali distribuite assorbono il rumore informativo meglio di filtri rigidi parametrici, rendendo l'approccio ibrido (Bayesian + Neurale) il più forte in assoluto.</em>
+        <em class="lang-en">Explanation: Distributed neural representations absorb noise better than rigid filters, making hybrid architectures (Bayesian + Neural) the gold standard.</em>
+      </div>
+    </div>
+
+    <!-- Congratulazioni e Footer -->
+    <div style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(57, 197, 207, 0.15)); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 30px; margin-top: 50px; text-align: center;">
+      <h3 style="color: var(--accent-green); margin-top: 0; font-size: 1.6rem;">
+        <span class="lang-it">🎉 Congratulazioni! Hai Completato l'Intero Percorso Scientifico!</span>
+        <span class="lang-en">🎉 Congratulations! You Have Mastered the Complete Scientific Curriculum!</span>
+      </h3>
+      <p style="color: var(--text-primary); max-width: 750px; margin: 12px auto 20px;">
+        <span class="lang-it">
+          Hai a disposizione una suite sperimentale completa a 6 paradigmi, script di benchmark multi-seed, generatori di figure per pubblicazione LaTeX e un simulatore Rust da 1.44M step/s per produrre una tesi di laurea o un paper accademico di altissimo livello.
+        </span>
+        <span class="lang-en">
+          You now possess a complete 6-paradigm experimental suite, multi-seed benchmark CLI, publication-grade LaTeX figure generators, and a 1.44M steps/s Rust simulator ready for high-impact thesis research and conference publications.
+        </span>
+      </p>
+      <a href="index.html" class="btn-nav-lesson" style="display: inline-flex; background: var(--accent-green); color: #fff; border: none; padding: 12px 24px;">
+        <span class="lang-it">← Torna alla Dashboard del Corso</span>
+        <span class="lang-en">← Back to Course Dashboard</span>
+      </a>
+    </div>
+
+    <div class="lesson-nav-footer">
+      <a href="lesson_12_alphazero_advanced.html" class="btn-nav-lesson">
+        <span class="lang-it">← Lezione 12: Neural MCTS & AlphaZero</span>
+        <span class="lang-en">← Lesson 12: Neural MCTS & AlphaZero</span>
+      </a>
+      <a href="index.html" class="btn-nav-lesson">
+        <span class="lang-it">Dashboard del Corso (Hub) →</span>
+        <span class="lang-en">Course Dashboard (Hub) →</span>
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    // Language switcher logic
+    const langBtn = document.getElementById("langToggleBtn");
+    let currentLang = "it";
+
+    langBtn.addEventListener("click", () => {
+      if (currentLang === "it") {
+        currentLang = "en";
+        document.querySelectorAll(".lang-it").forEach(el => el.style.display = "none");
+        document.querySelectorAll(".lang-en").forEach(el => el.style.display = "inline-block");
+        langBtn.textContent = "🇮🇹 Passa all'Italiano";
+      } else {
+        currentLang = "it";
+        document.querySelectorAll(".lang-en").forEach(el => el.style.display = "none");
+        document.querySelectorAll(".lang-it").forEach(el => el.style.display = "");
+        langBtn.textContent = "🇬🇧 Switch to English";
+      }
+      if (window.MathJax && window.MathJax.typeset) {
+        window.MathJax.typeset();
+      }
+    });
+  </script>
+
+</body>
+</html>

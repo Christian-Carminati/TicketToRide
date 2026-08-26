@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from pathlib import Path
 from typing import Any
@@ -100,9 +99,18 @@ class SelfPlayBenchmarkRunner:
 
         # 5. Direct Head-to-Head & Baseline Win Rates
         evaluator = Evaluator(board=self.board, tickets_deck=self.tickets)
-        vs_random = evaluator.evaluate(sp_final_agent, RandomAgent(seed=self.seed + 1), num_games=self.eval_games, seed=self.seed)
-        vs_greedy = evaluator.evaluate(sp_final_agent, GreedyAgent(), num_games=self.eval_games, seed=self.seed)
-        vs_single = evaluator.evaluate(sp_final_agent, single_agent, num_games=self.eval_games, seed=self.seed)
+        vs_random = evaluator.evaluate(
+            sp_final_agent,
+            RandomAgent(seed=self.seed + 1),
+            num_games=self.eval_games,
+            seed=self.seed,
+        )
+        vs_greedy = evaluator.evaluate(
+            sp_final_agent, GreedyAgent(), num_games=self.eval_games, seed=self.seed
+        )
+        vs_single = evaluator.evaluate(
+            sp_final_agent, single_agent, num_games=self.eval_games, seed=self.seed
+        )
 
         elapsed = time.time() - start_time
 
@@ -145,19 +153,19 @@ class SelfPlayBenchmarkRunner:
             wld = f"{entry['wins']}-{entry['losses']}-{entry['draws']}"
             leaderboard_rows += (
                 f"| {rank} | **{entry['name']}** | {entry['elo']:.1f} | "
-                f"{entry['win_rate']*100:.1f}% | {wld} | {entry['avg_score']:.1f} |\n"
+                f"{entry['win_rate'] * 100:.1f}% | {wld} | {entry['avg_score']:.1f} |\n"
             )
 
         md_content = f"""# Relazione Scientifica: Studio di Auto-Apprendimento (Self-Play & Historical Policy Pool)
 
-**Versione Studio:** Fase 9  
-**Data:** 2026-08-21  
-**Mappa:** Official USA Board  
-**Seed Deterministico:** {meta['seed']}  
-**Timestep di Addestramento:** {meta['training_steps']}  
-**Generazioni Storiche nel Pool:** {meta['pool_generations']}  
-**Partite per Accoppiamento Torneo:** {meta['games_per_pair']}  
-**Tempo di Calcolo:** {meta['elapsed_seconds']:.2f}s  
+**Versione Studio:** Fase 9
+**Data:** 2026-08-21
+**Mappa:** Official USA Board
+**Seed Deterministico:** {meta["seed"]}
+**Timestep di Addestramento:** {meta["training_steps"]}
+**Generazioni Storiche nel Pool:** {meta["pool_generations"]}
+**Partite per Accoppiamento Torneo:** {meta["games_per_pair"]}
+**Tempo di Calcolo:** {meta["elapsed_seconds"]:.2f}s
 
 ---
 
@@ -173,9 +181,9 @@ class SelfPlayBenchmarkRunner:
 
 | Scontro Diretto | Win Rate Self-Play | Esito |
 | :--- | :--- | :--- |
-| **Self-Play Final vs RandomBot** | **{vs_b['selfplay_vs_random_win_rate']*100:.1f}%** | {'Superato (>= 65%)' if vs_b['selfplay_vs_random_win_rate'] >= 0.65 else 'Sotto soglia'} |
-| **Self-Play Final vs GreedyBot** | **{vs_b['selfplay_vs_greedy_win_rate']*100:.1f}%** | Validato |
-| **Self-Play Final vs SingleBot PPO** | **{vs_b['selfplay_vs_single_bot_win_rate']*100:.1f}%** | {'Vantaggio Self-Play' if vs_b['selfplay_vs_single_bot_win_rate'] >= 0.50 else 'Parità / Svantaggio'} |
+| **Self-Play Final vs RandomBot** | **{vs_b["selfplay_vs_random_win_rate"] * 100:.1f}%** | {"Superato (>= 65%)" if vs_b["selfplay_vs_random_win_rate"] >= 0.65 else "Sotto soglia"} |
+| **Self-Play Final vs GreedyBot** | **{vs_b["selfplay_vs_greedy_win_rate"] * 100:.1f}%** | Validato |
+| **Self-Play Final vs SingleBot PPO** | **{vs_b["selfplay_vs_single_bot_win_rate"] * 100:.1f}%** | {"Vantaggio Self-Play" if vs_b["selfplay_vs_single_bot_win_rate"] >= 0.50 else "Parità / Svantaggio"} |
 
 ---
 

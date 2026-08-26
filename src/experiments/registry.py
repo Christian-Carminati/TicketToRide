@@ -12,8 +12,8 @@ class ExperimentRecord:
     name: str
     seed: int
     algorithm: str
-    env_version: int
-    reward_version: int
+    env_version: int | str
+    reward_version: int | str
     metrics: dict[str, Any] = field(default_factory=dict)
     checkpoint_path: str | None = None
     created_at: str | None = None
@@ -34,7 +34,7 @@ class ExperimentRegistry:
         if not os.path.exists(self.registry_file):
             return []
         records = []
-        with open(self.registry_file, "r", encoding="utf-8") as f:
+        with open(self.registry_file, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     try:
@@ -56,8 +56,7 @@ class ExperimentRegistry:
             return False
 
         with open(self.registry_file, "w", encoding="utf-8") as f:
-            for r in filtered:
-                f.write(json.dumps(r) + "\n")
+            f.writelines(json.dumps(r) + "\n" for r in filtered)
         return True
 
     def clear_all_experiments(self) -> int:

@@ -1,9 +1,5 @@
 """Greedy baseline agent maximizing immediate scoring opportunities."""
 
-from typing import Any
-
-import numpy as np
-
 from src.agents.base_agent import BaseAgent
 from src.game.action import Action, ActionType
 from src.game.board import Board
@@ -56,12 +52,16 @@ class GreedyAgent(BaseAgent):
 
         # 2. Handle Drawing Second Card
         if state.turn_state == TurnState.DRAWING_SECOND_CARD:
-            visible_draws = [a for a in valid_actions if a.action_type == ActionType.DRAW_VISIBLE_CARD]
+            visible_draws = [
+                a for a in valid_actions if a.action_type == ActionType.DRAW_VISIBLE_CARD
+            ]
             if visible_draws:
                 best_visible = self._pick_best_visible_card(state, visible_draws)
                 if best_visible:
                     return best_visible
-            hidden_draws = [a for a in valid_actions if a.action_type == ActionType.DRAW_HIDDEN_CARD]
+            hidden_draws = [
+                a for a in valid_actions if a.action_type == ActionType.DRAW_HIDDEN_CARD
+            ]
             if hidden_draws:
                 return hidden_draws[0]
             return valid_actions[0]
@@ -103,11 +103,11 @@ class GreedyAgent(BaseAgent):
 
         # Find non-locomotive color with highest count in player's hand
         hand_counts = {
-            c: count
-            for c, count in player.cards.items()
-            if c != CardColor.LOCOMOTIVE and count > 0
+            c: count for c, count in player.cards.items() if c != CardColor.LOCOMOTIVE and count > 0
         }
-        target_color = max(hand_counts, key=hand_counts.get) if hand_counts else None
+        target_color: CardColor | None = None
+        if hand_counts:
+            target_color = max(hand_counts, key=lambda k: hand_counts[k])
 
         # Look for visible Locomotive first
         for a in visible_actions:

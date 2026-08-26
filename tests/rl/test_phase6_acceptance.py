@@ -1,15 +1,10 @@
 """Phase 6 Acceptance Test Suite: PPO From Scratch, CleanRL Details & Scientific Benchmark."""
 
-import json
-import tempfile
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pytest
 import torch
-
-from src.agents.greedy_agent import GreedyAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
 from src.environment.env import TicketToRideEnv
@@ -105,7 +100,6 @@ def test_phase6_deterministic_reproducibility() -> None:
     # Check network weights match bitwise
     for p1, p2 in zip(w1, w2, strict=True):
         assert np.allclose(p1, p2, atol=1e-6)
-
 
 
 def test_phase6_cleanrl_ablation_and_report_generation(tmp_path: Path) -> None:

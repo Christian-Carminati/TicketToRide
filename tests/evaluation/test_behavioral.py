@@ -1,7 +1,5 @@
 """Unit tests for BehavioralEvaluator and BehavioralProfile."""
 
-import pytest
-
 from src.agents.greedy_agent import GreedyAgent
 from src.agents.random_agent import RandomAgent
 from src.evaluation.behavioral import BehavioralEvaluator, BehavioralProfile

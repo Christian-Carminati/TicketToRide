@@ -13,6 +13,8 @@ class MaskedQNetwork(nn.Module):
 
     def __init__(self, input_dim: int, action_dim: int, hidden_dim: int = 128) -> None:
         super().__init__()
+        self.input_dim = input_dim
+        self.action_dim = action_dim
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
@@ -23,7 +25,8 @@ class MaskedQNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute unmasked Q-values for all actions."""
-        return self.net(x)
+        out: torch.Tensor = self.net(x)
+        return out
 
     def select_action(
         self,
@@ -54,7 +57,9 @@ class MaskedQNetwork(nn.Module):
             return int(torch.argmax(masked_q).item())
 
 
-def layer_init(layer: nn.Linear, std: float = float(np.sqrt(2)), bias_const: float = 0.0) -> nn.Linear:
+def layer_init(
+    layer: nn.Linear, std: float = float(np.sqrt(2)), bias_const: float = 0.0
+) -> nn.Linear:
     """Initialize linear layer weights using orthogonal initialization and constant bias."""
     nn.init.orthogonal_(layer.weight, std)
     nn.init.constant_(layer.bias, bias_const)
@@ -102,7 +107,6 @@ class MaskedActorCritic(nn.Module):
                 nn.Tanh(),
                 nn.Linear(hidden_dim, 1),
             )
-
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         logits = self.actor(x)

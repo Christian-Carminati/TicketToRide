@@ -32,23 +32,15 @@ def test_phase2_1000_game_tournament_acceptance():
     assert len(leaderboard) == 3
 
     # Ranking check: Strategic #1, Greedy #2, Random #3
-    assert (
-        leaderboard[0]["name"] == "Strategic_1"
-    ), f"Expected Strategic_1 first, got {leaderboard[0]}"
-    assert (
-        leaderboard[1]["name"] == "Greedy_1"
-    ), f"Expected Greedy_1 second, got {leaderboard[1]}"
-    assert (
-        leaderboard[2]["name"] == "Random_1"
-    ), f"Expected Random_1 third, got {leaderboard[2]}"
+    assert leaderboard[0]["name"] == "Strategic_1", (
+        f"Expected Strategic_1 first, got {leaderboard[0]}"
+    )
+    assert leaderboard[1]["name"] == "Greedy_1", f"Expected Greedy_1 second, got {leaderboard[1]}"
+    assert leaderboard[2]["name"] == "Random_1", f"Expected Random_1 third, got {leaderboard[2]}"
 
     # Strategic win rate and score assertions
     assert leaderboard[0]["elo"] > leaderboard[1]["elo"] > leaderboard[2]["elo"]
-    assert (
-        leaderboard[0]["avg_score"]
-        > leaderboard[1]["avg_score"]
-        > leaderboard[2]["avg_score"]
-    )
+    assert leaderboard[0]["avg_score"] > leaderboard[1]["avg_score"] > leaderboard[2]["avg_score"]
 
     print(
         f"\n1,000-Game Tournament completed in {duration:.2f} seconds "

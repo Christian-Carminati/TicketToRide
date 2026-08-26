@@ -56,11 +56,15 @@ def test_game_service_safe_action_dto_conversion():
     assert act1.action_type.name == "DRAW_HIDDEN_CARD"
 
     # Test gray or invalid color string gracefully handled
-    act2 = service._from_action_dto(ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="gray"))
+    act2 = service._from_action_dto(
+        ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="gray")
+    )
     assert act2.color_chosen is None
 
     # Test lowercase color string
-    act3 = service._from_action_dto(ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="blue"))
+    act3 = service._from_action_dto(
+        ActionDTO(action_type="CLAIM_ROUTE", route_id="r1", card_color="blue")
+    )
     assert act3.color_chosen is not None
     assert act3.color_chosen.name == "BLUE"
 
@@ -68,8 +72,17 @@ def test_game_service_safe_action_dto_conversion():
 def test_game_service_all_agent_types_instantiation():
     service = GameService()
     types = [
-        "human", "random", "greedy", "strategic", "mcts",
-        "bayesian_mcts", "alphazero", "recurrent_ppo", "ppo", "dqn"
+        "human",
+        "random",
+        "greedy",
+        "strategic",
+        "mcts",
+        "bayesian_mcts",
+        "alphazero",
+        "recurrent_ppo",
+        "ppo",
+        "dqn",
+        "random_bot",
     ]
     for p_type in types:
         req = GameSessionCreateRequest(map_name="mini", player_types=["human", p_type], seed=42)
@@ -79,3 +92,12 @@ def test_game_service_all_agent_types_instantiation():
         # Verify bot can step
         step1 = service.step_session(state.session_id, action=state.valid_actions[0])
         assert step1 is not None
+
+
+def test_game_service_none_seed_creates_session():
+    service = GameService()
+    req = GameSessionCreateRequest(map_name="mini", player_types=["random_bot", "random_bot"], seed=None)
+    state = service.create_session(req)
+    assert state.session_id is not None
+    assert len(state.players) == 2
+

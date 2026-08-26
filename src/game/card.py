@@ -1,10 +1,10 @@
 """Card representations and standard deck generation for Ticket to Ride."""
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class CardColor(str, Enum):
+class CardColor(StrEnum):
     PURPLE = "purple"
     WHITE = "white"
     BLUE = "blue"

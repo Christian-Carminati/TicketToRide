@@ -4,7 +4,6 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any
 
 from src.api.schemas import ReportDetailDTO, ReportItemDTO
 
@@ -51,7 +50,11 @@ class ReportService:
             if not search_dir.exists():
                 continue
 
-            for f in sorted(search_dir.iterdir(), key=lambda x: x.stat().st_mtime if x.is_file() else 0, reverse=True):
+            for f in sorted(
+                search_dir.iterdir(),
+                key=lambda x: x.stat().st_mtime if x.is_file() else 0,
+                reverse=True,
+            ):
                 if not f.is_file():
                     continue
 
@@ -62,12 +65,20 @@ class ReportService:
                 if ext not in [".md", ".json", ".txt"]:
                     continue
 
-                if fname in seen_filenames or fname in ["package.json", "pyproject.toml", "tsconfig.json"]:
+                if fname in seen_filenames or fname in [
+                    "package.json",
+                    "pyproject.toml",
+                    "tsconfig.json",
+                ]:
                     continue
 
                 # Filter relevant benchmark/report files
                 is_results_dir = search_dir == Path(self.results_dir)
-                is_root_report = "benchmark" in fname.lower() or "report" in fname.lower() or "reward" in fname.lower()
+                is_root_report = (
+                    "benchmark" in fname.lower()
+                    or "report" in fname.lower()
+                    or "reward" in fname.lower()
+                )
 
                 if not is_results_dir and not is_root_report:
                     continue

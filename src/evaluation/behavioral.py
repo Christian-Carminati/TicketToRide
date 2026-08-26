@@ -1,7 +1,6 @@
 """Behavioral profiling and strategic metrics evaluation for RL agents."""
 
 from dataclasses import asdict, dataclass
-from typing import Any
 
 from src.agents.base_agent import BaseAgent
 from src.agents.greedy_agent import GreedyAgent
@@ -103,7 +102,7 @@ class BehavioralEvaluator:
 
         for game_idx in range(num_games):
             game_seed = run_seed + game_idx
-            is_agent_p0 = (game_idx % 2 == 0)
+            is_agent_p0 = game_idx % 2 == 0
             p0_agent = agent if is_agent_p0 else opp_agent
             p1_agent = opp_agent if is_agent_p0 else agent
 
@@ -131,7 +130,10 @@ class BehavioralEvaluator:
                 # Track action types for agent
                 if (is_agent_p0 and curr_idx == 0) or (not is_agent_p0 and curr_idx == 1):
                     total_agent_moves += 1
-                    if action.action_type in (ActionType.DRAW_VISIBLE_CARD, ActionType.DRAW_HIDDEN_CARD):
+                    if action.action_type in (
+                        ActionType.DRAW_VISIBLE_CARD,
+                        ActionType.DRAW_HIDDEN_CARD,
+                    ):
                         total_card_draw_moves += 1
 
                 game.step(action)
@@ -149,9 +151,9 @@ class BehavioralEvaluator:
 
             # Route statistics for agent
             claimed_routes = [
-                game.board.get_route(rid)
+                r
                 for rid in p_agent.claimed_route_ids
-                if game.board.get_route(rid) is not None
+                if (r := game.board.get_route(rid)) is not None
             ]
             total_routes_claimed += len(claimed_routes)
             for r in claimed_routes:
@@ -165,7 +167,9 @@ class BehavioralEvaluator:
             completed_count = sum(1 for t in p_agent.tickets if completed_dict.get(t.id, False))
             total_tickets_completed += completed_count
 
-            penalties = sum(float(t.points) for t in p_agent.tickets if not completed_dict.get(t.id, False))
+            penalties = sum(
+                float(t.points) for t in p_agent.tickets if not completed_dict.get(t.id, False)
+            )
             total_ticket_penalties += penalties
 
             # Win/Loss outcome

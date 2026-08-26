@@ -1,6 +1,5 @@
 """Unit tests for POMDP determinization in MCTS."""
 
-from src.game.card import CardColor, TrainCard
 from src.game.game import Game
 from src.game.random import SeededRNG
 from src.rl.mcts_determinization import determinize_game

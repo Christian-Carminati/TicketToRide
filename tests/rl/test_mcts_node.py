@@ -1,9 +1,8 @@
 """Unit tests for MCTSNode, MCTSConfig, and UCT selection."""
 
-import math
 from src.game.action import Action, ActionType
 from src.game.game import Game
-from src.rl.mcts import MCTSConfig, MCTSNode, RolloutPolicyType
+from src.rl.mcts import MCTSNode
 
 
 def test_mcts_node_initialization():

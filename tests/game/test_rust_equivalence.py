@@ -1,8 +1,7 @@
 """Test suite for Rust native core equivalence and correctness."""
 
-import pytest
-from src.game.native import NativeGame, NativeVectorEnv
 from src.game.action import Action, ActionType
+from src.game.native import NativeGame, NativeVectorEnv
 
 
 def test_native_game_creation_and_reset():
