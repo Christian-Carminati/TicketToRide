@@ -23,30 +23,35 @@ from src.rl.policy_value_net import PolicyValueNetwork
 from src.rl.alphazero_search import NeuralMCTSEngine
 
 class SelfPlayReplayBuffer:
-    """Experience replay storing (obs, action_mask, pi_mcts, outcome_z)."""
+    """Experience replay storing (obs, action_mask, pi_mcts, outcome_z) with O(1) circular indexing."""
     def __init__(self, capacity: int = 50000):
         self.capacity = capacity
         self.observations: List[np.ndarray] = []
         self.action_masks: List[np.ndarray] = []
         self.target_policies: List[np.ndarray] = []
         self.target_values: List[float] = []
+        self.ptr: int = 0
 
     def __len__(self) -> int:
         return len(self.observations)
 
     def add(self, obs: np.ndarray, mask: np.ndarray, pi: np.ndarray, z: float):
-        if len(self.observations) >= self.capacity:
-            self.observations.pop(0)
-            self.action_masks.pop(0)
-            self.target_policies.pop(0)
-            self.target_values.pop(0)
-        self.observations.append(obs)
-        self.action_masks.append(mask)
-        self.target_policies.append(pi)
-        self.target_values.append(z)
+        if len(self.observations) < self.capacity:
+            self.observations.append(obs)
+            self.action_masks.append(mask)
+            self.target_policies.append(pi)
+            self.target_values.append(z)
+        else:
+            self.observations[self.ptr] = obs
+            self.action_masks[self.ptr] = mask
+            self.target_policies[self.ptr] = pi
+            self.target_values[self.ptr] = z
+            self.ptr = (self.ptr + 1) % self.capacity
 
     def sample(self, batch_size: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        indices = random.sample(range(len(self.observations)), min(batch_size, len(self.observations)))
+        n = len(self.observations)
+        b_size = min(batch_size, n)
+        indices = random.sample(range(n), b_size)
         obs_b = torch.as_tensor(np.array([self.observations[i] for i in indices]), dtype=torch.float32)
         mask_b = torch.as_tensor(np.array([self.action_masks[i] for i in indices]), dtype=torch.float32)
         pi_b = torch.as_tensor(np.array([self.target_policies[i] for i in indices]), dtype=torch.float32)

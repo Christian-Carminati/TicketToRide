@@ -101,7 +101,7 @@ class PolicyValueNetwork(nn.Module):
         Numpy inference wrapper for MCTS node evaluation.
         """
         self.eval()
-        with torch.no_grad():
+        with torch.inference_mode():
             obs_t = torch.as_tensor(obs, dtype=torch.float32).unsqueeze(0)
             mask_t = torch.as_tensor(action_mask, dtype=torch.float32).unsqueeze(0) if action_mask is not None else None
             p_t, v_t = self.forward(obs_t, mask_t)

@@ -147,6 +147,9 @@ class NeuralMCTSEngine:
             root.values[a] = 0.0
         root.is_expanded = True
         
+        # Transposition table cache for evaluation (s_hash -> (priors, val))
+        tt_cache: Dict[int, Tuple[np.ndarray, float]] = {}
+
         # Iterative simulations
         for _ in range(self.num_simulations):
             if custom_determinizer is not None:
@@ -188,7 +191,14 @@ class NeuralMCTSEngine:
                 s_p = sim_game.state.current_player
                 s_player_id = s_p.id if s_p is not None else player_id
                 obs_leaf, mask_leaf, legal_leaf = self._get_obs_and_mask(sim_game, s_player_id)
-                priors_leaf, val_leaf = self.net.evaluate_state(obs_leaf, mask_leaf)
+
+                # Compute fast 64-bit state hash for transposition caching
+                s_hash = hash(obs_leaf.tobytes())
+                if s_hash in tt_cache:
+                    priors_leaf, val_leaf = tt_cache[s_hash]
+                else:
+                    priors_leaf, val_leaf = self.net.evaluate_state(obs_leaf, mask_leaf)
+                    tt_cache[s_hash] = (priors_leaf, val_leaf)
                 
                 node.legal_actions = legal_leaf
                 for a in legal_leaf:
