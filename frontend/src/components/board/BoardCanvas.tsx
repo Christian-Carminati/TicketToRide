@@ -39,9 +39,9 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
   isTelemetryDrawerOpen,
   onSwitchToReplay,
 }) => {
-  const { state, setHoveredRouteId } = useWorkbench();
+  const { state, setHoveredRouteId, dismissGameOverSession } = useWorkbench();
   const gameState = state.gameState;
-  const [isGameOverModalDismissed, setIsGameOverModalDismissed] = useState(false);
+  const [focusPlayerMode, setFocusPlayerMode] = useState<'all' | 'player_0' | 'player_1'>('all');
 
   const activePlayer = gameState && gameState.players && gameState.players[gameState.current_player_index];
   const isHumanTurn =
@@ -49,8 +49,28 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
     !gameState?.is_game_over &&
     (activePlayer.name.toLowerCase().includes('human') || gameState?.current_player_index === 0);
 
+  const isSessionDismissed = gameState?.session_id
+    ? state.dismissedGameOverSessions.includes(gameState.session_id)
+    : false;
+
+  const handleToggleFocusMode = () => {
+    setFocusPlayerMode((prev) => {
+      if (prev === 'all') return 'player_0';
+      if (prev === 'player_0') return 'player_1';
+      return 'all';
+    });
+  };
+
+  const handleCloseGameOver = () => {
+    if (gameState?.session_id) {
+      dismissGameOverSession(gameState.session_id);
+    }
+  };
+
   const handleRematch = () => {
-    setIsGameOverModalDismissed(false);
+    if (gameState?.session_id) {
+      dismissGameOverSession(gameState.session_id);
+    }
     onNewMatch?.('human', 'alphazero', (gameState?.map_name as any) || 'usa');
   };
 
@@ -82,6 +102,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
         onToggleTelemetryDrawer={onToggleTelemetryDrawer}
         isTelemetryDrawerOpen={isTelemetryDrawerOpen}
         selectedModel={state.selectedAgentModel}
+        focusPlayerMode={focusPlayerMode}
+        onToggleFocusMode={handleToggleFocusMode}
       />
 
       {/* 2. Interactive Full-Width Vector Board */}
@@ -103,6 +125,8 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
           observabilityMode={state.observabilityMode}
           hoveredRouteId={state.hoveredRouteId}
           hoveredMeta={state.hoveredAction}
+          focusPlayerMode={focusPlayerMode}
+          onToggleFocusMode={handleToggleFocusMode}
           onRouteClick={onRouteClick}
           onCityClick={onCityClick}
           onRouteHover={(routeId) => setHoveredRouteId(routeId)}
@@ -151,11 +175,11 @@ export const BoardCanvas: React.FC<BoardCanvasProps> = React.memo(({
       )}
 
       {/* 4. Game Over Celebration Modal */}
-      {gameState?.is_game_over && !isGameOverModalDismissed && (
+      {gameState?.is_game_over && !isSessionDismissed && (
         <GameOverModal
           gameState={gameState}
           onRematch={handleRematch}
-          onClose={() => setIsGameOverModalDismissed(true)}
+          onClose={handleCloseGameOver}
           onSwitchToReplay={onSwitchToReplay}
         />
       )}

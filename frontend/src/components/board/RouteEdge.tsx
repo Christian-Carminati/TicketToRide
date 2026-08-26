@@ -12,6 +12,8 @@ interface RouteEdgeProps {
   claimedByPlayerName?: string | null;
   isClaimable?: boolean;
   isHovered?: boolean;
+  isDimmed?: boolean;
+  isHighlighted?: boolean;
   hoveredMeta?: HoveredActionMeta | null;
   onMouseEnter?: (route: BoardRoute) => void;
   onMouseLeave?: (route: BoardRoute) => void;
@@ -28,6 +30,8 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
   claimedByPlayerName,
   isClaimable = false,
   isHovered = false,
+  isDimmed = false,
+  isHighlighted = false,
   hoveredMeta = null,
   onMouseEnter,
   onMouseLeave,
@@ -56,12 +60,23 @@ export const RouteEdge: React.FC<RouteEdgeProps> = ({
 
   const baseColor = route.color ? COLOR_HEX[route.color] || '#7D6A5A' : '#7D6A5A';
   const isClaimed = Boolean(claimedByPlayerColor);
-  const trackColor = isClaimed ? claimedByPlayerColor! : baseColor;
+  const trackColor = isClaimed
+    ? claimedByPlayerColor!
+    : isDimmed
+    ? '#A8998A'
+    : baseColor;
 
   return (
     <g
       className={`route-edge ${isClaimable ? 'claimable' : ''} ${isClaimed ? 'claimed' : ''} ${isHovered ? 'hover-linked' : ''}`}
-      style={{ cursor: isClaimable || isClaimed ? 'pointer' : 'default' }}
+      style={{
+        cursor: isClaimable || isClaimed ? 'pointer' : 'default',
+        opacity: isDimmed ? 0.28 : 1,
+        transition: 'opacity 0.2s ease, filter 0.2s ease',
+        filter: isHighlighted
+          ? `drop-shadow(0 0 8px ${claimedByPlayerColor || '#C59B27'})`
+          : undefined,
+      }}
       tabIndex={isClaimable ? 0 : -1}
       role="button"
       aria-label={`${route.city_a} to ${route.city_b}, ${route.length} cars, ${route.color || 'Gray'}${isClaimed ? `, Claimed by ${claimedByPlayerName || 'Player'}` : isClaimable ? ', Claimable' : ''}`}

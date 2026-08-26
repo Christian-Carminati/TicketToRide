@@ -181,6 +181,19 @@ export interface TournamentRunRequest {
   seed?: number;
 }
 
+export interface TournamentProgressDTO {
+  is_running: boolean;
+  current_match: number;
+  total_matches: number;
+  current_agent_a: string;
+  current_agent_b: string;
+  status: string;
+  percentage: number;
+  elapsed_seconds: number;
+  estimated_remaining_seconds: number;
+  recent_matchup?: TournamentMatchupDTO | null;
+}
+
 export interface ReplayFrameDTO {
   step_index: number;
   turn_number: number;

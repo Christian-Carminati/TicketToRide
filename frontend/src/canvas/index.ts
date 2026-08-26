@@ -1,2 +1,2 @@
-// Canvas renderers placeholder for Phase 5
-export {};
+export * from "./SpatialHashGrid";
+export * from "./BoardCanvasRenderer";

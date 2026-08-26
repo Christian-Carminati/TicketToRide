@@ -13,6 +13,7 @@ import {
   ReportDetailDTO,
   ReportItemDTO,
   TournamentLeaderboardDTO,
+  TournamentProgressDTO,
   TournamentRunRequest,
   TrainingStartRequest,
   TrainingStatusDTO,
@@ -84,6 +85,8 @@ export const api = {
 
   // Tournament
   getTournamentLeaderboard: () => fetchJSON<TournamentLeaderboardDTO>('/api/tournament/leaderboard'),
+
+  getTournamentProgress: () => fetchJSON<TournamentProgressDTO>('/api/tournament/progress'),
 
   getAvailableTournamentParticipants: () =>
     fetchJSON<import('./types').TournamentParticipantOptionDTO[]>('/api/tournament/participants/available'),

@@ -19,6 +19,8 @@ interface BoardSVGProps {
   observabilityMode?: ObservabilityMode;
   hoveredRouteId?: string | null;
   hoveredMeta?: HoveredActionMeta | null;
+  focusPlayerMode?: 'all' | 'player_0' | 'player_1' | null;
+  onToggleFocusMode?: () => void;
   onRouteClick?: (route: BoardRoute) => void;
   onCityClick?: (city: BoardCity) => void;
   onRouteHover?: (routeId: string | null) => void;
@@ -38,6 +40,8 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
   observabilityMode = 'god',
   hoveredRouteId = null,
   hoveredMeta = null,
+  focusPlayerMode = 'all',
+  onToggleFocusMode,
   onRouteClick,
   onCityClick,
   onRouteHover,
@@ -126,19 +130,28 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
         )}
 
         {/* Observability Mode & Cartographer Banner (Top Left) */}
-        <g transform="translate(24, 30)" opacity={0.85} style={{ pointerEvents: 'none' }}>
+        <g
+          transform="translate(24, 30)"
+          opacity={0.92}
+          style={{ cursor: onToggleFocusMode ? 'pointer' : 'default' }}
+          onClick={onToggleFocusMode}
+        >
           <rect
             x={-6}
             y={-14}
-            width={340}
+            width={focusPlayerMode && focusPlayerMode !== 'all' ? 440 : 340}
             height={22}
             rx={4}
-            fill="rgba(250, 245, 235, 0.85)"
-            stroke="rgba(184, 134, 11, 0.6)"
-            strokeWidth={1}
+            fill="rgba(250, 245, 235, 0.92)"
+            stroke="rgba(184, 134, 11, 0.7)"
+            strokeWidth={1.5}
           />
           <text fill="#4A2F1D" fontSize={10} fontFamily="'Courier Prime', 'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.06em">
-            {observabilityMode === 'god'
+            {focusPlayerMode === 'player_0'
+              ? `● FILTRO: RETE ISOLATA GIOCATORE 1 (BLU) [Clicca per Giocatore 2]`
+              : focusPlayerMode === 'player_1'
+              ? `● FILTRO: RETE ISOLATA GIOCATORE 2 (ROSSO) [Clicca per Tutte]`
+              : observabilityMode === 'god'
               ? `● PERCEPTION: OMNISCIENT OBSERVER [${mapName.toUpperCase()}]`
               : observabilityMode === 'player_0'
               ? `● AGENT A: PARTIAL OBSERVABILITY [${mapName.toUpperCase()}]`
@@ -158,6 +171,23 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
             const isClaimable = claimableRouteIds.has(r.id);
             const isHovered = activeHoveredRoute === r.id;
 
+            let isDimmed = false;
+            let isHighlighted = false;
+
+            if (focusPlayerMode === 'player_0') {
+              if (claimedPlayerId === 'player_0') {
+                isHighlighted = true;
+              } else {
+                isDimmed = true;
+              }
+            } else if (focusPlayerMode === 'player_1') {
+              if (claimedPlayerId === 'player_1') {
+                isHighlighted = true;
+              } else {
+                isDimmed = true;
+              }
+            }
+
             return (
               <RouteEdge
                 key={r.id}
@@ -170,6 +200,8 @@ export const BoardSVG: React.FC<BoardSVGProps> = ({
                 claimedByPlayerName={claimedPlayer ? claimedPlayer.name : null}
                 isClaimable={isClaimable}
                 isHovered={isHovered}
+                isDimmed={isDimmed}
+                isHighlighted={isHighlighted}
                 hoveredMeta={isHovered ? hoveredMeta : null}
                 onMouseEnter={() => {
                   setInternalHoveredRoute(r.id);

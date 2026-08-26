@@ -30,6 +30,7 @@ export interface WorkbenchState {
   isBottomDockOpen: boolean;
   selectedAgentModel: 'ppo' | 'dqn' | 'heuristic' | 'random';
   isConnected: boolean;
+  dismissedGameOverSessions: string[];
 }
 
 export type WorkbenchAction =
@@ -50,4 +51,5 @@ export type WorkbenchAction =
   | { type: 'SET_BOTTOM_DOCK_OPEN'; payload: boolean }
   | { type: 'SET_SELECTED_AGENT_MODEL'; payload: 'ppo' | 'dqn' | 'heuristic' | 'random' }
   | { type: 'SET_CONNECTED'; payload: boolean }
+  | { type: 'DISMISS_GAME_OVER_SESSION'; payload: string }
   | { type: 'RESET_SESSION' };

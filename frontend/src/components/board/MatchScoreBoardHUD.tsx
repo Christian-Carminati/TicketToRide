@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  Layers,
 } from 'lucide-react';
 
 
@@ -27,6 +28,8 @@ interface MatchScoreBoardHUDProps {
   onToggleTelemetryDrawer?: () => void;
   isTelemetryDrawerOpen?: boolean;
   selectedModel?: string;
+  focusPlayerMode?: 'all' | 'player_0' | 'player_1';
+  onToggleFocusMode?: () => void;
 }
 
 export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
@@ -40,6 +43,8 @@ export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
   onToggleTelemetryDrawer,
   isTelemetryDrawerOpen = false,
   selectedModel = 'alphazero',
+  focusPlayerMode = 'all',
+  onToggleFocusMode,
 }) => {
   const currentMap = gameState?.map_name?.toLowerCase() || 'usa';
   const players = gameState?.players || [];
@@ -79,6 +84,7 @@ export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
     { value: 'bayesian_mcts', label: '🎯 Bayesian MCTS (Opponent-Aware)' },
     { value: 'mcts', label: '🌲 Pure IS-MCTS (40 Sims)' },
     { value: 'recurrent_ppo', label: '🧵 Recurrent PPO (LSTM POMDP)' },
+    { value: 'self_play_ppo', label: '🔄 Self-Play Policy Pool (PFSP)' },
     { value: 'ppo', label: '⚡ CleanRL PPO (Feedforward)' },
     { value: 'dqn', label: '🧠 Double-DQN' },
     { value: 'strategic', label: '📐 Strategico Heuristic (Dijkstra)' },
@@ -237,6 +243,38 @@ export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
               <span>Nuova Sfida</span>
               {isDuelConfigOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             </button>
+
+            {/* Decolora / Filtro Tratte Button */}
+            {onToggleFocusMode && (
+              <button
+                onClick={onToggleFocusMode}
+                className="steampunk-btn"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.72rem',
+                  padding: '0.2rem 0.55rem',
+                  background: focusPlayerMode === 'player_0'
+                    ? 'linear-gradient(180deg, #93C5FD 0%, #2563EB 100%)'
+                    : focusPlayerMode === 'player_1'
+                    ? 'linear-gradient(180deg, #FCA5A5 0%, #DC2626 100%)'
+                    : 'linear-gradient(180deg, #FAF4E6 0%, #E8D7BC 100%)',
+                  color: focusPlayerMode === 'all' ? '#23140C' : '#FFFFFF',
+                  border: '1.5px solid #C59B27',
+                }}
+                title="Decolora le altre tratte per vedere solo dove ha costruito il giocatore"
+              >
+                <Layers size={12} color={focusPlayerMode === 'all' ? '#C59B27' : '#FFFFFF'} />
+                <span>
+                  {focusPlayerMode === 'player_0'
+                    ? 'Solo Rete Giocatore 1'
+                    : focusPlayerMode === 'player_1'
+                    ? 'Solo Rete Giocatore 2'
+                    : 'Decolora Tratte'}
+                </span>
+              </button>
+            )}
 
             {/* Map Switcher */}
             <div
@@ -496,28 +534,34 @@ export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
                 ))}
               </select>
 
-              {['alphazero', 'ppo', 'dqn', 'recurrent_ppo'].includes(p1Type) && checkpoints.length > 0 && (
-                <div>
+              {['alphazero', 'ppo', 'dqn', 'recurrent_ppo', 'self_play_ppo'].includes(p1Type) && (
+                <div style={{ marginTop: '0.3rem' }}>
                   <label style={{ fontSize: '0.7rem', color: '#5A3822', fontWeight: 700 }}>Checkpoint (.pt):</label>
-                  <select
-                    value={p1Ckpt}
-                    onChange={(e) => setP1Ckpt(e.target.value)}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#FFFFFF',
-                      color: '#23140C',
-                      border: '1px solid #C59B27',
-                      borderRadius: '4px',
-                      padding: '0.2rem 0.4rem',
-                      fontSize: '0.72rem',
-                      fontFamily: "'Courier Prime', monospace",
-                    }}
-                  >
-                    <option value="">-- Pesi Rete Predefiniti --</option>
-                    {checkpoints.map((c) => (
-                      <option key={c.checkpoint_id} value={c.path}>{c.name} ({c.algorithm.toUpperCase()})</option>
-                    ))}
-                  </select>
+                  {checkpoints.length > 0 ? (
+                    <select
+                      value={p1Ckpt}
+                      onChange={(e) => setP1Ckpt(e.target.value)}
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#FFFFFF',
+                        color: '#23140C',
+                        border: '1px solid #C59B27',
+                        borderRadius: '4px',
+                        padding: '0.2rem 0.4rem',
+                        fontSize: '0.72rem',
+                        fontFamily: "'Courier Prime', monospace",
+                      }}
+                    >
+                      <option value="">-- Pesi Rete Predefiniti / Scratch --</option>
+                      {checkpoints.map((c) => (
+                        <option key={c.checkpoint_id} value={c.path}>{c.name} ({c.algorithm.toUpperCase()})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div style={{ fontSize: '0.68rem', color: '#785A42', fontStyle: 'italic', marginTop: '0.1rem' }}>
+                      Nessun checkpoint salvato in `experiments/checkpoints/`
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -552,28 +596,34 @@ export const MatchScoreBoardHUD: React.FC<MatchScoreBoardHUDProps> = ({
                 ))}
               </select>
 
-              {['alphazero', 'ppo', 'dqn', 'recurrent_ppo'].includes(p2Type) && checkpoints.length > 0 && (
-                <div>
+              {['alphazero', 'ppo', 'dqn', 'recurrent_ppo', 'self_play_ppo'].includes(p2Type) && (
+                <div style={{ marginTop: '0.3rem' }}>
                   <label style={{ fontSize: '0.7rem', color: '#5A3822', fontWeight: 700 }}>Checkpoint (.pt):</label>
-                  <select
-                    value={p2Ckpt}
-                    onChange={(e) => setP2Ckpt(e.target.value)}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#FFFFFF',
-                      color: '#23140C',
-                      border: '1px solid #C59B27',
-                      borderRadius: '4px',
-                      padding: '0.2rem 0.4rem',
-                      fontSize: '0.72rem',
-                      fontFamily: "'Courier Prime', monospace",
-                    }}
-                  >
-                    <option value="">-- Pesi Rete Predefiniti --</option>
-                    {checkpoints.map((c) => (
-                      <option key={c.checkpoint_id} value={c.path}>{c.name} ({c.algorithm.toUpperCase()})</option>
-                    ))}
-                  </select>
+                  {checkpoints.length > 0 ? (
+                    <select
+                      value={p2Ckpt}
+                      onChange={(e) => setP2Ckpt(e.target.value)}
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#FFFFFF',
+                        color: '#23140C',
+                        border: '1px solid #C59B27',
+                        borderRadius: '4px',
+                        padding: '0.2rem 0.4rem',
+                        fontSize: '0.72rem',
+                        fontFamily: "'Courier Prime', monospace",
+                      }}
+                    >
+                      <option value="">-- Pesi Rete Predefiniti / Scratch --</option>
+                      {checkpoints.map((c) => (
+                        <option key={c.checkpoint_id} value={c.path}>{c.name} ({c.algorithm.toUpperCase()})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div style={{ fontSize: '0.68rem', color: '#785A42', fontStyle: 'italic', marginTop: '0.1rem' }}>
+                      Nessun checkpoint salvato in `experiments/checkpoints/`
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -26,6 +26,7 @@ const initialState: WorkbenchState = {
   isBottomDockOpen: true,
   selectedAgentModel: 'ppo',
   isConnected: false,
+  dismissedGameOverSessions: [],
 };
 
 function workbenchReducer(state: WorkbenchState, action: WorkbenchAction): WorkbenchState {
@@ -76,6 +77,13 @@ function workbenchReducer(state: WorkbenchState, action: WorkbenchAction): Workb
       return { ...state, selectedAgentModel: action.payload };
     case 'SET_CONNECTED':
       return { ...state, isConnected: action.payload };
+    case 'DISMISS_GAME_OVER_SESSION':
+      return {
+        ...state,
+        dismissedGameOverSessions: state.dismissedGameOverSessions.includes(action.payload)
+          ? state.dismissedGameOverSessions
+          : [...state.dismissedGameOverSessions, action.payload],
+      };
     case 'RESET_SESSION':
       return {
         ...initialState,
@@ -106,6 +114,7 @@ interface WorkbenchContextValue {
   setBottomDockOpen: (open: boolean) => void;
   setSelectedAgentModel: (model: 'ppo' | 'dqn' | 'heuristic' | 'random') => void;
   setConnected: (connected: boolean) => void;
+  dismissGameOverSession: (sessionId: string) => void;
   resetSession: () => void;
 }
 
@@ -131,6 +140,7 @@ export const WorkbenchProvider: React.FC<{ children: ReactNode }> = ({ children 
   const setBottomDockOpen = useCallback((open: boolean) => dispatch({ type: 'SET_BOTTOM_DOCK_OPEN', payload: open }), []);
   const setSelectedAgentModel = useCallback((model: 'ppo' | 'dqn' | 'heuristic' | 'random') => dispatch({ type: 'SET_SELECTED_AGENT_MODEL', payload: model }), []);
   const setConnected = useCallback((connected: boolean) => dispatch({ type: 'SET_CONNECTED', payload: connected }), []);
+  const dismissGameOverSession = useCallback((sessionId: string) => dispatch({ type: 'DISMISS_GAME_OVER_SESSION', payload: sessionId }), []);
   const resetSession = useCallback(() => dispatch({ type: 'RESET_SESSION' }), []);
 
   const value = useMemo<WorkbenchContextValue>(() => ({
@@ -152,6 +162,7 @@ export const WorkbenchProvider: React.FC<{ children: ReactNode }> = ({ children 
     setBottomDockOpen,
     setSelectedAgentModel,
     setConnected,
+    dismissGameOverSession,
     resetSession,
   }), [
     state,
@@ -171,6 +182,7 @@ export const WorkbenchProvider: React.FC<{ children: ReactNode }> = ({ children 
     setBottomDockOpen,
     setSelectedAgentModel,
     setConnected,
+    dismissGameOverSession,
     resetSession,
   ]);
 

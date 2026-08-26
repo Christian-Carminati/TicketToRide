@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Award, RefreshCw, Play, Settings, CheckSquare, Square, Bot, BrainCircuit, MapPin } from 'lucide-react';
 import { api } from '../../api/client';
-import { TournamentAgentDTO, TournamentMatchupDTO, TournamentParticipantOptionDTO } from '../../api/types';
+import { TournamentAgentDTO, TournamentMatchupDTO, TournamentParticipantOptionDTO, TournamentProgressDTO } from '../../api/types';
 
 export const EloMatrixHeatmap: React.FC = () => {
   const [agents, setAgents] = useState<TournamentAgentDTO[]>([]);
@@ -15,6 +15,7 @@ export const EloMatrixHeatmap: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRunningLive, setIsRunningLive] = useState<boolean>(false);
+  const [progress, setProgress] = useState<TournamentProgressDTO | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const fetchLeaderboard = () => {
@@ -43,6 +44,25 @@ export const EloMatrixHeatmap: React.FC = () => {
   useEffect(() => {
     fetchLeaderboard();
   }, []);
+
+  // Poll progress during live tournament execution
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    if (isRunningLive) {
+      timer = setInterval(() => {
+        api.getTournamentProgress()
+          .then((prog) => {
+            setProgress(prog);
+          })
+          .catch(() => {});
+      }, 600);
+    } else {
+      setProgress(null);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRunningLive]);
 
   const handleToggleParticipant = (id: string) => {
     setSelectedIds((prev) =>
@@ -101,8 +121,18 @@ export const EloMatrixHeatmap: React.FC = () => {
     return null;
   };
 
-  const totalCalculatedGames =
-    selectedIds.length >= 2 ? (selectedIds.length * (selectedIds.length - 1)) / 2 * gamesPerPair : 0;
+  const totalPairings =
+    selectedIds.length >= 2 ? (selectedIds.length * (selectedIds.length - 1)) / 2 : 0;
+  const totalCalculatedGames = totalPairings * gamesPerPair;
+
+  const formatEstTime = (gamesCount: number, map: string) => {
+    const secPerGame = map === 'mini' ? 0.15 : 1.6;
+    const totalSec = Math.round(gamesCount * secPerGame);
+    if (totalSec < 60) return `~${Math.max(1, totalSec)}s`;
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `~${mins}m ${secs > 0 ? secs + 's' : ''}`;
+  };
 
   const baselines = availableOptions.filter((o) => o.category === 'baseline');
   const checkpoints = availableOptions.filter((o) => o.category === 'checkpoint');
@@ -202,8 +232,74 @@ export const EloMatrixHeatmap: React.FC = () => {
         </div>
       </div>
 
+      {/* Live Simulation Progress Panel */}
+      {isRunningLive && (
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #3A261A 0%, #22150D 100%)',
+            border: '2px solid #C59B27',
+            borderRadius: '8px',
+            padding: '0.75rem 1rem',
+            color: '#F5E6C8',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RefreshCw size={15} color="#F7E099" style={{ animation: 'spin 2s linear infinite' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, fontFamily: "'Cinzel Decorative', Georgia, serif", color: '#F7E099' }}>
+                Match {progress?.current_match || 1} / {progress?.total_matches || totalPairings}
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#D4C09D', fontFamily: "'Playfair Display', serif" }}>
+                {progress?.current_agent_a && progress?.current_agent_b ? `${progress.current_agent_a} vs ${progress.current_agent_b}` : 'Initializing match pairings...'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', fontFamily: "'Courier Prime', monospace", color: '#D4C09D' }}>
+              <span>⏱️ Elapsed: {progress?.elapsed_seconds ? `${progress.elapsed_seconds}s` : '0s'}</span>
+              <span>⏳ Remaining: ~{progress?.estimated_remaining_seconds ? `${progress.estimated_remaining_seconds}s` : formatEstTime(totalCalculatedGames, mapName)}</span>
+              <span style={{ fontWeight: 800, color: '#86EFAC', fontSize: '0.82rem' }}>
+                {progress?.percentage ? `${progress.percentage.toFixed(1)}%` : '0.0%'}
+              </span>
+            </div>
+          </div>
+
+          {/* Progress Bar Track */}
+          <div
+            style={{
+              width: '100%',
+              height: '10px',
+              backgroundColor: '#1E120A',
+              borderRadius: '5px',
+              overflow: 'hidden',
+              border: '1px solid #6E4E04',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min(100, Math.max(progress?.percentage || 0, 2))}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #B8860B 0%, #F7E099 50%, #16A34A 100%)',
+                borderRadius: '4px',
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </div>
+
+          {progress?.recent_matchup && (
+            <div style={{ fontSize: '0.72rem', color: '#C8B28B', fontFamily: "'Courier Prime', monospace" }}>
+              ✓ Completed: {progress.recent_matchup.agent_a} ({progress.recent_matchup.wins_a}) vs ({progress.recent_matchup.wins_b}) {progress.recent_matchup.agent_b} {progress.recent_matchup.draws > 0 ? `(${progress.recent_matchup.draws} draws)` : ''}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Notification Toast */}
-      {statusMessage && (
+      {statusMessage && !isRunningLive && (
         <div
           style={{
             background: 'linear-gradient(180deg, #FAF3E6 0%, #E8D7BC 100%)',
@@ -252,18 +348,38 @@ export const EloMatrixHeatmap: React.FC = () => {
                 onClick={handleSelectModelsOnly}
                 className="steampunk-btn"
                 style={{ padding: '0.15rem 0.5rem', fontSize: '0.7rem' }}
+                title={checkpoints.length === 0 ? "Nessun checkpoint trovato in experiments/checkpoints/" : ""}
               >
-                RL Models ({checkpoints.length})
+                RL Checkpoints ({checkpoints.length})
               </button>
               <button
                 onClick={handleSelectBaselinesOnly}
                 className="steampunk-btn"
                 style={{ padding: '0.15rem 0.5rem', fontSize: '0.7rem' }}
               >
-                Baselines ({baselines.length})
+                Baselines Algoritmiche ({baselines.length})
               </button>
             </div>
           </div>
+
+          {checkpoints.length === 0 && (
+            <div
+              style={{
+                backgroundColor: 'rgba(197, 155, 39, 0.12)',
+                border: '1px dashed #C59B27',
+                borderRadius: '6px',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.75rem',
+                color: '#5A3822',
+                fontFamily: "'Crimson Pro', Georgia, serif",
+                marginBottom: '0.25rem',
+              }}
+            >
+              💡 <strong>Nota Checkpoint:</strong> La cartella <code>experiments/checkpoints/</code> non contiene file <code>.pt</code> salvati.
+              I 7 concorrenti elencati sotto sono le <strong>Baseline Algoritmiche</strong> integrate nel motore (AlphaZero Neural MCTS, Bayesian MCTS, Pure IS-MCTS, Recurrent PPO, Heuristic Dijkstra, Greedy e Random).
+              Per aggiungere modelli personalizzati al torneo, avvia una sessione in <strong>Live Training</strong> o <strong>Self-Play PFSP</strong>!
+            </div>
+          )}
 
           {/* Participant Checkbox Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.6rem' }}>
@@ -329,10 +445,11 @@ export const EloMatrixHeatmap: React.FC = () => {
                     fontFamily: "'Courier Prime', monospace",
                   }}
                 >
-                  <option value={2}>2 matches (Turbo Rapid ~5s)</option>
-                  <option value={3}>3 matches (Fast Benchmark ~10s)</option>
-                  <option value={5}>5 matches (Balanced)</option>
-                  <option value={10}>10 matches (Deep Benchmark)</option>
+                  <option value={1}>1 match ({formatEstTime(totalPairings * 1, mapName)})</option>
+                  <option value={2}>2 matches ({formatEstTime(totalPairings * 2, mapName)})</option>
+                  <option value={3}>3 matches ({formatEstTime(totalPairings * 3, mapName)})</option>
+                  <option value={5}>5 matches ({formatEstTime(totalPairings * 5, mapName)})</option>
+                  <option value={10}>10 matches ({formatEstTime(totalPairings * 10, mapName)})</option>
                 </select>
               </div>
 
@@ -361,7 +478,7 @@ export const EloMatrixHeatmap: React.FC = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.75rem', color: '#5A3822', fontFamily: "'Courier Prime', monospace" }}>
-                {selectedIds.length} contestants = {totalCalculatedGames} matches
+                {selectedIds.length} contestants = {totalCalculatedGames} matches ({formatEstTime(totalCalculatedGames, mapName)})
               </span>
               <button
                 onClick={handleRunCustomTournament}
