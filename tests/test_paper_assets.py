@@ -28,5 +28,20 @@ class TestPaperAssets(unittest.TestCase):
                 f"Missing BibTeX key: {k}"
             )
 
+    def test_main_paper_en_content(self):
+        paper_file = Path("paper/main_paper_en.tex")
+        self.assertTrue(paper_file.exists(), "paper/main_paper_en.tex should exist")
+        content = paper_file.read_text(encoding="utf-8")
+        self.assertIn(r"\documentclass", content)
+        self.assertIn(r"\begin{document}", content)
+        self.assertIn(r"\section{Introduction}", content)
+        self.assertIn("Strategic Dijkstra", content)
+        self.assertIn("1329.6", content)
+        self.assertTrue("5,130" in content or "5130" in content)
+        self.assertIn("schulman2017proximal", content)
+        self.assertIn("silver2018general", content)
+        self.assertIn("dijkstra1959note", content)
+        self.assertIn(r"\input{tables/table1_tournament_elo.tex}", content)
+
 if __name__ == "__main__":
     unittest.main()

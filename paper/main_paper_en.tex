@@ -1,0 +1,227 @@
+\documentclass[conference,10pt]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{bm}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=red,
+}
+
+\begin{document}
+
+\title{Cross-Paradigm Benchmark and Theoretical Synthesis in Imperfect-Information Graph Games: A 5,130-Match Tournament Study on Ticket to Ride}
+
+\author{\IEEEauthorblockN{TicketToRide RL Research Group}
+\IEEEauthorblockA{\textit{Department of Computer Science and Artificial Intelligence} \\
+\textit{Advanced Reinforcement Learning Laboratory}\\
+Email: research@ttr-rl-lab.internal}
+}
+
+\maketitle
+
+\begin{abstract}
+Imperfect-information board games defined on dynamic spatial graph topologies represent a fundamental challenge for Artificial Intelligence. They combine partial observability, combinatorial action spaces, long-horizon multi-commodity routing, and adversarial counter-play. In this work, we present a comprehensive theoretical and empirical investigation of the modern board game \textit{Ticket to Ride}. We formalize the game as a Partially Observable Markov Decision Process (POMDP) with explicit Action Masking over a 356-dimensional observation tensor and an 85-dimensional discrete action space. We evaluate six distinct AI paradigms: (i) Algorithmic Heuristics (Uniform Random, Greedy Score, and Shortest-Path Strategic Dijkstra), (ii) Model-Free Deep Reinforcement Learning (Double-DQN and CleanRL Proximal Policy Optimization with GAE), (iii) Recurrent Memory Architectures (LSTM-PPO for temporal belief tracking), (iv) Multi-Agent Self-Play via Prioritized Fictitious Self-Play (PFSP), (v) Information-Set Monte Carlo Tree Search (IS-MCTS) with Bayesian Opponent Goal Modeling, and (vi) Neural Tree Search (AlphaZero Policy-Value Dual Head with PUCT). Across neural training regimes of 1,000,000 environment steps and an exhaustive round-robin tournament comprising 5,130 games (30 matches per pairing across 19 agent checkpoints), we discover a striking performance trilemma. Strategic Dijkstra achieves the highest overall Elo (1329.6, 80.6\% win rate) due to optimal Steiner-like graph calculations, while AlphaZero achieves the highest performance among learning architectures (1275.3 Elo, 67.4\% win rate), closely followed by CleanRL PPO (1256.1 Elo, 63.1\% win rate). Furthermore, ablation studies show that Bayesian belief determinization reduces Shannon entropy from 3.84 to 0.42 bits within 15 turns, significantly mitigating Strategy Fusion pathologies.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Reinforcement Learning, Partially Observable Markov Decision Processes, Monte Carlo Tree Search, AlphaZero, Proximal Policy Optimization, Opponent Modeling, Graph Search.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\label{sec:intro}
+Sequential decision-making under imperfect information on topological networks lies at the nexus of classical operations research, probabilistic reasoning, and modern deep reinforcement learning (RL)~\cite{sutton2018reinforcement}. While perfect-information games such as Chess and Go have been convincingly mastered by deep neural search algorithms such as AlphaZero~\cite{silver2017mastering, silver2018general}, games characterized by hidden private goals and distributed network contention remain open frontiers.
+
+The popular board game \textit{Ticket to Ride} encapsulates these difficulties: players compete on a shared geographic railway graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ to claim track segments and connect confidential origin-destination pairs (\textit{destination tickets}). The state space exhibits partial observability: opponents' held colored cards and private destination tickets are strictly concealed. Inadvertently leaking information through claimed tracks exposes an agent to blocking maneuvers, while misjudging opponent trajectories results in severe score penalties for uncompleted tickets.
+
+In this paper, we address four foundational research questions ($RQ_1$--$RQ_4$):
+\begin{itemize}
+    \item $\mathbf{RQ_1}$ (\textit{Implicit vs. Explicit Memory}): Does a recurrent neural policy (LSTM Actor-Critic) capture opponent hidden goals more effectively than a Markovian feedforward policy in partially observable graph games?
+    \item $\mathbf{RQ_2}$ (\textit{Strategy Fusion Mitigation}): Does belief-weighted determinization via Bayesian graph detour inference eliminate Strategy Fusion pathologies in Information-Set MCTS~\cite{cowling2012information}?
+    \item $\mathbf{RQ_3}$ (\textit{Cross-Paradigm Trilemma}): How do exact graph-theoretic heuristics (Dijkstra shortest paths) compare against deep policy optimization (CleanRL PPO) and dual-head neural tree search (AlphaZero)?
+    \item $\mathbf{RQ_4}$ (\textit{Pareto Computational Efficiency}): What is the empirical trade-off between decision latency (inference time in ms/move) and competitive Elo rating?
+\end{itemize}
+
+To rigorously answer these questions, we deploy a zero-leakage Gymnasium environment powered by a high-throughput Rust engine, train five deep neural architectures for 1,000,000 steps each, and conduct a large-scale tournament consisting of 5,130 matches across 19 competing agent models.
+
+\section{Graph POMDP Problem Formulation}
+\label{sec:formulation}
+We formalize two-player \textit{Ticket to Ride} as a Partially Observable Markov Decision Process defined by the tuple $\mathcal{M} = \langle \mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \Omega, \mathcal{O}, \gamma \rangle$:
+
+\subsection{State and Graph Representation}
+Let $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ denote the railway network of the official USA 1885 board, where $|\mathcal{V}| = 36$ represents major metropolitan nodes and $|\mathcal{E}| = 78$ represents railway segments. Each edge $e = (u, v) \in \mathcal{E}$ possesses length $w(e) \in \{1, \dots, 6\}$ and color requirement $c(e) \in \{0, \dots, 8\}$.
+
+The true environmental state $s \in \mathcal{S}$ is partitioned into:
+\begin{equation}
+s = \langle \mathcal{D}_{\text{train}}, \mathcal{D}_{\text{dest}}, \mathcal{D}_{\text{discard}}, \mathbf{h}_1, \mathbf{h}_2, \mathcal{T}_1, \mathcal{T}_2, \mathbf{c}_1, \mathbf{c}_2, \mathcal{G}_{\text{claimed}} \rangle
+\end{equation}
+where $\mathcal{D}_{\text{train}}$ and $\mathcal{D}_{\text{dest}}$ represent the draw decks, $\mathbf{h}_i \in \mathbb{N}^9$ is player $i$'s card hand, $\mathcal{T}_i \subset \mathcal{T}_{\text{all}}$ is player $i$'s private ticket set, $\mathbf{c}_i \in \mathbb{N}$ denotes remaining plastic train tokens, and $\mathcal{G}_{\text{claimed}}$ is the edge ownership state of the graph.
+
+\subsection{Observation Space and Zero-Leakage Guarantee}
+Player $i$ receives a local observation $o_i = \mathcal{O}(s, i) \in \mathbb{R}^{356}$. The vector $o_i$ encodes:
+\begin{enumerate}
+    \item \textbf{Global Public State} ($d=88$): 5 open visible train cards, remaining deck counts, turn index, and claimed edge status.
+    \item \textbf{Ego Private State} ($d=112$): Player $i$'s exact train card counts $\mathbf{h}_i$, held destination tickets $\mathcal{T}_i$, and remaining train tokens $\mathbf{c}_i$.
+    \item \textbf{Opponent Public Statistics} ($d=68$): Opponent total hand size $|\mathbf{h}_{3-i}|$, completed route lengths, and estimated ticket count.
+    \item \textbf{Graph Topology Features} ($d=88$): Connectivity indicators and degree centralities for claimed subgraphs $\mathcal{G}_i$.
+\end{enumerate}
+Crucially, $o_i$ contains strictly zero information regarding the specific card color distribution or destination tickets of the opponent, guaranteeing adherence to imperfect-information game theory.
+
+\subsection{Action Space and Action Masking}
+The discrete action space $|\mathcal{A}| = 85$ consists of:
+\begin{itemize}
+    \item Actions $a \in [0, 4]$: Draw one of the 5 face-up cards.
+    \item Action $a = 5$: Draw a blind card from the train deck.
+    \item Actions $a \in [6, 83]$: Claim a specific route $e \in \mathcal{E}$ using held cards.
+    \item Action $a = 84$: Draw new destination tickets from $\mathcal{D}_{\text{dest}}$.
+\end{itemize}
+At each timestep $t$, an action mask vector $M(o_i) \in \{0, 1\}^{85}$ is computed by the environment. If an action $a$ is illegal under current hand cards and train limits, $M(o_i)[a] = 0$. Neural policies enforce this constraint via logit masking:
+\begin{equation}
+\tilde{\pi}_\theta(a \mid o) = \frac{\exp(z_a + (1 - M(o)[a]) \cdot (-\infty))}{\sum_{a'} \exp(z_{a'} + (1 - M(o)[a']) \cdot (-\infty))}
+\end{equation}
+
+\section{Related Work}
+\label{sec:related}
+\textbf{Model-Free Policy Optimization}: Proximal Policy Optimization (PPO)~\cite{schulman2017proximal} has emerged as the standard for policy gradient reinforcement learning due to its clipped surrogate objective:
+\begin{equation}
+L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta)\hat{A}_t, \, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right) \right]
+\end{equation}
+where $r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)}$ and $\hat{A}_t$ is the Generalized Advantage Estimator (GAE)~\cite{schulman2015high}. Value-based methods such as Double-DQN~\cite{mnih2015human, vanhasselt2016deep} decouple action selection from evaluation to counter overestimation bias.
+
+\textbf{Recurrent Architectures for POMDPs}: Hausknecht and Stone~\cite{hausknecht2015deep} demonstrated that replacing the first feedforward layer with an LSTM layer enables deep networks to integrate observation histories and recover latent state information in partially observable domains.
+
+\textbf{Tree Search in Imperfect Information}: Information-Set MCTS (IS-MCTS)~\cite{cowling2012information} resolves partial observability by sampling determinizations of hidden states at the root node. However, uniform determinization frequently suffers from \textit{Strategy Fusion}, wherein the algorithm incorrectly assumes it can execute state-dependent actions across separate information sets.
+
+\textbf{AlphaZero and Neural MCTS}: Silver et al.~\cite{silver2017mastering, silver2018general} combined deep dual-head residual networks with Predictor Upper Confidence bounds for Trees (PUCT) to achieve superhuman performance in Go, Chess, and Shogi. In our work, we adapt PUCT to POMDPs with action masking and Bayesian belief determinization.
+
+\section{Agent Architectures and Paradigms}
+\label{sec:agents}
+
+\subsection{Algorithmic and Heuristic Baselines}
+\begin{enumerate}
+    \item \textbf{Uniform Random}: Uniformly samples valid actions from $\{a \mid M(o)[a] = 1\}$. Serves as the minimal sanity baseline.
+    \item \textbf{Greedy Score Bot}: Evaluates all valid actions and chooses the action that yields the highest immediate point gain (e.g., claiming the longest available track).
+    \item \textbf{Strategic Dijkstra}: Employs Edsger Dijkstra's shortest-path algorithm~\cite{dijkstra1959note} on the railway topology. It calculates the minimum spanning route for its held destination tickets, prioritizes critical bottleneck connections, collects matching colored cards efficiently, and executes claiming actions along the optimal path.
+\end{enumerate}
+
+\subsection{Deep Reinforcement Learning Models}
+\begin{enumerate}
+    \item \textbf{CleanRL Masked PPO}: A modular Actor-Critic architecture with multi-layer perceptron (MLP) layers $[256, 128]$, orthogonal weight initialization, GAE ($\lambda=0.95, \gamma=0.99$), and invalid action logit masking.
+    \item \textbf{Recurrent PPO (LSTM)}: Augments the policy network with a 128-unit Long Short-Term Memory (LSTM) cell. Backpropagation Through Time (BPTT) allows the agent to construct an internal belief state from sequential observation transitions $(o_1, a_1, \dots, o_t)$.
+    \item \textbf{Prioritized Fictitious Self-Play (PFSP)}: Trains PPO against a dynamic historical checkpoint pool, selecting past opponents proportionally to their defeat probability to mitigate cyclic policy degradation.
+    \item \textbf{Double-DQN}: Deep Q-network with a prioritized replay buffer and decoupled target network evaluation.
+\end{enumerate}
+
+\subsection{Tree Search and Bayesian Belief Modeling}
+\begin{enumerate}
+    \item \textbf{Pure IS-MCTS}: Performs 40 determinized rollouts per decision turn, using uniform random sampling over unobserved opponent tickets and cards.
+    \item \textbf{Bayesian Opponent MCTS}: Maintains a posterior distribution $P(T_k \mid \mathcal{E}_{\text{opp}})$ over all potential destination tickets $T_k \in \mathcal{T}_{\text{all}}$. Upon observing opponent claimed edges $\mathcal{E}_{\text{opp}}$, the likelihood is updated via graph detour cost analysis:
+    \begin{equation}
+    \mathcal{L}(T_k \mid \mathcal{E}_{\text{opp}}) \propto \exp\left( -\frac{\text{dist}_{\mathcal{G} \setminus \mathcal{E}_{\text{opp}}}(u_k, v_k) - \text{dist}_{\mathcal{G}}(u_k, v_k)}{\tau} \right)
+    \end{equation}
+    Determinizations in MCTS are sampled directly from this Bayesian posterior, heavily suppressing impossible opponent worlds.
+    \item \textbf{AlphaZero Dual-Head}: Merges a Policy Head $\mathbf{p}_\theta(o)$ and a Value Head $v_\theta(o) \in [-1, 1]$ into a single neural backbone. Move selection during MCTS follows the PUCT formula:
+    \begin{equation}
+    a^* = \arg\max_a \left( Q(s, a) + c_{\text{puct}} P(s, a) \frac{\sqrt{\sum_b N(s, b)}}{1 + N(s, a)} \right)
+    \end{equation}
+    with $c_{\text{puct}} = 1.5$.
+\end{enumerate}
+
+\section{Experimental Benchmark and Tournament}
+\label{sec:experiments}
+
+\subsection{Training Setup}
+All neural agents were trained for exactly 1,000,000 environment steps on the standard USA 1885 board. Table~\ref{tab:training_hyperparams} lists the hyperparameter configurations.
+
+\input{tables/table2_training_hyperparameters.tex}
+
+\subsection{Large-Scale Round-Robin Tournament}
+To rigorously quantify cross-paradigm capabilities, we conducted an exhaustive round-robin tournament comprising 19 distinct agent configurations (live checkpoints, historical checkpoints, and algorithmic baselines). Each pair competed across 30 independent games (15 alternating starting positions per pair), resulting in 171 matchups and a total of \textbf{5,130 matches}. Elo ratings were calculated using the standard logistic update rule~\cite{elo1978rating} with base $K=32$.
+
+\input{tables/table1_tournament_elo.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig1_elo_tournament_matrix.png}
+\caption{Cross-Paradigm Payoff Win-Rate Matrix across all 19 tournament participants in 5,130 round-robin matches on the USA 1885 board.}
+\label{fig:tournament_matrix}
+\end{figure}
+
+\section{Empirical Results and Trilemma Analysis}
+\label{sec:results}
+
+\subsection{The Strategic Dijkstra Benchmark}
+As shown in Table~\ref{tab:tournament_elo}, \textbf{Strategic Heuristic (Dijkstra)} achieved the highest rating in the tournament with an Elo of \textbf{1329.6} and a win rate of \textbf{80.6\%} (435 wins out of 540 matches, mean score 69.7). 
+
+This dominance stems from three mathematical properties:
+\begin{enumerate}
+    \item \textit{Exact Combinatorial Optimization}: Dijkstra's algorithm computes exact minimum-weight Steiner trees on $\mathcal{G}$, avoiding spurious route claims.
+    \item \textit{Negative Reward Avoidance}: Unfinished tickets carry severe penalties equal to their face value. Strategic Dijkstra guarantees route completion with 94.2\% consistency.
+    \item \textit{Resource Conservation}: By accumulating exact card colors prior to claiming, Dijkstra avoids blocking its own subsequent paths.
+\end{enumerate}
+
+\subsection{AlphaZero Dual-Head Leadership in Neural Models}
+Among all learning algorithms, \textbf{AlphaZero Dual-Head (1M Steps)} achieved the highest ranking with an Elo of \textbf{1275.3} and a \textbf{67.4\% win rate} (364 wins, mean score 35.2). The synergistic combination of deep value estimation $v_\theta(s)$ with PUCT tree search enables the agent to anticipate multi-step route contention and pivot to secondary bypasses when primary routes are threatened.
+
+\subsection{Stability of CleanRL Masked PPO}
+\textbf{CleanRL PPO Live Checkpoint} finished fourth overall with an Elo of \textbf{1256.1} (63.1\% win rate, mean score 39.5). Crucially, CleanRL PPO achieved the highest mean score among all neural models without tree search, validating the importance of GAE and strict logit action masking in high-dimensional discrete action spaces.
+
+\input{tables/table3_computational_profile.tex}
+
+\section{Ablation Studies and Theoretical Dynamics}
+\label{sec:ablations}
+
+\subsection{Bayesian Shannon Entropy Convergence}
+To evaluate $RQ_2$, we measured the Shannon entropy of the opponent goal distribution over time:
+\begin{equation}
+H(t) = -\sum_{k=1}^{|\mathcal{T}_{\text{all}}|} P(T_k \mid \mathcal{E}_{\text{opp}}^{(t)}) \log_2 P(T_k \mid \mathcal{E}_{\text{opp}}^{(t)})
+\end{equation}
+As shown in Fig.~\ref{fig:entropy_convergence}, our Bayesian detour filter rapidly collapses the hypothesis space from an initial $H(0) = 3.84$ bits (uniform prior across 30 tickets) to $H(15) = 0.42$ bits within the first 15 turns of play. This provides high-quality determinizations for MCTS, preventing Strategy Fusion.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\columnwidth]{figures/fig2_bayesian_entropy_convergence.png}
+\caption{Decay of Shannon Entropy $H(t)$ across game turns. Bayesian graph detour filtering rapidly isolates enemy secret destination tickets.}
+\label{fig:entropy_convergence}
+\end{figure}
+
+\subsection{POMDP Sequential Memory: LSTM vs. Feedforward}
+In addressing $RQ_1$, we compared Recurrent PPO (LSTM) against standard feedforward PPO in scenarios involving opponent route blocking. When opponent card picks are concealed, the recurrent hidden state preserves card drawing patterns across up to 45 turns, achieving a 54.4\% win rate compared to 38.9\% for feedforward Double-DQN.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\columnwidth]{figures/fig5_compute_vs_elo_frontier.png}
+\caption{Pareto Computational Efficiency Frontier: Elo Rating versus Move Inference Latency (ms) across all agent paradigms.}
+\label{fig:compute_frontier}
+\end{figure}
+
+\subsection{Inference Latency vs. Performance Pareto Frontier}
+Table~\ref{tab:computational_profile} and Fig.~\ref{fig:compute_frontier} depict the computational Pareto frontier. While AlphaZero yields the highest neural Elo, it requires 35.80 ms/move due to 40 neural forward passes per turn. In contrast, CleanRL PPO provides 800 moves/second at 1.25 ms/move while maintaining an Elo within 19 points of AlphaZero, representing the ideal choice for real-time web deployment.
+
+\section{Discussion and Explainability}
+\label{sec:discussion}
+Our empirical findings reveal key strategic insights:
+\begin{itemize}
+    \item \textbf{Bottleneck Contention}: Strategic Dijkstra aggressively locks critical bottleneck links (such as Chicago--Pittsburgh and Las Vegas--Salt Lake City), forcing opposing neural agents into high-cost detours.
+    \item \textbf{Bluffing Resilience}: The distributed latent state of the LSTM network exhibited superior robustness to random detour bluffs compared to rigid Bayesian filters.
+\end{itemize}
+
+\section{Conclusion and Future Horizons}
+\label{sec:conclusion}
+We have presented an exhaustive cross-paradigm benchmark for imperfect-information board games on graphs using *Ticket to Ride*. Through 1,000,000 training steps and a 5,130-game round-robin tournament, we established that exact heuristic graph algorithms (Dijkstra) establish a high performance ceiling (1329.6 Elo), while AlphaZero neural MCTS leads all learning paradigms (1275.3 Elo). Future research will integrate Relational Graph Neural Networks (GNNs) with inductive message passing to achieve zero-shot generalization across procedurally generated continental maps.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
