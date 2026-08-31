@@ -232,7 +232,7 @@ export interface ReportItemDTO {
   id: string;
   name: string;
   filename: string;
-  file_type: 'markdown' | 'json' | 'text';
+  file_type: 'markdown' | 'json' | 'text' | 'latex';
   size_kb: number;
   modified_at: string;
   phase?: string | null;
