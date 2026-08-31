@@ -43,5 +43,21 @@ class TestPaperAssets(unittest.TestCase):
         self.assertIn("dijkstra1959note", content)
         self.assertIn(r"\input{tables/table1_tournament_elo.tex}", content)
 
+    def test_capitolo_tesi_ita_content(self):
+        thesis_file = Path("paper/capitolo_tesi_ita.tex")
+        self.assertTrue(thesis_file.exists(), "paper/capitolo_tesi_ita.tex should exist")
+        content = thesis_file.read_text(encoding="utf-8")
+        self.assertIn(r"\documentclass", content)
+        self.assertIn(r"\begin{document}", content)
+        self.assertIn(r"\section{Introduzione", content)
+        self.assertTrue(r"\section{Stato dell'Arte" in content or r"\section{Letteratura" in content or r"\section{Fondamenti" in content)
+        self.assertIn("Dijkstra", content)
+        self.assertIn("AlphaZero", content)
+        self.assertIn("1329.6", content)
+        self.assertTrue("5.130" in content or "5130" in content)
+        self.assertIn("cowling2012information", content)
+        self.assertIn("hausknecht2015deep", content)
+        self.assertIn(r"\input{tables/table1_tournament_elo.tex}", content)
+
 if __name__ == "__main__":
     unittest.main()
