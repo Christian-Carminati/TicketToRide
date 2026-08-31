@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Hyperparameter Configurations for Neural Training Regimes (1,000,000 Environment Steps).}
+\label{tab:training_hyperparams}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Hyperparameter} & \textbf{CleanRL PPO} & \textbf{Recurrent PPO} & \textbf{Double-DQN} & \textbf{AlphaZero Dual-Head} \\
+\hline
+Observation Dim ($|\Omega|$) & 356 & 356 & 356 & 356 \\
+Action Space Size ($|\mathcal{A}|$) & 85 & 85 & 85 & 85 \\
+Actor / Q Architecture & MLP [256, 128] & LSTM (128) + MLP & MLP [256, 128] & ResNet-like Dual Head \\
+Critic / Value Architecture & MLP [256, 128] & Linear (128 $\to$ 1) & Target Net & MLP (128 $\to$ 1) \\
+Learning Rate ($\alpha$) & $3.0 \times 10^{-4}$ & $2.5 \times 10^{-4}$ & $1.0 \times 10^{-4}$ & $2.0 \times 10^{-4}$ \\
+Discount Factor ($\gamma$) & 0.99 & 0.99 & 0.99 & 0.99 \\
+GAE Parameter ($\lambda$) & 0.95 & 0.95 & N/A & N/A \\
+PPO Clip Ratio ($\epsilon$) & 0.20 & 0.20 & N/A & N/A \\
+PUCT Exploration ($c_{puct}$) & N/A & N/A & N/A & 1.50 \\
+Action Masking & Logit Masking & Logit Masking & Q-value Invalidation & Prior Logit Masking \\
+Reward Convergence & \textbf{+42.21} & \textbf{+36.50} & \textbf{+22.40} & \textbf{Val Loss: 0.034} \\
+\hline
+\end{tabular}
+\end{table}

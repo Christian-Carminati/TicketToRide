@@ -1,0 +1,31 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Cross-Paradigm Round-Robin Tournament Rankings across 5,130 Matches (19 Agents, 30 Games per Pair) on the USA 1885 Board.}
+\label{tab:tournament_elo}
+\begin{tabular}{clccccc}
+\hline
+\textbf{Rank} & \textbf{Agent Architecture / Configuration} & \textbf{Paradigm Class} & \textbf{Elo Rating} & \textbf{Win Rate (\%)} & \textbf{W / L / D} & \textbf{Mean Score} \\
+\hline
+1 & \textbf{Strategic Heuristic (Dijkstra)} & Graph Algorithm & \textbf{1329.6} & \textbf{80.6\%} & 435 / 103 / 2 & \textbf{69.7} \\
+2 & \textbf{AlphaZero Dual-Head (1M Steps)} & Neural MCTS & \textbf{1275.3} & \textbf{67.4\%} & 364 / 171 / 5 & 35.2 \\
+3 & AlphaZero Live Checkpoint (1M) & Neural MCTS & 1263.8 & 63.9\% & 345 / 188 / 7 & 33.3 \\
+4 & CleanRL PPO Live Checkpoint (1M) & Model-Free RL & 1256.1 & 63.1\% & 341 / 189 / 10 & 39.5 \\
+5 & Pure IS-MCTS (40 Sims) & Tree Search & 1254.5 & 63.1\% & 341 / 195 / 4 & 49.2 \\
+6 & PPO Baseline (1M Steps) & Model-Free RL & 1253.7 & 62.6\% & 338 / 194 / 8 & 36.5 \\
+7 & PPO Baseline Fdc7 (1M Steps) & Model-Free RL & 1241.6 & 59.8\% & 323 / 204 / 13 & 39.6 \\
+8 & Bayesian MCTS (Opponent-Aware) & Tree Search + Filter & 1239.5 & 59.8\% & 323 / 206 / 11 & 34.7 \\
+9 & Greedy Score Bot & Heuristic Baseline & 1238.1 & 58.7\% & 317 / 213 / 10 & 30.7 \\
+10 & Recurrent PPO LSTM Live (1M) & Sequential RL & 1222.8 & 54.4\% & 294 / 238 / 8 & 36.5 \\
+11 & Recurrent PPO B5132C (1M Steps) & Sequential RL & 1218.9 & 53.1\% & 287 / 248 / 5 & 36.2 \\
+12 & Self-Play PPO PFSP Pool (1M) & Multi-Agent RL & 1200.8 & 49.1\% & 265 / 269 / 6 & 30.0 \\
+13 & Self-Play PPO Live (1M) & Multi-Agent RL & 1180.8 & 43.5\% & 235 / 296 / 9 & 30.0 \\
+14 & Recurrent PPO (LSTM POMDP) & Sequential RL & 1155.5 & 38.7\% & 209 / 328 / 3 & 27.9 \\
+15 & Double-DQN Baseline 356D (1M) & Value-Based RL & 1150.8 & 38.9\% & 210 / 326 / 4 & 21.6 \\
+16 & Double-DQN Live (1M) & Value-Based RL & 1147.4 & 37.2\% & 201 / 328 / 11 & 22.4 \\
+17 & Recurrent PPO F61285 (Early Ckpt) & Sequential RL & 1075.6 & 19.3\% & 104 / 433 / 3 & 18.0 \\
+18 & Uniform Random & Random Baseline & 1049.4 & 13.5\% & 73 / 465 / 2 & -45.1 \\
+19 & AlphaZero (PUCT 40 - Untrained) & Neural MCTS & 1045.9 & 11.9\% & 64 / 475 / 1 & -135.0 \\
+\hline
+\end{tabular}
+\end{table*}
