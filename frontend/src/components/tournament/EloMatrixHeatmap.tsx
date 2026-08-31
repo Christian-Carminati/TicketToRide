@@ -450,6 +450,8 @@ export const EloMatrixHeatmap: React.FC = () => {
                   <option value={3}>3 matches ({formatEstTime(totalPairings * 3, mapName)})</option>
                   <option value={5}>5 matches ({formatEstTime(totalPairings * 5, mapName)})</option>
                   <option value={10}>10 matches ({formatEstTime(totalPairings * 10, mapName)})</option>
+                  <option value={30}>30 matches ({formatEstTime(totalPairings * 30, mapName)})</option>
+                  <option value={50}>50 matches ({formatEstTime(totalPairings * 50, mapName)})</option>
                 </select>
               </div>
 

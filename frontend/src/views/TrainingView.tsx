@@ -323,6 +323,8 @@ export const TrainingView: React.FC = () => {
               <option value={15000}>15,000 Steps (Standard)</option>
               <option value={40000}>40,000 Steps (Convergence)</option>
               <option value={100000}>100,000 Steps (Mastery)</option>
+              <option value={500000}>500,000 Steps (Deep Training)</option>
+              <option value={1000000}>1,000,000 Steps (Ultra Deep / 1M)</option>
             </select>
           </div>
 

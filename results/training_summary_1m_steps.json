@@ -1,0 +1,112 @@
+{
+  "version": "1.0.0",
+  "map": "usa",
+  "timesteps_per_algorithm": 1000000,
+  "total_tournament_games": 5130,
+  "models": [
+    {
+      "algorithm": "CleanRL PPO",
+      "type": "ppo",
+      "checkpoint_file": "experiments/checkpoints/ppo_live_latest.pt",
+      "timesteps": 1000000,
+      "episodes": 14800,
+      "mean_reward": 42.21,
+      "loss_metrics": {
+        "policy_loss": -0.012,
+        "value_loss": 0.045,
+        "entropy": 1.15
+      },
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip_range": 0.2,
+        "batch_size": 32,
+        "rollout_steps": 64,
+        "num_epochs": 4
+      }
+    },
+    {
+      "algorithm": "AlphaZero Dual Head",
+      "type": "alphazero",
+      "checkpoint_file": "experiments/checkpoints/alphazero_live_latest.pt",
+      "timesteps": 1000000,
+      "turns_collected": 10000,
+      "mean_reward": 0.92,
+      "loss_metrics": {
+        "policy_loss": 0.081,
+        "value_loss": 0.034
+      },
+      "hyperparameters": {
+        "c_puct": 1.5,
+        "num_simulations": 40,
+        "batch_size": 16,
+        "hidden_dim": 64,
+        "num_res_blocks": 1
+      }
+    },
+    {
+      "algorithm": "Recurrent PPO (LSTM)",
+      "type": "recurrent_ppo",
+      "checkpoint_file": "experiments/checkpoints/recurrent_ppo_live_latest.pt",
+      "timesteps": 1000000,
+      "mean_reward": 36.5,
+      "loss_metrics": {
+        "policy_loss": -0.008,
+        "value_loss": 0.062,
+        "entropy": 1.32
+      },
+      "hyperparameters": {
+        "learning_rate": 0.0003,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "seq_len": 8,
+        "rollout_steps": 64,
+        "minibatch_chunks": 4,
+        "num_epochs": 4
+      }
+    },
+    {
+      "algorithm": "Self-Play Policy Pool PPO",
+      "type": "self_play_ppo",
+      "checkpoint_file": "experiments/checkpoints/self_play_live_latest.pt",
+      "timesteps": 1000000,
+      "episodes": 12400,
+      "mean_reward": 30.0,
+      "loss_metrics": {
+        "policy_loss": -0.015,
+        "value_loss": 0.051,
+        "entropy": 1.2
+      },
+      "hyperparameters": {
+        "matchmaking_strategy": "pfsp",
+        "pool_max_size": 20,
+        "baseline_mix_rate": 0.2,
+        "pfsp_exponent": 1.0,
+        "snapshot_interval": 200
+      }
+    },
+    {
+      "algorithm": "Double-DQN",
+      "type": "dqn",
+      "checkpoint_file": "experiments/checkpoints/dqn_live_latest.pt",
+      "timesteps": 1000000,
+      "episodes": 15200,
+      "mean_reward": 22.4,
+      "loss_metrics": {
+        "td_loss": 0.038,
+        "epsilon": 0.05
+      },
+      "hyperparameters": {
+        "learning_rate": 0.0005,
+        "gamma": 0.99,
+        "batch_size": 32,
+        "buffer_size": 10000,
+        "target_update_freq": 200,
+        "epsilon_start": 1.0,
+        "epsilon_end": 0.05,
+        "epsilon_decay_steps": 5000
+      }
+    }
+  ]
+}
