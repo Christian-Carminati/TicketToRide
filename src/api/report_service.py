@@ -16,6 +16,8 @@ class ReportService:
 
     def _resolve_phase(self, filename: str) -> str | None:
         fn_lower = filename.lower()
+        if "paper" in fn_lower or "tesi" in fn_lower or fn_lower.endswith(".tex") or fn_lower.endswith(".bib"):
+            return "Fase 14 — Paper & Tesi LaTeX"
         if "phase6" in fn_lower or "phase_6" in fn_lower or "ppo" in fn_lower:
             return "Fase 6 — PPO & CleanRL"
         if "reward" in fn_lower or "phase7" in fn_lower or "phase_7" in fn_lower:
@@ -26,6 +28,18 @@ class ReportService:
 
     def _resolve_friendly_name(self, filename: str) -> str:
         fn_lower = filename.lower()
+        if "main_paper_en.tex" in fn_lower:
+            return "🔬 Scientific Research Paper (English LaTeX)"
+        if "capitolo_tesi_ita.tex" in fn_lower:
+            return "🎓 Capitolo Tesi Magistrale (Italian LaTeX)"
+        if "references.bib" in fn_lower:
+            return "📚 Bibliografia Scientifica Verificata (BibTeX)"
+        if "tournament_report" in fn_lower:
+            return "🏆 Report Ufficiale Torneo 5.130 Partite (10x)"
+        if "tournament_results" in fn_lower:
+            return "📦 Dati Matrice Torneo 5.130 Partite (JSON)"
+        if "training_summary" in fn_lower:
+            return "📈 Riepilogo Training 1M Step (JSON)"
         if "reward_research.md" in fn_lower:
             return "📊 Studio Comparativo Reward (Fase 7)"
         if "reward_research.json" in fn_lower:
@@ -41,8 +55,15 @@ class ReportService:
         return base.replace("_", " ").title()
 
     def list_reports(self) -> list[ReportItemDTO]:
-        """List all available reports in experiments/results and project root."""
-        search_paths = [Path(self.results_dir), Path(".")]
+        """List all available reports in paper/, results/, experiments/results and project root."""
+        search_paths = [
+            Path("paper"),
+            Path(self.results_dir),
+            Path("results"),
+            Path("results/thesis"),
+            Path("experiments/results"),
+            Path("."),
+        ]
         reports: list[ReportItemDTO] = []
         seen_filenames: set[str] = set()
 
@@ -62,32 +83,48 @@ class ReportService:
                 ext = f.suffix.lower()
 
                 # Only include report-like files
-                if ext not in [".md", ".json", ".txt"]:
+                if ext not in [".md", ".json", ".txt", ".tex", ".bib"]:
                     continue
 
                 if fname in seen_filenames or fname in [
                     "package.json",
                     "pyproject.toml",
                     "tsconfig.json",
+                    "uv.lock",
                 ]:
                     continue
 
                 # Filter relevant benchmark/report files
-                is_results_dir = search_dir == Path(self.results_dir)
+                is_report_dir = search_dir in [
+                    Path("paper"),
+                    Path(self.results_dir),
+                    Path("results"),
+                    Path("results/thesis"),
+                    Path("experiments/results"),
+                ]
                 is_root_report = (
                     "benchmark" in fname.lower()
                     or "report" in fname.lower()
                     or "reward" in fname.lower()
+                    or "tournament" in fname.lower()
+                    or "paper" in fname.lower()
                 )
 
-                if not is_results_dir and not is_root_report:
+                if not is_report_dir and not is_root_report:
                     continue
 
                 seen_filenames.add(fname)
                 mtime = f.stat().st_mtime
                 size_kb = round(f.stat().st_size / 1024, 2)
                 dt_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime))
-                file_type = "markdown" if ext == ".md" else ("json" if ext == ".json" else "text")
+                if ext in [".tex", ".bib"]:
+                    file_type = "latex"
+                elif ext == ".md":
+                    file_type = "markdown"
+                elif ext == ".json":
+                    file_type = "json"
+                else:
+                    file_type = "text"
 
                 reports.append(
                     ReportItemDTO(
@@ -105,15 +142,34 @@ class ReportService:
 
     def get_report(self, filename: str) -> ReportDetailDTO | None:
         """Fetch content and metadata of a specific report."""
-        target_path = Path(self.results_dir) / filename
-        if not target_path.exists():
-            target_path = Path(filename)
-            if not target_path.exists():
-                return None
+        search_dirs = [
+            Path("paper"),
+            Path(self.results_dir),
+            Path("results"),
+            Path("results/thesis"),
+            Path("experiments/results"),
+            Path("."),
+        ]
+        target_path: Path | None = None
+        for d in search_dirs:
+            p = d / filename
+            if p.exists() and p.is_file():
+                target_path = p
+                break
+
+        if not target_path or not target_path.exists():
+            return None
 
         content = target_path.read_text(encoding="utf-8", errors="replace")
         ext = target_path.suffix.lower()
-        file_type = "markdown" if ext == ".md" else ("json" if ext == ".json" else "text")
+        if ext in [".tex", ".bib"]:
+            file_type = "latex"
+        elif ext == ".md":
+            file_type = "markdown"
+        elif ext == ".json":
+            file_type = "json"
+        else:
+            file_type = "text"
 
         json_data = None
         if file_type == "json":
