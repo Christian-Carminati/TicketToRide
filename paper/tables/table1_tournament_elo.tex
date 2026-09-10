@@ -4,9 +4,9 @@
 \caption{Cross-Paradigm Round-Robin Tournament Rankings across 5,130 Matches (19 Agents, 30 Games per Pair) on the USA 1885 Board.}
 \label{tab:tournament_elo}
 \begin{tabular}{clccccc}
-\hline
+\toprule
 \textbf{Rank} & \textbf{Agent Architecture / Configuration} & \textbf{Paradigm Class} & \textbf{Elo Rating} & \textbf{Win Rate (\%)} & \textbf{W / L / D} & \textbf{Mean Score} \\
-\hline
+\midrule
 1 & \textbf{Strategic Heuristic (Dijkstra)} & Graph Algorithm & \textbf{1329.6} & \textbf{80.6\%} & 435 / 103 / 2 & \textbf{69.7} \\
 2 & \textbf{AlphaZero Dual-Head (1M Steps)} & Neural MCTS & \textbf{1275.3} & \textbf{67.4\%} & 364 / 171 / 5 & 35.2 \\
 3 & AlphaZero Live Checkpoint (1M) & Neural MCTS & 1263.8 & 63.9\% & 345 / 188 / 7 & 33.3 \\
@@ -26,6 +26,6 @@
 17 & Recurrent PPO F61285 (Early Ckpt) & Sequential RL & 1075.6 & 19.3\% & 104 / 433 / 3 & 18.0 \\
 18 & Uniform Random & Random Baseline & 1049.4 & 13.5\% & 73 / 465 / 2 & -45.1 \\
 19 & AlphaZero (PUCT 40 - Untrained) & Neural MCTS & 1045.9 & 11.9\% & 64 / 475 / 1 & -135.0 \\
-\hline
+\bottomrule
 \end{tabular}
 \end{table*}

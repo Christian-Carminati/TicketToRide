@@ -4,9 +4,9 @@
 \caption{Computational Resource Profile, Move Decision Latency, and Memory Footprint across Paradigms.}
 \label{tab:computational_profile}
 \begin{tabular}{lcccc}
-\hline
+\toprule
 \textbf{Agent Architecture} & \textbf{Mean Move Latency (ms)} & \textbf{Throughput (moves/s)} & \textbf{Model Size (MB)} & \textbf{Elo Rating} \\
-\hline
+\midrule
 Strategic Heuristic (Dijkstra) & 0.42 $\pm$ 0.08 & 2,380 & 0.00 & 1329.6 \\
 Greedy Score Bot & 0.12 $\pm$ 0.02 & 8,330 & 0.00 & 1238.1 \\
 CleanRL PPO (Feedforward) & 1.25 $\pm$ 0.15 & 800 & 2.38 & 1256.1 \\
@@ -15,6 +15,6 @@ Double-DQN & 1.10 $\pm$ 0.12 & 909 & 2.00 & 1150.8 \\
 Pure IS-MCTS (40 Rollouts) & 18.40 $\pm$ 2.10 & 54 & 0.00 & 1254.5 \\
 Bayesian Opponent MCTS & 24.50 $\pm$ 3.40 & 40 & 0.05 & 1239.5 \\
 AlphaZero Dual-Head (40 PUCT) & 35.80 $\pm$ 4.20 & 28 & 0.22 & 1275.3 \\
-\hline
+\bottomrule
 \end{tabular}
 \end{table}
