@@ -17,7 +17,7 @@ class ReportService:
     def _resolve_phase(self, filename: str) -> str | None:
         fn_lower = filename.lower()
         if "paper" in fn_lower or "tesi" in fn_lower or fn_lower.endswith(".tex") or fn_lower.endswith(".bib"):
-            return "Fase 14 — Paper & Tesi LaTeX"
+            return "Fase 14 — Paper & Ricerca LaTeX"
         if "phase6" in fn_lower or "phase_6" in fn_lower or "ppo" in fn_lower:
             return "Fase 6 — PPO & CleanRL"
         if "reward" in fn_lower or "phase7" in fn_lower or "phase_7" in fn_lower:
@@ -31,7 +31,7 @@ class ReportService:
         if "main_paper_en.tex" in fn_lower:
             return "🔬 Scientific Research Paper (English LaTeX)"
         if "capitolo_tesi_ita.tex" in fn_lower:
-            return "🎓 Capitolo Tesi Magistrale (Italian LaTeX)"
+            return "📄 Monografia di Ricerca Indipendente (Italian LaTeX)"
         if "references.bib" in fn_lower:
             return "📚 Bibliografia Scientifica Verificata (BibTeX)"
         if "tournament_report" in fn_lower:

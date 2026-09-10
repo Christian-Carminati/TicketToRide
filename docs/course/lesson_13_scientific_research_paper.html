@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lezione 13: Metodologia di Ricerca Scientifica, Benchmark Cross-Paradigma & Tesi di Laurea - TicketToRide RL Lab</title>
+  <title>Lezione 13: Metodologia di Ricerca Scientifica, Benchmark Cross-Paradigma & Paper - TicketToRide RL Lab</title>
   <link rel="stylesheet" href="style.css">
   <script>
     window.MathJax = {
@@ -60,41 +60,30 @@
   </style>
 </head>
 <body>
-
-  <!-- Header -->
-  <header class="app-header">
-    <a href="index.html" class="header-brand">
-      <span class="logo-badge">TTR-RL</span>
-      <span class="lang-it">TicketToRide AI Lab: Corso Universitario</span>
-      <span class="lang-en">TicketToRide AI Lab: University Course</span>
-    </a>
-    <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
-      <button class="btn-lang-toggle" id="langToggleBtn">🇬🇧 Switch to English</button>
-      <button class="btn-theme-toggle" id="themeToggleBtn">🌙 Dark Mode</button>
+  <!-- Course Sidebar -->
+  <aside class="course-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">TicketToRide RL Lab</div>
+      <div class="sidebar-subtitle">
+        <span class="lang-it">Corso Completo: Da Zero ad AlphaZero</span>
+        <span class="lang-en">Complete Course: Zero to AlphaZero</span>
+      </div>
     </div>
-  </header>
-
-  <!-- Sidebar -->
-  <aside class="app-sidebar">
-    <div class="sidebar-title">
-      <span class="lang-it">Programma del Corso</span>
-      <span class="lang-en">Course Syllabus</span>
-    </div>
-    <ul class="nav-list">
-      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">HUB</span> Dashboard & Syllabus</a></li>
+    <ul class="nav-lessons">
+      <li class="nav-item"><a href="index.html"><span class="nav-lesson-num">🏠</span> Dashboard</a></li>
       <li class="nav-item"><a href="lesson_01_game_core.html"><span class="nav-lesson-num">01</span> Game Core Deterministico</a></li>
-      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Baseline, Dijkstra & Elo</a></li>
-      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Gymnasium Env & POMDP</a></li>
-      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> First Deep RL: Double DQN</a></li>
-      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Performance</a></li>
-      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO from Scratch</a></li>
-      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Research & Shaping</a></li>
-      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> Parziale Osservabilità & LSTM</a></li>
+      <li class="nav-item"><a href="lesson_02_baseline_agents.html"><span class="nav-lesson-num">02</span> Agenti Euristici di Base</a></li>
+      <li class="nav-item"><a href="lesson_03_gymnasium_pomdp.html"><span class="nav-lesson-num">03</span> Ambiente Gymnasium POMDP</a></li>
+      <li class="nav-item"><a href="lesson_04_first_rl_dqn_ppo.html"><span class="nav-lesson-num">04</span> Primi Agenti RL: DQN & PPO</a></li>
+      <li class="nav-item"><a href="lesson_05_web_lab_optimization.html"><span class="nav-lesson-num">05</span> Web Lab & Rust Native</a></li>
+      <li class="nav-item"><a href="lesson_06_ppo_from_scratch.html"><span class="nav-lesson-num">06</span> CleanRL PPO da Zero</a></li>
+      <li class="nav-item"><a href="lesson_07_reward_research.html"><span class="nav-lesson-num">07</span> Reward Engineering & Shaping</a></li>
+      <li class="nav-item"><a href="lesson_08_pomdp_lstm_ppo.html"><span class="nav-lesson-num">08</span> POMDP & Recurrent PPO (LSTM)</a></li>
       <li class="nav-item"><a href="lesson_09_self_play_policy_pool.html"><span class="nav-lesson-num">09</span> Multi-Agent Self-Play & PFSP</a></li>
-      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe MST</a></li>
+      <li class="nav-item"><a href="lesson_10_generalization_procedural.html"><span class="nav-lesson-num">10</span> Generalizzazione & Mappe</a></li>
       <li class="nav-item"><a href="lesson_11_mcts_tree_search.html"><span class="nav-lesson-num">11</span> MCTS & Determinizzazione</a></li>
       <li class="nav-item"><a href="lesson_12_alphazero_advanced.html"><span class="nav-lesson-num">12</span> Neural MCTS & AlphaZero</a></li>
-      <li class="nav-item active"><a href="lesson_13_scientific_research_paper.html"><span class="nav-lesson-num">13</span> Metodologia Scientifica & Tesi</a></li>
+      <li class="nav-item active"><a href="lesson_13_scientific_research_paper.html"><span class="nav-lesson-num">13</span> Metodologia Scientifica & Paper</a></li>
       <li class="nav-item"><a href="lesson_14_tournament_paper.html"><span class="nav-lesson-num">14</span> Torneo 5.130 Partite & Paper LaTeX</a></li>
     </ul>
   </aside>
@@ -105,8 +94,8 @@
     <div class="lesson-badge-header">
       <span class="badge badge-phase">Fase 13</span>
       <span class="badge badge-level">
-        <span class="lang-it">Metodologia di Ricerca & Tesi di Laurea</span>
-        <span class="lang-en">Research Methodology & Master's Thesis</span>
+        <span class="lang-it">Metodologia di Ricerca & Pubblicazione Scientifica</span>
+        <span class="lang-en">Research Methodology & Scientific Paper</span>
       </span>
       <span class="badge badge-time">45 min</span>
     </div>
@@ -116,7 +105,7 @@
       <h1>Lezione 13: Metodologia di Ricerca Scientifica, Benchmark Cross-Paradigma e Redazione Accademica</h1>
 
       <p>
-        Benvenuto nella lezione conclusiva e culminante del percorso. Finora abbiamo costruito ogni tassello del laboratorio: il motore in Rust, l'ambiente Gymnasium POMDP, gli algoritmi di Deep RL (CleanRL PPO, Recurrent LSTM), il Multi-Agent Self-Play, l'Information-Set MCTS e l'architettura neurale di AlphaZero con inferenza Bayesiana. In questo modulo impariamo <strong>come trasformare questo arsenale ingegneristico in un contributo scientifico originale per una Tesi di Laurea o una pubblicazione internazionale</strong>.
+        Benvenuto nella lezione conclusiva e culminante del percorso. Finora abbiamo costruito ogni tassello del laboratorio: il motore in Rust, l'ambiente Gymnasium POMDP, gli algoritmi di Deep RL (CleanRL PPO, Recurrent LSTM), il Multi-Agent Self-Play, l'Information-Set MCTS e l'architettura neurale di AlphaZero con inferenza Bayesiana. In questo modulo impariamo <strong>come trasformare questo arsenale ingegneristico in un contributo scientifico originale per un paper di ricerca o una pubblicazione scientifica indipendente</strong>.
       </p>
 
       <!-- 1. INTUIZIONE -->
@@ -227,8 +216,8 @@
 
       $$H(t) = -\sum_{k} P(T_k \mid \mathcal{E}_{1:t}) \log_2 P(T_k \mid \mathcal{E}_{1:t})$$
 
-      <!-- 5. STRUTTURA DELLA MONOGRAFIA DI TESI -->
-      <h2>5. Struttura dei Capitoli per la Tesi di Laurea</h2>
+      <!-- 5. STRUTTURA DELLA MONOGRAFIA DI RICERCA -->
+      <h2>5. Struttura dei Capitoli per la Monografia di Ricerca</h2>
       <ul>
         <li><strong>Capitolo 1 — Introduzione & POMDP su Grafo</strong>: Contesto storico, formulazione formale del gioco, assenza di information-leakage, motivazioni e $RQ_1-RQ_4$.</li>
         <li><strong>Capitolo 2 — Fondamenti Teorici & Stato dell'Arte</strong>: Policy Gradient, CleanRL PPO, Backpropagation Through Time (BPTT) in LSTM, Information-Set MCTS, Strategy Fusion, e AlphaZero.</li>
@@ -241,10 +230,10 @@
 
     <!-- ENGLISH CONTENT -->
     <div class="lang-en">
-      <h1>Lesson 13: Scientific Research Methodology, Cross-Paradigm Benchmark & Master's Thesis</h1>
+      <h1>Lesson 13: Scientific Research Methodology, Cross-Paradigm Benchmark & Research Paper</h1>
 
       <p>
-        Welcome to the capstone lesson of our course. Throughout the previous modules, we built every component of the laboratory: the high-throughput Rust game core, the Gymnasium POMDP environment, Deep RL algorithms (CleanRL PPO, Recurrent LSTM), Multi-Agent Self-Play, Information-Set MCTS, and the AlphaZero neural architecture with Bayesian inference. In this module, you will learn <strong>how to turn this engineering foundation into a rigorous scientific Master's thesis or international conference publication</strong>.
+        Welcome to the capstone lesson of our course. Throughout the previous modules, we built every component of the laboratory: the high-throughput Rust game core, the Gymnasium POMDP environment, Deep RL algorithms (CleanRL PPO, Recurrent LSTM), Multi-Agent Self-Play, Information-Set MCTS, and the AlphaZero neural architecture with Bayesian inference. In this module, you will learn <strong>how to turn this engineering foundation into a rigorous independent research monograph or international conference publication</strong>.
       </p>
 
       <!-- 1. INTUITION -->
@@ -348,7 +337,7 @@
       $$H(t) = -\sum_{k} P(T_k \mid \mathcal{E}_{1:t}) \log_2 P(T_k \mid \mathcal{E}_{1:t})$$
 
       <!-- 5. MONOGRAPH CHAPTERS -->
-      <h2>5. Thesis Monograph Chapter Structure</h2>
+      <h2>5. Research Monograph Chapter Structure</h2>
       <ul>
         <li><strong>Chapter 1 — Introduction & Graph POMDPs</strong>: Background, formal game specification, zero-leakage guarantee, and $RQ_1-RQ_4$.</li>
         <li><strong>Chapter 2 — Theoretical Foundations & State-of-the-Art</strong>: Policy Gradients, CleanRL details, Recurrent BPTT in LSTMs, ISMCTS, Strategy Fusion, and AlphaZero.</li>
@@ -475,10 +464,10 @@
       </h3>
       <p style="color: var(--text-primary); max-width: 750px; margin: 12px auto 20px;">
         <span class="lang-it">
-          Hai a disposizione una suite sperimentale completa a 6 paradigmi, script di benchmark multi-seed, generatori di figure per pubblicazione LaTeX e un simulatore Rust da 1.44M step/s per produrre una tesi di laurea o un paper accademico di altissimo livello.
+          Hai a disposizione una suite sperimentale completa a 6 paradigmi, script di benchmark multi-seed, generatori di figure per pubblicazione LaTeX e un simulatore Rust da 1.44M step/s per produrre una monografia di ricerca o un paper scientifico di altissimo livello.
         </span>
         <span class="lang-en">
-          You now possess a complete 6-paradigm experimental suite, multi-seed benchmark CLI, publication-grade LaTeX figure generators, and a 1.44M steps/s Rust simulator ready for high-impact thesis research and conference publications.
+          You now possess a complete 6-paradigm experimental suite, multi-seed benchmark CLI, publication-grade LaTeX figure generators, and a 1.44M steps/s Rust simulator ready for high-impact independent research and scientific publications.
         </span>
       </p>
       <a href="index.html" class="btn-nav-lesson" style="display: inline-flex; background: var(--accent-green); color: #fff; border: none; padding: 12px 24px;">

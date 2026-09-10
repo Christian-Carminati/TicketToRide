@@ -22,16 +22,16 @@
 
 \title{\textbf{Benchmark Cross-Paradigma e Sintesi Teorica in Giochi su Grafo a Informazione Imperfetta:\\Studio Sperimentale su Ticket to Ride mediante Torneo a 5.130 Partite}}
 
-\author{\textbf{Laboratorio di Reinforcement Learning Avanzato} \\
-Corso di Laurea Magistrale in Informatica e Intelligenza Artificiale \\
-Università degli Studi}
+\author{\textbf{Christian Carminati} \\
+Ricerca Indipendente in Intelligenza Artificiale \\
+TicketToRide RL Lab}
 
-\date{Anno Accademico 2025/2026}
+\date{Settembre 2026}
 
 \maketitle
 
 \begin{abstract}
-I giochi da tavolo strategici a informazione imperfetta definiti su topologie geografiche dinamiche costituiscono uno dei banchi di prova più complessi per l'Intelligenza Artificiale contemporanea. Essi fondono parziale osservabilità, spazi di azione combinatori, instradamento multi-obiettivo a lungo orizzonte e contesa avversaria asimmetrica. Nel presente lavoro di tesi viene condotta un'indagine formale ed empirica sul gioco \textit{Ticket to Ride}. Il problema viene formulato come un Processo Decisionale di Markov Parzialmente Osservabile (POMDP) con mascheramento esplicito delle azioni (\textit{Action Masking}) su un tensore di osservazione a 356 dimensioni e 85 azioni discrete. Vengono implementati e confrontati sei paradigmi: (i) Euristiche Algoritmiche (Uniform Random, Greedy Score e Strategic Dijkstra su cammini minimi), (ii) Deep Reinforcement Learning model-free (Double-DQN e CleanRL PPO con GAE), (iii) Memoria Ricorrente (LSTM-PPO per il tracciamento temporale delle credenze), (iv) Multi-Agent Self-Play con pool storico (PFSP), (v) Information-Set Monte Carlo Tree Search (IS-MCTS) guidato da inferenza Bayesiana degli obiettivi avversari, e (vi) Neural Tree Search (AlphaZero Policy-Value Dual Head con PUCT). A valle di regimi di addestramento a 1.000.000 di passi ambientali e di un torneo esaustivo all'italiana su 5.130 partite (30 scontri diretti per coppia su 19 configurazioni), emerge un netto trilemma prestazionale: l'euristica esatta di Dijkstra si attesta al vertice assoluto (Elo 1329.6, 80.6\% di vittorie), mentre AlphaZero guida tutti i modelli ad apprendimento neurale (Elo 1275.3, 67.4\% di vittorie), seguito con eccezionale stabilità da CleanRL PPO (Elo 1256.1, 63.1\% di vittorie). L'analisi di ablazione rivela inoltre come il filtro Bayesiano riduca l'entropia di Shannon da 3.84 a 0.42 bit in 15 turni, sopprimendo l'errore di \textit{Strategy Fusion} nel tree search.
+I giochi da tavolo strategici a informazione imperfetta definiti su topologie geografiche dinamiche costituiscono uno dei banchi di prova più complessi per l'Intelligenza Artificiale contemporanea. Essi fondono parziale osservabilità, spazi di azione combinatori, instradamento multi-obiettivo a lungo orizzonte e contesa avversaria asimmetrica. Nel presente studio di ricerca indipendente viene condotta un'indagine formale ed empirica sul gioco \textit{Ticket to Ride}. Il problema viene formulato come un Processo Decisionale di Markov Parzialmente Osservabile (POMDP) con mascheramento esplicito delle azioni (\textit{Action Masking}) su un tensore di osservazione a 356 dimensioni e 85 azioni discrete. Vengono implementati e confrontati sei paradigmi: (i) Euristiche Algoritmiche (Uniform Random, Greedy Score e Strategic Dijkstra su cammini minimi), (ii) Deep Reinforcement Learning model-free (Double-DQN e CleanRL PPO con GAE), (iii) Memoria Ricorrente (LSTM-PPO per il tracciamento temporale delle credenze), (iv) Multi-Agent Self-Play con pool storico (PFSP), (v) Information-Set Monte Carlo Tree Search (IS-MCTS) guidato da inferenza Bayesiana degli obiettivi avversari, e (vi) Neural Tree Search (AlphaZero Policy-Value Dual Head con PUCT). A valle di regimi di addestramento a 1.000.000 di passi ambientali e di un torneo esaustivo all'italiana su 5.130 partite (30 scontri diretti per coppia su 19 configurazioni), emerge un netto trilemma prestazionale: l'euristica esatta di Dijkstra si attesta al vertice assoluto (Elo 1329.6, 80.6\% di vittorie), mentre AlphaZero guida tutti i modelli ad apprendimento neurale (Elo 1275.3, 67.4\% di vittorie), seguito con eccezionale stabilità da CleanRL PPO (Elo 1256.1, 63.1\% di vittorie). L'analisi di ablazione rivela inoltre come il filtro Bayesiano riduca l'entropia di Shannon da 3.84 a 0.42 bit in 15 turni, sopprimendo l'errore di \textit{Strategy Fusion} nel tree search.
 \end{abstract}
 
 \vspace{0.5cm}
@@ -45,7 +45,7 @@ La presa di decisione sequenziale in condizioni di incertezza e informazione inc
 
 In \textit{Ticket to Ride}, due o più contendenti agiscono su una rete ferroviaria $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ con l'obiettivo di collegare coppie riservate di città (\textit{biglietti di destinazione}) e accumulare punteggio rivendicando tratte. L'ambiente è un POMDP intrinseco: le carte vagone pescate e i biglietti obiettivo degli avversari sono rigorosamente celati. Rivelare prematuramente le proprie intenzioni tramite tratte intermedie espone al blocco tattico dell'avversario; viceversa, fallire il completamento di un biglietto comporta una severa penalizzazione in punti negativi al termine della partita.
 
-Il presente capitolo risponde formalmente a quattro domande di ricerca ($RQ_1$--$RQ_4$):
+Il presente studio risponde formalmente a quattro domande di ricerca ($RQ_1$--$RQ_4$):
 \begin{enumerate}
     \item[$\mathbf{RQ_1}$] (\textit{Memoria Neurale Implicita vs. Esplicita}): In che misura una policy ricorrente con memoria LSTM supera una policy priva di stato interno nell'inferire strategie latenti in ambiente POMDP?
     \item[$\mathbf{RQ_2}$] (\textit{Risoluzione della Strategy Fusion}): L'integrazione di un filtro Bayesiano basato sull'analisi dei detour su grafo elimina le patologie di determinizzazione casuale nell'Information-Set MCTS~\cite{cowling2012information}?
