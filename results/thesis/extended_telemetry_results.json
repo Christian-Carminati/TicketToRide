@@ -1,0 +1,2282 @@
+{
+  "summary": {
+    "total_matches": 80,
+    "elapsed_seconds": 72.12652405900008,
+    "synergy_stats": {
+      "high_synergy_winrate": 1.0,
+      "low_synergy_winrate": 0.4936708860759494,
+      "sample_high": 2,
+      "sample_low": 158
+    },
+    "hoarding_stats": {
+      "patient_mean_blocks_suffered": 0.0,
+      "rush_mean_blocks_suffered": 1.3481012658227849,
+      "sample_patient": 0,
+      "sample_rush": 158
+    },
+    "midgame_ticket_draws": {
+      "total_midgame_draws": 89,
+      "draws_abundant_trains_count": 73,
+      "draws_scarce_trains_count": 16,
+      "draws_when_all_completed_pct": 0.0449438202247191
+    },
+    "top_contended_chokepoints": [
+      {
+        "route_id": "r_78_pit_new",
+        "cities": "Pittsburgh--New York",
+        "contention_count": 427,
+        "claimed_count": 54
+      },
+      {
+        "route_id": "r_68_st._pit",
+        "cities": "St. Louis--Pittsburgh",
+        "contention_count": 320,
+        "claimed_count": 9
+      },
+      {
+        "route_id": "r_40_kan_st.",
+        "cities": "Kansas City--St. Louis",
+        "contention_count": 319,
+        "claimed_count": 51
+      },
+      {
+        "route_id": "r_38_oma_kan",
+        "cities": "Omaha--Kansas City",
+        "contention_count": 261,
+        "claimed_count": 74
+      },
+      {
+        "route_id": "r_42_kan_okl",
+        "cities": "Kansas City--Oklahoma City",
+        "contention_count": 240,
+        "claimed_count": 75
+      },
+      {
+        "route_id": "r_55_san_okl",
+        "cities": "Santa Fe--Oklahoma City",
+        "contention_count": 229,
+        "claimed_count": 23
+      },
+      {
+        "route_id": "r_58_den_kan",
+        "cities": "Denver--Kansas City",
+        "contention_count": 163,
+        "claimed_count": 6
+      },
+      {
+        "route_id": "r_97_new_mon",
+        "cities": "New York--Montreal",
+        "contention_count": 99,
+        "claimed_count": 11
+      },
+      {
+        "route_id": "r_21_hel_den",
+        "cities": "Helena--Denver",
+        "contention_count": 98,
+        "claimed_count": 15
+      },
+      {
+        "route_id": "r_69_st._chi",
+        "cities": "St. Louis--Chicago",
+        "contention_count": 94,
+        "claimed_count": 40
+      }
+    ]
+  },
+  "synergy_records": [
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.25,
+      "final_score": -4,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.046511627906976716,
+      "final_score": 10,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.04878048780487809,
+      "final_score": 12,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0625,
+      "final_score": 2,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 112,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 6,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": -4,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 87,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.24137931034482762,
+      "final_score": 96,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 8,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.08333333333333337,
+      "final_score": 23,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.19047619047619047,
+      "final_score": 82,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.11764705882352944,
+      "final_score": 89,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.2857142857142857,
+      "final_score": 21,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 19,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 7,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 71,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.05882352941176472,
+      "final_score": 32,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.05882352941176472,
+      "final_score": 9,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 108,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 57,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 21,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.08695652173913049,
+      "final_score": 43,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.07692307692307687,
+      "final_score": 20,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 84,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.04878048780487809,
+      "final_score": 2,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.16129032258064513,
+      "final_score": 26,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.19047619047619047,
+      "final_score": 89,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 74,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.06666666666666665,
+      "final_score": 24,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 38,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 99,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0444444444444444,
+      "final_score": -9,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 25,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.24137931034482762,
+      "final_score": 90,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.125,
+      "final_score": 78,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.06896551724137934,
+      "final_score": 23,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "synergy_index": 0.0,
+      "final_score": 5,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.08695652173913049,
+      "final_score": 87,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 81,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.22580645161290325,
+      "final_score": -6,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 72,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.3157894736842105,
+      "final_score": 68,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.22580645161290325,
+      "final_score": 88,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 83,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.09523809523809523,
+      "final_score": 109,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.11111111111111116,
+      "final_score": 62,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.11764705882352944,
+      "final_score": 89,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 69,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 62,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.22580645161290325,
+      "final_score": 112,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 30,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 106,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.08695652173913049,
+      "final_score": -2,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 95,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.2272727272727273,
+      "final_score": 23,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 114,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 110,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 67,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.07692307692307687,
+      "final_score": 34,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 30,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 128,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 18,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 102,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 63,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 88,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.26315789473684215,
+      "final_score": 67,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.11111111111111116,
+      "final_score": 92,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 17,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 65,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.36363636363636365,
+      "final_score": 88,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 99,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 84,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 114,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 51,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.25,
+      "final_score": 15,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.0,
+      "final_score": 133,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "synergy_index": 0.09090909090909094,
+      "final_score": 91,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 113,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 82,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -39,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": 38,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 92,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 101,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -54,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0714285714285714,
+      "final_score": 91,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 120,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -184,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -53,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 59,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 112,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -21,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.08333333333333337,
+      "final_score": -172,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.19047619047619047,
+      "final_score": 82,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 103,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -116,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "synergy_index": 0.0,
+      "final_score": -28,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "synergy_index": 0.0,
+      "final_score": 89,
+      "is_win": 1
+    }
+  ],
+  "hoarding_records": [
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 2,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 6,
+      "first_claim_hand": 6,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 5,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 2,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 2,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 2,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 5,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 6,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 5,
+      "is_win": 0
+    },
+    {
+      "agent": "Greedy_Score",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 10,
+      "first_claim_hand": 8,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 6,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 2,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 6,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 4,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 6,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 7,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 1,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 7,
+      "first_claim_hand": 6,
+      "blocked_routes_experienced": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 5,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 8,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 1,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 5,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 3,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 12,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 6,
+      "first_claim_hand": 5,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 7,
+      "first_claim_hand": 6,
+      "blocked_routes_experienced": 4,
+      "is_win": 0
+    },
+    {
+      "agent": "Random_Baseline",
+      "first_claim_turn": 3,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 5,
+      "is_win": 0
+    },
+    {
+      "agent": "Strategic_Dijkstra",
+      "first_claim_turn": 4,
+      "first_claim_hand": 4,
+      "blocked_routes_experienced": 0,
+      "is_win": 1
+    }
+  ],
+  "midgame_draw_records": [
+    {
+      "agent": "Random_Baseline",
+      "turn": 82,
+      "trains_remaining": 21,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 83
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 101,
+      "trains_remaining": 17,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 83
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 104,
+      "trains_remaining": 17,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 83
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 72,
+      "trains_remaining": 25,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 84
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 46,
+      "trains_remaining": 31,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 85
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 75,
+      "trains_remaining": 24,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 85
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 81,
+      "trains_remaining": 24,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 85
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 111,
+      "trains_remaining": 16,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 85
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 30,
+      "trains_remaining": 37,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 86
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 10,
+      "trains_remaining": 41,
+      "hand_size": 0,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 50,
+      "trains_remaining": 33,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 56,
+      "trains_remaining": 31,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 59,
+      "trains_remaining": 31,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 70,
+      "trains_remaining": 31,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 91,
+      "trains_remaining": 25,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 108,
+      "trains_remaining": 20,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 122,
+      "trains_remaining": 18,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 87
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 83,
+      "trains_remaining": 19,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 88
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 91,
+      "trains_remaining": 19,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 88
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 115,
+      "trains_remaining": 13,
+      "hand_size": 11,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 88
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 124,
+      "trains_remaining": 10,
+      "hand_size": 10,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 88
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 20,
+      "trains_remaining": 39,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 89
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 111,
+      "trains_remaining": 13,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 89
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 5,
+      "trains_remaining": 44,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 22,
+      "trains_remaining": 40,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 30,
+      "trains_remaining": 38,
+      "hand_size": 0,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 34,
+      "trains_remaining": 38,
+      "hand_size": 0,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 37,
+      "trains_remaining": 38,
+      "hand_size": 0,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 45,
+      "trains_remaining": 38,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 52,
+      "trains_remaining": 38,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 56,
+      "trains_remaining": 38,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 85,
+      "trains_remaining": 28,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 89,
+      "trains_remaining": 28,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 121,
+      "trains_remaining": 20,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 90
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 9,
+      "trains_remaining": 43,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 91
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 37,
+      "trains_remaining": 37,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 91
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 50,
+      "trains_remaining": 33,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 91
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 58,
+      "trains_remaining": 33,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 91
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 62,
+      "trains_remaining": 33,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 91
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 11,
+      "trains_remaining": 41,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 92
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 44,
+      "trains_remaining": 33,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 92
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 84,
+      "trains_remaining": 21,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 92
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 78,
+      "trains_remaining": 24,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 93
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 85,
+      "trains_remaining": 24,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 93
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 103,
+      "trains_remaining": 18,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 93
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 111,
+      "trains_remaining": 16,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.125,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 93
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 78,
+      "trains_remaining": 21,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 94
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 141,
+      "trains_remaining": 4,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 94
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 31,
+      "trains_remaining": 37,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 95
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 93,
+      "trains_remaining": 21,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 95
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 99,
+      "trains_remaining": 19,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 95
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 102,
+      "trains_remaining": 19,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 95
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 109,
+      "trains_remaining": 17,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 95
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 18,
+      "trains_remaining": 39,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 96
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 57,
+      "trains_remaining": 29,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 96
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 79,
+      "trains_remaining": 25,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 96
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 113,
+      "trains_remaining": 16,
+      "hand_size": 11,
+      "completed_tickets_ratio": 0.2857142857142857,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 96
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 105,
+      "trains_remaining": 12,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 97
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 17,
+      "trains_remaining": 40,
+      "hand_size": 1,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 98
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 77,
+      "trains_remaining": 24,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 98
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 107,
+      "trains_remaining": 16,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 98
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 110,
+      "trains_remaining": 16,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 98
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 28,
+      "trains_remaining": 37,
+      "hand_size": 2,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 46,
+      "trains_remaining": 32,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 92,
+      "trains_remaining": 20,
+      "hand_size": 7,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 118,
+      "trains_remaining": 13,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.09090909090909091,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 121,
+      "trains_remaining": 13,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.07692307692307693,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 141,
+      "trains_remaining": 7,
+      "hand_size": 8,
+      "completed_tickets_ratio": 0.07142857142857142,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 99
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 54,
+      "trains_remaining": 28,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 100
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 69,
+      "trains_remaining": 24,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 100
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 97,
+      "trains_remaining": 18,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 100
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 122,
+      "trains_remaining": 12,
+      "hand_size": 5,
+      "completed_tickets_ratio": 0.14285714285714285,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 100
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 129,
+      "trains_remaining": 10,
+      "hand_size": 3,
+      "completed_tickets_ratio": 0.2222222222222222,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 100
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 12,
+      "trains_remaining": 43,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 101
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 81,
+      "trains_remaining": 23,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 101
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 85,
+      "trains_remaining": 23,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 101
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 100,
+      "trains_remaining": 21,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 1,
+      "game_seed": 101
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 19,
+      "trains_remaining": 41,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 78,
+      "trains_remaining": 23,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 121,
+      "trains_remaining": 11,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 125,
+      "trains_remaining": 11,
+      "hand_size": 4,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 133,
+      "trains_remaining": 11,
+      "hand_size": 6,
+      "completed_tickets_ratio": 0.0,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 156,
+      "trains_remaining": 8,
+      "hand_size": 11,
+      "completed_tickets_ratio": 0.08333333333333333,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 160,
+      "trains_remaining": 8,
+      "hand_size": 11,
+      "completed_tickets_ratio": 0.07142857142857142,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "Random_Baseline",
+      "turn": 175,
+      "trains_remaining": 6,
+      "hand_size": 13,
+      "completed_tickets_ratio": 0.125,
+      "all_current_completed": false,
+      "player_index": 0,
+      "game_seed": 102
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "turn": 63,
+      "trains_remaining": 25,
+      "hand_size": 5,
+      "completed_tickets_ratio": 1.0,
+      "all_current_completed": true,
+      "player_index": 1,
+      "game_seed": 107
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "turn": 50,
+      "trains_remaining": 30,
+      "hand_size": 4,
+      "completed_tickets_ratio": 1.0,
+      "all_current_completed": true,
+      "player_index": 1,
+      "game_seed": 119
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "turn": 70,
+      "trains_remaining": 22,
+      "hand_size": 6,
+      "completed_tickets_ratio": 1.0,
+      "all_current_completed": true,
+      "player_index": 1,
+      "game_seed": 121
+    },
+    {
+      "agent": "ISMCTS_10Sims",
+      "turn": 58,
+      "trains_remaining": 27,
+      "hand_size": 4,
+      "completed_tickets_ratio": 1.0,
+      "all_current_completed": true,
+      "player_index": 0,
+      "game_seed": 122
+    }
+  ]
+}
