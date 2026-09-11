@@ -10,6 +10,7 @@ from src.agents.neural_mcts_agent import NeuralMCTSAgent, OpponentAwareMCTSAgent
 from src.agents.ppo_agent import PPOAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.recurrent_ppo_agent import RecurrentPPOAgent
+from src.agents.steiner_agent import SteinerTreeAgent
 from src.agents.strategic_agent import StrategicAgent, StrategicHeuristicAgent
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "PPOAgent",
     "RandomAgent",
     "RecurrentPPOAgent",
+    "SteinerTreeAgent",
     "StrategicAgent",
     "StrategicHeuristicAgent",
 ]

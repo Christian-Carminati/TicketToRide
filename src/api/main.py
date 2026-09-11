@@ -276,6 +276,16 @@ def list_reports() -> list[ReportItemDTO]:
     return report_service.list_reports()
 
 
+@app.get("/api/reports/telemetry/chokepoints")
+def get_telemetry_chokepoints() -> dict[str, Any]:
+    summary = report_service.get_extended_telemetry_summary()
+    if not summary:
+        raise HTTPException(
+            status_code=404, detail="Dati di telemetria estesa non trovati. Esegui prima scripts/collect_extended_telemetry.py."
+        )
+    return summary
+
+
 @app.get("/api/reports/{filename}", response_model=ReportDetailDTO)
 def get_report(filename: str) -> ReportDetailDTO:
     report = report_service.get_report(filename)

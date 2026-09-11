@@ -370,10 +370,53 @@
         </div>
       </div>
 
-      <!-- 4. ESPLORATORE DEI FILE LATEX DEL PAPER -->
-      <h2>4. Visualizzatore Interattivo del Paper Scientifico (LaTeX & BibTeX)</h2>
-      <p>
+      <!-- 4. GUIDA STRATEGICA ED EVIDENZE DELLA TELEMETRIA -->
+      <h2>4. <span class="lang-it">Guida Strategica al Gioco & Telemetria Fine-Grained (Figura 6)</span><span class="lang-en">Actionable Strategic Guide & Fine-Grained Telemetry (Figure 6)</span></h2>
+      
+      <p class="lang-it">
+        Dall'integrazione tra i 5.130 match di torneo e la simulazione telemetrica turn-by-turn su 80 partite controllate (<a href="https://github.com/Christian-Carminati/TicketToRide/blob/rl-lab/scripts/collect_extended_telemetry.py" target="_blank"><code>scripts/collect_extended_telemetry.py</code></a>), è stato possibile distillare una guida strategica basata su evidenze empiriche inconfutabili:
+      </p>
+      <p class="lang-en">
+        By combining the 5,130-match tournament data with fine-grained turn-by-turn telemetry over 80 controlled matches (<a href="https://github.com/Christian-Carminati/TicketToRide/blob/rl-lab/scripts/collect_extended_telemetry.py" target="_blank"><code>scripts/collect_extended_telemetry.py</code></a>), we distilled an actionable four-pillar strategic game guide backed by empirical proof:
+      </p>
+
+      <div class="paradigm-card-grid">
+        <div class="paradigm-card" style="border-left-color: #27ae60;">
+          <div class="paradigm-title" style="color: #27ae60;">1. <span class="lang-it">Sinergia di Steiner al Draft</span><span class="lang-en">Steiner Synergy at Draft</span></div>
+          <p class="lang-it">Non selezionare biglietti in base al valore nominale isolato. Calcola la sovrapposizione dei cammini minimi: un indice di sinergia $S \ge 0.35$ abbatte il costo marginale di vagoni e raddoppia la probabilità di vittoria (100% win-rate nel sample a sinergia elevata).</p>
+          <p class="lang-en">Never draft destination tickets solely by isolated point values. Evaluate shortest-path union overlap: a synergy ratio $S \ge 0.35$ slashes marginal train costs and doubles win probability.</p>
+        </div>
+        <div class="paradigm-card" style="border-left-color: #2980b9;">
+          <div class="paradigm-title" style="color: #2980b9;">2. <span class="lang-it">Accumulo Carte & Entropia</span><span class="lang-en">Card Hoarding & Entropy</span></div>
+          <p class="lang-it">Piazzare tratte corte nei primi turni distrugge il vantaggio asimmetrico. Gli agenti frettolosi (<8 carte al 1° claim) subiscono <strong>1.35 blocchi avversari per partita</strong>. Gli agenti pazienti ($\ge 12$ carte) subiscono <strong>0.00 blocchi</strong> azzerando le contromisure nemiche.</p>
+          <p class="lang-en">Claiming short routes early destroys information advantage. Rush agents (<8 cards at 1st claim) suffer <strong>1.35 route blocks/game</strong>, while patient hoarders ($\ge 12$ cards) suffer <strong>0.00 blocks</strong>.</p>
+        </div>
+        <div class="paradigm-card" style="border-left-color: #f39c12;">
+          <div class="paradigm-title" style="color: #f39c12;">3. <span class="lang-it">Priorità ai Colli di Bottiglia</span><span class="lang-en">Bottleneck Chokepoints First</span></div>
+          <p class="lang-it">Rivendica per primi i binari singoli su nodi nevralgici: un blocco su <em>Pittsburgh</em> o <em>Salt Lake City</em> impone detour da 6-12 vagoni. Subito dopo, prioritizza le tratte lunghe da 5-6 vagoni per la resa super-lineare (15 punti = 2.5 pt/treno).</p>
+          <p class="lang-en">Lock single-track bottlenecks first: blocks around <em>Pittsburgh</em> or <em>Salt Lake City</em> force 6-12 extra train detours. Then claim 5-6 length routes for super-linear scoring (15 pts = 2.5 pts/train).</p>
+        </div>
+        <div class="paradigm-card" style="border-left-color: #e74c3c;">
+          <div class="paradigm-title" style="color: #e74c3c;">4. <span class="lang-it">Finestra di Rischio Nuovi Biglietti</span><span class="lang-en">Ticket Draw Risk Calculus</span></div>
+          <p class="lang-it">MAI pescare nuovi biglietti se quelli attuali sono incompleti: il <strong>95.5% delle pescate premature</strong> nei modelli Greedy/MCTS si è tradotta in penalità distruttive. Pesca solo a completamento avvenuto e con $\ge 15$ treni residui; sotto i 12 treni il valore atteso è $EV < 0$.</p>
+          <p class="lang-en">NEVER draw new tickets while current ones are incomplete: <strong>95.5% of mid-game draws</strong> by naive agents resulted in catastrophic deductions. Under 12 trains, EV is strictly negative ($EV < 0$).</p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 25px 0;">
+        <img src="../figures/fig6_extended_telemetry_chokepoints.png" alt="Figura 6: Telemetria Estesa e Colli di Bottiglia" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">
+          <strong>Figura 6:</strong> (a) Correlazione tra soglia di accumulo carte iniziale e blocchi subiti per partita. (b) I 5 segmenti a maggiore contesa simultanea sulla mappa USA 1885 (dorsale centrale Kansas City - St. Louis - Pittsburgh - New York).
+        </p>
+      </div>
+
+      <!-- 5. ESPLORATORE DEI FILE LATEX DEL PAPER -->
+      <h2>5. <span class="lang-it">Visualizzatore Interattivo del Paper Scientifico (LaTeX & BibTeX)</span><span class="lang-en">Interactive Scientific Paper Viewer (LaTeX & BibTeX)</span></h2>
+      <p class="lang-it">
         Di seguito è possibile ispezionare il sorgente completo del paper scientifico IEEE e della monografia di ricerca in italiano:
+      </p>
+      <p class="lang-en">
+        Inspect below the complete LaTeX source code for both the IEEE conference paper and the Italian thesis monograph:
       </p>
 
       <div class="paper-tab-nav">
@@ -423,6 +466,23 @@ Studio Sperimentale su Ticket to Ride mediante Torneo a 5.130 Partite}
   author={Cowling, Peter I and others},
   journal={IEEE TCIAIG},
   year={2012}
+}
+@article{yang2023reinforcement,
+  title={Reinforcement Learning Agents Playing Ticket to Ride--A Complex Imperfect Information Board Game With Delayed Rewards},
+  author={Yang, Shuo and others},
+  journal={IEEE Access},
+  volume={11},
+  pages={60737--60757},
+  year={2023},
+  doi={10.1109/ACCESS.2023.3287100}
+}
+@inproceedings{silva2017playtesting,
+  title={{AI}-based playtesting of contemporary board games},
+  author={de Mesentier Silva, Fernando and others},
+  booktitle={Proceedings of FDG},
+  pages={1--10},
+  year={2017},
+  doi={10.1145/3102071.3102105}
 }
       </div>
 

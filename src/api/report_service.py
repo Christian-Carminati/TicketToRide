@@ -38,6 +38,8 @@ class ReportService:
             return "🏆 Report Ufficiale Torneo 5.130 Partite (10x)"
         if "tournament_results" in fn_lower:
             return "📦 Dati Matrice Torneo 5.130 Partite (JSON)"
+        if "extended_telemetry" in fn_lower:
+            return "🛰️ Telemetria Strategica Avanzata & Colli di Bottiglia (JSON)"
         if "training_summary" in fn_lower:
             return "📈 Riepilogo Training 1M Step (JSON)"
         if "reward_research.md" in fn_lower:
@@ -206,3 +208,20 @@ class ReportService:
             return True
         except Exception:
             return False
+
+    def get_extended_telemetry_summary(self) -> dict[str, Any] | None:
+        """Loads and returns summary metrics from extended_telemetry_results.json."""
+        candidates = [
+            Path("results/thesis/extended_telemetry_results.json"),
+            Path("results/extended_telemetry_results.json"),
+            Path("extended_telemetry_results.json"),
+        ]
+        for p in candidates:
+            if p.exists():
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    return data.get("summary")
+                except Exception:
+                    continue
+        return None
